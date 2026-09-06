@@ -34,13 +34,22 @@ class ScanVerdict:
 
 
 _REASON_LABELS = {
-    "missing_price": ("preco atual indisponivel no data hub", "latest price unavailable from data hub"),
+    "missing_price": (
+        "preco atual indisponivel no data hub",
+        "latest price unavailable from data hub",
+    ),
     "missing_liquidity": ("liquidez abaixo do minimo", "liquidity below minimum"),
     "missing_catalyst": ("sem catalisador verificavel", "no verifiable catalyst"),
     "missing_thesis": ("sem tese de curto prazo", "no short-term thesis"),
-    "stage_abandoned": ("preco nao deu tempo de chegar", "price enrich abandoned at stage deadline"),
+    "stage_abandoned": (
+        "preco nao deu tempo de chegar",
+        "price enrich abandoned at stage deadline",
+    ),
     "enrich_timeout": ("timeout ao buscar preco", "price enrich timed out"),
-    "price_above_requested_max": ("preco acima do teto solicitado", "price above requested maximum"),
+    "price_above_requested_max": (
+        "preco acima do teto solicitado",
+        "price above requested maximum",
+    ),
 }
 
 

@@ -97,7 +97,9 @@ def test_ibkr_is_degraded_returns_false_when_healthy():
     service._connected = True  # Connected
     service._cooldown_until = 0  # No cooldown
 
-    assert service.is_degraded() is False, "is_degraded() should return False when service is healthy"
+    assert service.is_degraded() is False, (
+        "is_degraded() should return False when service is healthy"
+    )
 
 
 def test_ibkr_cache_returned_when_degraded():
@@ -178,12 +180,17 @@ def test_cockpit_passes_zero_wait_timeout():
         "positions_count": 0,
     }
 
-    with patch("adapters.broker.get_ibkr_service", return_value=mock_service), \
-         patch("core.mission_context.mission_health_summary", return_value={}), \
-         patch("core.mission_context.get_mission_equity", return_value=100000.0), \
-         patch("src.agent_server.endpoints._cockpit_ibkr_open_orders", return_value=[]), \
-         patch("src.agent_server.endpoints._cockpit_local_order_tickets", return_value=[]), \
-         patch("src.agent_server.endpoints._cockpit_trade_history", return_value={"count": 0, "trades": [], "stats": {}}):
+    with (
+        patch("adapters.broker.get_ibkr_service", return_value=mock_service),
+        patch("core.mission_context.mission_health_summary", return_value={}),
+        patch("core.mission_context.get_mission_equity", return_value=100000.0),
+        patch("src.agent_server.endpoints._cockpit_ibkr_open_orders", return_value=[]),
+        patch("src.agent_server.endpoints._cockpit_local_order_tickets", return_value=[]),
+        patch(
+            "src.agent_server.endpoints._cockpit_trade_history",
+            return_value={"count": 0, "trades": [], "stats": {}},
+        ),
+    ):
         from src.agent_server.endpoints import _cockpit_portfolio_snapshot
 
         _cockpit_portfolio_snapshot()

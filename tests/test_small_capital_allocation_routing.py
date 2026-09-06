@@ -12,8 +12,7 @@ from src.core.pipeline.nodes.agent import _contract_fallback_answer, _market_sca
 from src.core.pipeline.prompts.builder import build_agent_prompt
 
 OPERATOR_CAD100 = (
-    "cara eu tenho 100 cad para investir o que vc me suugere , "
-    "quero risco alto e maximo de retorno"
+    "cara eu tenho 100 cad para investir o que vc me suugere , quero risco alto e maximo de retorno"
 )
 MINI_CAP = "vamos investir 100 cad segunda , escolhe mini cap"
 

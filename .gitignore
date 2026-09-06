@@ -196,3 +196,6 @@ F51-Nitro-MoE/build_worktrees/
 scratch/
 .playwright-mcp/
 llama.cpp-source/
+
+# Launcher process identity (machine state)
+runtime/api-process.json
