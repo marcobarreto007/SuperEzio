@@ -19,7 +19,10 @@ a = Analysis(
     [str(root / "scripts" / "desktop_backend.py")],
     pathex=[str(src), str(root)],
     binaries=[],
-    datas=[(str(root / name), name) for name in ("config", "frontend", "templates")],
+    datas=[(str(root / name), name) for name in ("frontend", "templates")]
+        + [(str(p), "config") for p in (root / "config").glob("*")
+           if p.is_file() and p.name != "mission_context.json"]
+        + [(str(root / "desktop" / "defaults" / "mission_context.json"), "config")],
     hiddenimports=hidden,
     hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=["torch", "transformers", "sentence_transformers", "peft", "faiss",
