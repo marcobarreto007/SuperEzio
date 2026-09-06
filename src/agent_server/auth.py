@@ -38,7 +38,11 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 _pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-_AUTH_DB_DIR = Path(__file__).resolve().parent.parent.parent / "runtime"
+_AUTH_DB_DIR = (
+    Path(os.environ["SUPEREZIO_DESKTOP_DATA_DIR"]).resolve()
+    if os.getenv("SUPEREZIO_DESKTOP_DATA_DIR")
+    else Path(__file__).resolve().parent.parent.parent
+) / "runtime"
 _AUTH_DB_PATH = _AUTH_DB_DIR / "auth.db"
 
 # ---------------------------------------------------------------------------

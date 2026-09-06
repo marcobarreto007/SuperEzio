@@ -32,7 +32,8 @@
     "extraResources": [
       {
         "from": "../dist/desktop-backend/SuperEzioBackend",
-        "to": "backend"
+        "to": "backend",
+        "filter": ["**/*", "!runtime/**", "!data/**", "!journal/**", "!**/*.db", "!**/*.db-*", "!**/*.log", "!**/.env*"]
       }
     ],
     "win": {
