@@ -70,7 +70,8 @@ $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-Linux/macOS: `./setup_superezio.sh run` launches the API in the foreground.
+The client release is validated on Windows. The source repository also contains
+`setup_superezio.sh`; Linux/macOS are not included in this release validation.
 
 ## Healthchecks
 
