@@ -10,6 +10,16 @@
 - [x] Suíte completa: 2346 passed, 9 skipped, 1 deselected. Distribuição exclui archive/deprecated/legacy e dados do operador; documentação e startup legados substituídos.
 - [x] Pacote Windows com manifesto/checksum; relatório docs/CLIENT_DELIVERY_2026-09-05.md e checkpoint final. Runtime corrigido em :8002. Dinheiro real continua bloqueado.
 
+## Pacote Electron Windows — 2026-09-05
+
+- [x] Shell Electron com sandbox, isolamento de contexto e sem Node no renderer.
+- [x] Configuração inicial com chaves cifradas pelo Windows, separadas do instalador.
+- [x] Backend PyInstaller incluído: cliente dispensa Python e Node.
+- [x] Smoke Electron empacotado: health ok, interface presente, require indisponível.
+- [x] Atalho SuperEzio Desktop criado na área de trabalho.
+- [ ] Recompilação final com banco de autenticação no perfil do cliente.
+- [ ] Teste do instalador, checksums e checkpoint final.
+
 ## Backlog
 
 - [x] 2026-09-05 - **Evidências E2E de atendimento ao cliente final (planejador financeiro e resposta TD.TO)**: Registro das evidências de interação visual e conversacional do cliente final (`cliente-final-inicio.md`, `cliente-final-1-resposta.png`, `cliente-final-2-planejador.png`). Resposta em português de alto nível para consulta de alocação pessoal (CAD 25.000, reserva de emergência vs ETFs de índice) e telemetria operacional com F51/SDCA preservando o papel consultivo sem ordem direta. Memória conversacional e pain log persistidos. 12/12 testes de contrato passando e ruff limpo. Checkpoint `latest.json`.
