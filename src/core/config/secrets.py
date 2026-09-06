@@ -22,6 +22,8 @@ from pathlib import Path
 
 def _find_project_root() -> Path:
     """Locate project root via known marker files."""
+    if os.getenv("SUPEREZIO_DESKTOP_DATA_DIR"):
+        return Path(os.environ["SUPEREZIO_DESKTOP_DATA_DIR"]).resolve()
     candidates = [
         Path(__file__).resolve().parent.parent.parent.parent,  # src/core/config -> root
     ]

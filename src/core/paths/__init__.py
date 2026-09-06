@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
 def find_project_root(start: str | Path | None = None) -> Path:
     """Find the repository root from a file, package directory, or cwd."""
+    if os.getenv("SUPEREZIO_DESKTOP_DATA_DIR"):
+        return Path(os.environ["SUPEREZIO_DESKTOP_DATA_DIR"]).resolve()
     current = Path(start or __file__).resolve()
     if current.is_file():
         current = current.parent
