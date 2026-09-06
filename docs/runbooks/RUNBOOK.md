@@ -1,10 +1,9 @@
 # Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-08-21
+Updated: 2026-09-05
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
-Model policy: CLOUD MODEL APIs — CEO/orchestrator use Z.ai GLM-5.3 (or DeepSeek V4 Pro)
-via HTTPS API; financial experts, judge, and auditor use the official DeepSeek HTTPS API.
-No local model server (:8080) is required.
+Model policy: external cloud APIs only. DeepSeek V4 Pro serves Bob and the
+orchestrator; DeepSeek V4 Flash serves experts, judge, and auditor.
 
 Version boundary: Python package and public API `4.0.0`; runtime configuration and model manifest `4.2.0`.
 
@@ -16,77 +15,76 @@ SuperEzio has one official local runtime process for the product:
 | --- | --- | --- | --- |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
 
-External dependencies:
-- Z.ai Coding Plan API (`https://api.z.ai/api/coding/paas/v4`) for Bob CEO / orchestrator (`glm-5.3`).
-- Official DeepSeek API (`https://api.deepseek.com`) for financial experts, day-trade judge, and auditor (`deepseek-v4-pro`).
-Store keys (`SUPEREZIO_GLM_CODING_PLAN_API_KEY`, `SUPEREZIO_DEEPSEEK_API_KEY`) only in ignored local environment files (`.env.local`).
+External dependency: official DeepSeek HTTPS API (`https://api.deepseek.com`).
+Store `SUPEREZIO_DEEPSEEK_API_KEY` only in ignored local environment files
+(`.env.local`) or the process environment. Never print or commit credentials.
 
 Official config file: `config/runtime.yml`.
 
 Current official model routing:
 
-- `agent`: Z.ai Coding Plan endpoint (`https://api.z.ai/api/coding/paas/v4`, model `glm-5.3`) running the CEO prompt/mandamentos, or official DeepSeek API (`deepseek-v4-pro`).
-- `local_orchestrator`: orchestrator route using the same cloud model.
-- `deepseek`: financial experts pinned to `deepseek-v4-pro` at `https://api.deepseek.com`.
-- `daytrade_judge` and `daytrade_auditor`: independently pinned DeepSeek roles using the same authenticated external endpoint.
-- Missing/invalid cloud configuration fails closed (MAN_AT_WORK).
+- `agent`: `deepseek-v4-pro` for Bob's investment-assistant responses.
+- `local_orchestrator`: historical provider identifier, now routed to cloud `deepseek-v4-pro`.
+- `deepseek`: financial experts use `deepseek-v4-flash`.
+- `daytrade_judge` and `daytrade_auditor`: separate roles using `deepseek-v4-flash`.
+- Missing/invalid cloud configuration fails closed; no local model installation is required.
 
 Official Windows launcher: `start.ps1`, invoked directly or through `setup_superezio.bat run`.
 
-## Manual Start
+## Start and Stop
 
-### Production Mode (100% Cloud Models)
-From the project root, start the API server directly (models are served via external HTTPS APIs):
+From the project root on Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1
+```
+
+`start.ps1` launches only the API, waits for liveness and opens the browser.
+`-SkipBrowser` suppresses the browser. `-HealthTimeoutMinutes` controls the wait
+(default 6). A successful launch confirms API liveness, not authenticated model
+inference or market-data coverage.
+
+For isolated validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1 -SkipBrowser -IsolatedValidation
+```
+
+Validation uses separate storage under `runtime/validation`, disables scanning,
+and freezes execution. It still uses the configured API port and fails if occupied.
+Stop a process started by this launcher with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File stop.ps1
+```
+
+The launcher records `runtime/api-process.json`; stop checks both PID and process
+start time before terminating it. It never kills an arbitrary port owner. Processes
+started manually must be stopped through their owning terminal or supervisor.
+
+For a foreground launch (stop with Ctrl+C):
 
 ```powershell
 $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-Before starting, configure your cloud secrets in `.env.local` (never commit it):
-
-```ini
-SUPEREZIO_DEEPSEEK_API_KEY=your-deepseek-api-key
-SUPEREZIO_GLM_CODING_PLAN_API_KEY=your-zai-api-key
-```
-
-### Standby / Historical Local Serving Profile (Optional)
-If testing or running the legacy local model server on `:8080`:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
-```
-
-For launcher validation without starting servers:
-
-```powershell
-# Validate config integrity
-python -c "import yaml; cfg=yaml.safe_load(open('config/runtime.yml')); print('[OK] Config valid')"
-# Validate model script exists
-Test-Path scripts\serve_agent_llamacpp.ps1
-```
-
-Expected result: `[OK] Config valid` + `True`.
+Linux/macOS: `./setup_superezio.sh run` launches the API in the foreground.
 
 ## Healthchecks
 
 ```powershell
-curl.exe -fsS http://127.0.0.1:8080/health
-curl.exe -fsS http://127.0.0.1:8080/v1/models
 curl.exe -fsS http://127.0.0.1:8002/health
 curl.exe -fsS http://127.0.0.1:8002/health/details
 ```
 
-Expected:
-
-- CEO `/health`: JSON with `status=ok`.
-- CEO `/v1/models`: OpenAI-compatible model listing.
-- API `/health`: JSON with `status=ok`.
-- API `/health/details`: HTTP 200 only when the local CEO is reachable and the external expert tier is configured; otherwise HTTP 503 with a secret-safe status such as `unconfigured_missing_api_key`.
-
-An open TCP port is not enough. Treat the runtime as healthy only after HTTP health responses pass.
-
-If CEO `/health` fails: the system is expected to be in MAN_AT_WORK mode (no trading orders). Do not point the CEO at DeepSeek as a workaround; restart the local server instead. If DeepSeek readiness fails, validate the key, official base URL, model id, and outbound HTTPS separately; do not redirect experts to Qwen.
+`/health` reports API liveness. `/health/details` reports readiness and returns
+503 when a required provider is unavailable or unconfigured. Inspect the returned
+secret-safe status, then verify provider configuration and outbound HTTPS. Never
+paste credentials into logs or diagnostics. GPU availability is not a cloud-model
+prerequisite. Market-data and broker availability must be evaluated separately
+before relying on an analysis or a simulation.
 
 ## Public API Surface
 
@@ -153,7 +151,7 @@ Integration with live servers:
 python -m pytest tests\test_integration_runtime.py -q
 ```
 
-The integration file skips when CEO/API are not running. A skip is acceptable only when reported as not live-validated.
+The integration file may skip when its required services are not running. A skip is acceptable only when reported as not live-validated.
 
 Quality checks for changed Python/test files:
 
@@ -164,41 +162,23 @@ python -m ruff format --check tests\contracts\test_contract_runtime_official.py 
 
 ## Troubleshooting
 
-### Port 8080 or 8002 already in use
+### API port already in use
 
 ```powershell
-Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
-Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 8002 -State Listen -ErrorAction SilentlyContinue
 ```
 
-Kill individual owners only after confirming the process:
+If the managed application is already running, use `stop.ps1` before restarting.
+If the owner came from another launcher, stop it through that launcher. Do not
+terminate a process merely because it occupies the requested port.
 
-```powershell
-Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq <PID> } | Select-Object ProcessId,CommandLine
-Stop-Process -Id <PID> -Force
-```
+### Cloud provider unavailable
 
-### CEO offline
-
-Check the portable configuration resolved by `config.ps1`:
-
-```powershell
-. .\config.ps1
-Write-SuperEzioConfig
-Test-Path -LiteralPath $ModelPath
-Test-Path -LiteralPath $LlamaServerPath
-powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8080
-```
-
-Then validate:
-
-```powershell
-curl.exe -fsS http://127.0.0.1:8080/health
-curl.exe -fsS http://127.0.0.1:8080/v1/models
-```
-
-Note: the two GPUs cannot hold two llama-server instances. If the port is
-busy with a working cc server, reuse it — do not start a second one.
+Check the configured endpoint/model names in `config/runtime.yml`, provider
+account availability, and `/health/details`. Supply credentials in the local
+configuration without exposing their contents. Restart the managed API after
+changing process environment variables. Do not report readiness until the provider
+checks and a real assistant request succeed.
 
 ### API offline
 

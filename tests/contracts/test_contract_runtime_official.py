@@ -358,14 +358,14 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
 def test_runbook_documents_official_runtime_commands():
     text = RUNBOOK.read_text(encoding="utf-8")
 
-    assert (
-        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080"
-        in text
-    )
+    assert "-File start.ps1" in text
+    assert "-File stop.ps1" in text
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
-    assert "http://127.0.0.1:8080/health" in text
-    assert "http://127.0.0.1:8080/v1/models" in text
+    assert "deepseek-v4-pro" in text
+    assert "deepseek-v4-flash" in text
     assert "http://127.0.0.1:8002/health/details" in text
+    assert "http://127.0.0.1:8080" not in text
+    assert "serve_agent_llamacpp" not in text
     assert "runtime/checkpoints/latest.json" in text
     assert ".f51/GITHUB_POLICY.json" in text

@@ -25,16 +25,20 @@ incorporates the detailed module contracts but does not duplicate them.
 
 | Component | Command | Port | Health URL |
 | --- | --- | --- | --- |
-| Product launcher | `setup_superezio.bat run` -> `start.ps1` | 8080 + 8002 | both URLs below |
-| CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8080` | 8080 | `http://127.0.0.1:8080/health` |
+| Product launcher | `setup_superezio.bat run` -> `start.ps1` | 8002 | `http://127.0.0.1:8002/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The production runtime operates 100% on external cloud model APIs: Z.ai (`https://api.z.ai/api/coding/paas/v4`, `glm-5.3`)
-for Bob CEO / orchestrator, and the official DeepSeek HTTPS API (`https://api.deepseek.com`, `deepseek-v4-pro`)
-for financial experts, day-trade judge, and auditor.
-The local llama.cpp server profile with `Ornith-1.0-9B-Q4_K_M` (~5.9GB) on `:8080` remains documented as a historical/standby reference.
-No cross-provider fallback is permitted. API keys (`SUPEREZIO_DEEPSEEK_API_KEY`, `SUPEREZIO_GLM_CODING_PLAN_API_KEY`)
-are external machine prerequisites stored only in `.env.local`.
+The production runtime uses official DeepSeek HTTPS APIs (`https://api.deepseek.com`):
+`deepseek-v4-pro` for Bob CEO and orchestrator, and `deepseek-v4-flash` for financial
+experts, judge, and auditor. No local inference server or GPU is required.
+`SUPEREZIO_DEEPSEEK_API_KEY` is supplied through ignored local configuration or the
+process environment. No cross-provider fallback is permitted.
+
+`start.ps1` accepts `-SkipBrowser`, `-IsolatedValidation`, and
+`-HealthTimeoutMinutes` (default 6). It refuses occupied API ports. Isolated
+validation separates storage and freezes execution. Launch success proves API
+liveness only. `stop.ps1` terminates only the PID and start time recorded in
+`runtime/api-process.json`; it refuses reused PIDs and leaves other launchers alone.
 
 ## Configuration
 
@@ -46,10 +50,12 @@ are external machine prerequisites stored only in `.env.local`.
 
 ## Health Check Layers
 
-1. CEO server `:8080/health` — HTTP 200
-2. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"4.0.0"}`
-3. API deep `:8002/health/details` — GPU, models, Redis, providers, cost guard; 503 when the local CEO or external expert tier is not ready
-4. DataHub `check_health()` — provider key availability
+1. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"4.0.0"}`
+2. API deep `:8002/health/details` — provider readiness; 503 when required cloud providers are not ready
+3. DataHub `check_health()` — provider key availability
+
+A successful provider configuration check does not substitute for a successful
+real assistant request. Market coverage and data freshness remain separate gates.
 
 Liveness, readiness, market-data state and broker state are separate. An offline
 broker does not make the local research product offline.
