@@ -366,7 +366,6 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     mission = mission_health_summary()
     broker = ((mission.get("broker") or {}).get("ibkr") or {}) if isinstance(mission, dict) else {}
     connection = str(broker.get("connection") or "")
-    connected = broker.get("can_read_account") is True or "connected" in connection
 
     # â”€â”€ Get live data from IBKRService (cached, isolated) â”€â”€
     service = get_ibkr_service()
@@ -378,14 +377,9 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
 
     # Use service status after cache reads; wait_timeout=0.0 nunca bloqueia a resposta.
     connected = service_status.get("connected", False) and service_status.get("can_read", False)
-    from core.mission_context import get_mission_equity
-
-    equity_default = f"{get_mission_equity():.2f}"
-    equity = (
-        f"{equity_float:,.2f}"
-        if equity_float > 0
-        else broker.get("account_equity") or equity_default
-    )
+    # The service uses zero as its unavailable sentinel. Mission capital is a
+    # sizing input, never evidence of the customer's actual account balance.
+    equity = f"{equity_float:.2f}" if connected and equity_float > 0 else None
     positions_count = len(positions)
 
     raw_mode = str(broker.get("mode") or "").lower()
@@ -423,6 +417,7 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "paper": paper,
         "can_submit_orders": can_submit,
         "equity": equity,
+        "equity_source": "ibkr" if equity is not None else "unavailable",
         "cash": broker.get("cash") or None,
         "positions_count": positions_count,
         "positions": positions,
