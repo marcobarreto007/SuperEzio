@@ -960,3 +960,135 @@ async def test_agent_finalizes_directly_after_paper_order_error(monkeypatch):
     assert "Paper Broker Transmission" in result["final"]
     assert "paper order transmission failed" in result["final"]
     assert "port_closed" in result["final"]
+
+
+_SPY_TIP = (
+    "me dá uma dica de investimento agora sobre SPY: tese, direção, "
+    "invalidação, alvo e stop. Sem ordem."
+)
+
+
+@pytest.mark.asyncio
+async def test_investment_tip_with_ticker_forces_full_expert_committee(monkeypatch):
+    """Dica+ticker must wait for auto_full_analysis and invoke every registry role.
+
+    Freeze flags must not skip collector/experts. One expert failure is
+    recorded explicitly and does not cut the rest of the committee.
+    """
+    from src.core.pipeline import graph as graph_module
+    from src.core.pipeline.nodes.experts import EXPERT_ROLES
+
+    events = []
+    invoked: list[str] = []
+    monkeypatch.setattr(graph_module, "get_stream_writer", lambda: events.append)
+    monkeypatch.setenv("SUPEREZIO_LIVE_TRADING_DISABLED", "1")
+    monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")
+    monkeypatch.setenv("SUPEREZIO_RESEARCH_PAPER_ONLY", "1")
+
+    async def fake_collector(state, config=None):
+        return {
+            "data": {
+                "ticker": "SPY",
+                "price": {"latest": 770.19},
+                "fundamentals": {"name": "SPDR S&P 500", "pe_ratio": 28.1},
+                "sentiment": {"sentiment_label": "NEUTRAL", "sentiment_score": 0.1},
+                "social": {"status": "unavailable", "error": "all_providers_failed_for_social"},
+            },
+            "ticker": "SPY",
+            "data_context": "SPY PRICE=770.19",
+        }
+
+    async def fake_expert(state, gateway=None):
+        role = state["role"]
+        invoked.append(role)
+        if role == "sentiment":
+            raise RuntimeError("sentiment_provider_timeout")
+        return {
+            "expert_results": [
+                {"role": role, "ok": True, "response": '{"verdict":"NEUTRAL","confidence":50}'}
+            ]
+        }
+
+    async def fake_collect_experts(state):
+        roles = [item.get("role") for item in state["expert_results"]]
+        assert set(EXPERT_ROLES).issubset(set(roles))
+        assert any(item.get("ok") is False for item in state["expert_results"])
+        return {
+            "expert_summary": "full committee invoked",
+            "expert_consensus": {"decision": "NEUTRAL", "score": 0.0, "weight_coverage": 1.0},
+        }
+
+    async def fake_f51(state):
+        return {"f51_verdict": {"passed": False, "decision_score": 0.779, "confidence": 0.779}}
+
+    async def fake_neural(state):
+        return {"neural_decision": {"status": "abstain", "reason": "TOO_FEW_LABELLED_SAMPLES"}}
+
+    async def fake_sdca(state):
+        return {"sdca_firewall": {"decision": "ALLOW", "confidence": 0.8}}
+
+    async def fake_rag(state):
+        return {"rag_context": "none"}
+
+    monkeypatch.setattr(graph_module, "node_collector", fake_collector)
+    monkeypatch.setattr(graph_module, "node_expert", fake_expert)
+    monkeypatch.setattr(graph_module, "node_collect_experts", fake_collect_experts)
+    monkeypatch.setattr(graph_module, "node_f51_verdict", fake_f51)
+    monkeypatch.setattr(graph_module, "node_neural_decision", fake_neural)
+    monkeypatch.setattr(graph_module, "node_sdca_firewall", fake_sdca)
+    monkeypatch.setattr(graph_module, "node_rag_forensics", fake_rag)
+
+    result = await graph_module._auto_full_analysis(
+        {
+            "run_id": "spy-tip-full-committee",
+            "route": "agent",
+            "intent": "bob_decides",
+            "ticker": "SPY",
+            "message": _SPY_TIP,
+            "errors": [],
+        },
+        gateway="gateway-ok",
+    )
+
+    assert set(invoked) == set(EXPERT_ROLES)
+    assert len(result["expert_results"]) == len(EXPERT_ROLES)
+    failed = [item for item in result["expert_results"] if item.get("ok") is False]
+    assert failed and failed[0]["role"] == "sentiment"
+    assert "sentiment_provider_timeout" in failed[0]["error"]
+    assert result["expert_summary"] == "full committee invoked"
+    assert result["f51_verdict"]["decision_score"] == 0.779
+    assert result["math_report"]["modules"]["f51_unified"]["status"] == "ok"
+    assert result["research_safety"]["live_trading_disabled"] is True
+    assert any(event.get("step") == "auto_full_analysis" for event in events)
+
+
+def test_sentiment_expert_receives_collector_sentiment():
+    from src.core.pipeline.nodes.experts import build_role_context
+
+    context = build_role_context(
+        "sentiment",
+        {
+            "ticker": "SPY",
+            "modules": {
+                "price_series": {"status": "ok", "values": {"latest_price": 770.19}},
+            },
+        },
+        raw_context="ignored",
+        data={"sentiment": {"sentiment_label": "BULLISH", "sentiment_score": 0.42}},
+    )
+    assert "770.19" in context
+    assert "sentiment_label=BULLISH" in context
+    assert "sentiment_score=0.42" in context
+
+
+def test_social_expert_records_explicit_collector_failure():
+    from src.core.pipeline.nodes.experts import build_role_context
+
+    context = build_role_context(
+        "social_forensics",
+        {"ticker": "SPY", "modules": {"price_series": {"status": "ok", "values": {}}}},
+        raw_context="",
+        data={"social": {"status": "unavailable", "error": "all_providers_failed_for_social"}},
+    )
+    assert "FAILED" in context
+    assert "all_providers_failed_for_social" in context

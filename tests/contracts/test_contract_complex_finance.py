@@ -13,6 +13,7 @@ from src.core.pipeline.intents import (
     detect_complex_finance_intent,
     detect_market_scan_intent,
     detect_ticker,
+    is_investment_thesis_request,
     parse_user_intent,
     should_block_vague_financial_prompt,
 )
@@ -270,6 +271,28 @@ class TestExplicitTickerNoRegression:
         assert parsed.route == "ticker_analysis"
         assert parsed.intent == "ticker_analysis"
         assert parsed.ticker == "AAPL"
+
+
+class TestInvestmentThesisWithTicker:
+    """Dica/tese with a named ticker is ticker_analysis, not general/theme."""
+
+    PROMPT = (
+        "me dá uma dica de investimento agora sobre SPY: tese, direção, "
+        "invalidação, alvo e stop. Sem ordem."
+    )
+
+    def test_thesis_request_detected(self):
+        assert is_investment_thesis_request(self.PROMPT) is True
+
+    def test_not_complex_finance(self):
+        assert detect_complex_finance_intent(self.PROMPT) is False
+
+    def test_parse_routes_to_ticker_analysis(self):
+        parsed = parse_user_intent(self.PROMPT)
+        assert parsed.route == "ticker_analysis"
+        assert parsed.intent == "ticker_analysis"
+        assert parsed.ticker == "SPY"
+        assert "investment_thesis_with_ticker" in parsed.reasons
 
 
 # ===========================================================================

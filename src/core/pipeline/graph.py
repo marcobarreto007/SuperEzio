@@ -187,6 +187,38 @@ async def _do_collect(working_state, output, should_collect_market, route, confi
         _mark("data_collection")
 
 
+def _refresh_math_f51_unified(working_state: dict, output: dict) -> None:
+    """Fill math_report.f51_unified after the F51 node runs.
+
+    MathHub runs before experts/F51, so the module is skipped at that stage
+    on purpose. Once a real verdict exists, expose it instead of leaving
+    the skip as if F51 never ran.
+    """
+    verdict = working_state.get("f51_verdict")
+    math_report = working_state.get("math_report")
+    if not isinstance(verdict, dict) or not verdict or not isinstance(math_report, dict):
+        return
+    modules = math_report.setdefault("modules", {})
+    if not isinstance(modules, dict):
+        return
+    modules["f51_unified"] = {"status": "ok", "values": dict(verdict)}
+    coverage = math_report.get("coverage")
+    if isinstance(coverage, dict):
+        skipped = [name for name in (coverage.get("skipped") or []) if name != "f51_unified"]
+        ok = list(coverage.get("ok") or [])
+        if "f51_unified" not in ok:
+            ok.append("f51_unified")
+        coverage["skipped"] = skipped
+        coverage["ok"] = ok
+        coverage["ok_modules"] = len(ok)
+        coverage["skipped_modules"] = len(skipped)
+    numbers = math_report.get("numbers")
+    if isinstance(numbers, dict):
+        numbers["f51_decision_score"] = verdict.get("decision_score", verdict.get("confidence"))
+    working_state["math_report"] = math_report
+    output["math_report"] = math_report
+
+
 def _is_simple_query(state: dict) -> bool:
     """Check if user query is simple enough to skip Trinity (fast path).
 
@@ -222,6 +254,17 @@ def _is_simple_query(state: dict) -> bool:
         "analise",
         "análise",
         "analyze",
+        "dica",
+        "tese",
+        "thesis",
+        "invalidacao",
+        "invalidação",
+        "alvo",
+        "stop",
+        "direcao",
+        "direção",
+        "investir",
+        "investimento",
         "grafico",
         "gráfico",
         "chart",
@@ -536,10 +579,17 @@ async def _auto_full_analysis(
                 {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
             )
 
+    from core.pipeline.intents import is_investment_thesis_request
+
+    _requires_full_committee = bool(
+        _has_ticker and is_investment_thesis_request(str(working_state.get("message") or ""))
+    )
+
     # ── FAST PATH: skip Trinity for simple queries ──
     # Simple queries (single ticker + basic indicator) go directly to Bob
     # with math_report + f51_verdict, bypassing Genie/Deep deliberation.
-    if not _is_casual and _is_simple_query(working_state):
+    # Investment tip/thesis with a ticker never fast-paths.
+    if not _is_casual and not _requires_full_committee and _is_simple_query(working_state):
         skip_update = {
             "skip_trinity": True,
             "trinity_report": "TRINITY_SKIPPED_FAST_PATH",
@@ -562,15 +612,20 @@ async def _auto_full_analysis(
     )
     # Cache can skip the expert committee only on true quote/indicator fast-path.
     # Decision, chart, and analysis questions still consult the living stack.
-    skip_experts_for_cache = bool(data_from_cache) and _is_simple_query(working_state)
+    skip_experts_for_cache = (
+        bool(data_from_cache) and _is_simple_query(working_state) and not _requires_full_committee
+    )
     should_run_market_stack = (
         not _is_casual
         and not skip_experts_for_cache
-        and bool(working_state.get("scan") or working_state.get("data"))
+        and (
+            bool(working_state.get("scan") or working_state.get("data")) or _requires_full_committee
+        )
         and (
             should_collect_market
             or route in {"market_scan", "ticker_analysis"}
             or working_state.get("force_auto_market_stack")
+            or _requires_full_committee
         )
     )
     if skip_experts_for_cache:
@@ -918,6 +973,8 @@ async def _auto_full_analysis(
                 )
             else:
                 _merge_node_update(working_state, output, result)
+                if label == "f51":
+                    _refresh_math_f51_unified(working_state, output)
     else:
         try:
             result = await node_sdca_firewall(working_state)

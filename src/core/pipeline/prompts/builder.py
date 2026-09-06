@@ -558,7 +558,10 @@ def build_agent_prompt(
             "- Nunca emita diretiva nua como 'VERDICT: ... -> SHORT'.\n"
             "- Nunca emita ordem direta de compra/venda/short.\n"
             "- Cite evidence_ids para toda afirmacao.\n"
-            "- Seja direto, mas mantenha as afirmacoes proporcionais a incerteza e a qualidade dos dados."
+            "- Seja direto, mas mantenha as afirmacoes proporcionais a incerteza e a qualidade dos dados.\n"
+            "- Se o usuario pediu tese/dica/direcao/invalidacao/alvo/stop e o pipeline rodou, "
+            "entregue esses campos com numeros. Nao substitua a tese por WAIT/paper only. "
+            "Live congelado e nota de execucao (uma linha), nao o veredito da analise."
             ""
         ),
         f"TASK: {raw_message}",

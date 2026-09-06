@@ -421,11 +421,48 @@ def detect_risk_lab_intent(message: str) -> bool:
     return bool(message and has_hint(message, RISK_LAB_HINTS))
 
 
+_INVESTMENT_THESIS_HINTS = (
+    "dica",
+    "dicas",
+    "tip",
+    "tese",
+    "thesis",
+    "invalidacao",
+    "invalidation",
+    "alvo",
+    "stop",
+    "direcao",
+    "direction",
+    "investir em",
+    "investimento sobre",
+    "investment thesis",
+    "investment tip",
+    "analisa",
+    "analise",
+    "analyze",
+    "analysis",
+)
+
+
+def is_investment_thesis_request(message: str) -> bool:
+    """True when the operator asks for a ticker thesis / tip / plan.
+
+    Used to force ticker_analysis + the full decision stack. Does not by
+    itself imply a market scan or a live order.
+    """
+    if not message or not message.strip():
+        return False
+    return has_hint(message, _INVESTMENT_THESIS_HINTS)
+
+
 def detect_industry_research_intent(message: str) -> bool:
     """Detect industry/theme research that should not force a ticker."""
     if not message or not message.strip():
         return False
     if _is_market_scan_request(message):
+        return False
+    # "tese/dica sobre SPY" is ticker analysis, not a sector theme.
+    if _has_inline_ticker_like_token(message) and is_investment_thesis_request(message):
         return False
     return has_hint(message, INDUSTRY_RESEARCH_HINTS)
 
@@ -2079,6 +2116,8 @@ def detect_complex_finance_intent(message: str) -> bool:
     """
     if not message or not message.strip():
         return False
+    if _has_inline_ticker_like_token(message) and is_investment_thesis_request(message):
+        return False
     # If there's an explicit ticker WITH a market suffix (.TO, .SA, .V) or a
     # ticker-with-digit pattern (PETR4), this is ticker analysis, not complex finance.
     # We do NOT use the full detect_ticker() because its crypto-pair regex
@@ -3111,6 +3150,28 @@ def parse_user_intent(
                 entities=entities,
                 diary=diary,
                 pennylab=False,
+            )
+        )
+
+    # Named-ticker tip/thesis must beat industry-theme wipe ("tese"),
+    # dica-as-scan, and complex-finance fallthrough. Live order stays gated.
+    if (
+        ticker
+        and is_investment_thesis_request(raw)
+        and (explicit_ticker_command or _has_inline_ticker_like_token(raw) or detect_ticker(raw))
+    ):
+        return done(
+            IntentParse(
+                route="ticker_analysis",
+                intent="ticker_analysis",
+                action="collect_data",
+                ticker=ticker.upper(),
+                filters={},
+                confidence=0.9,
+                reasons=("investment_thesis_with_ticker",),
+                entities=entities,
+                diary=diary,
+                pennylab=pennylab,
             )
         )
 

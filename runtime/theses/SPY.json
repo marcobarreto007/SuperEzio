@@ -1,0 +1,75 @@
+{
+  "ticker": "SPY",
+  "direcao": "neutro",
+  "status": "viva",
+  "criada_em": "2026-09-05T23:13:26.434-04:00",
+  "atualizada_em": "2026-09-05T23:13:26.434-04:00",
+  "pilares": [
+    {
+      "claim": "Estrutura 6M altista: close subiu de 677.7085 (2026-03-05) para 770.19 (2026-09-04), +13.65%",
+      "status": "intacto",
+      "evidencia": "candles.first.close=677.7085 (iso_local=2026-03-05T00:00:00.000-05:00); candles.last.close=770.19 (iso_local=2026-09-04T00:00:00.000-04:00); candles.period=6M; candles.points=128; (770.19-677.7085)/677.7085=+13.65%",
+      "fonte": "snapshot.candles.first.close + snapshot.candles.last.close",
+      "ts": "2026-09-04T00:00:00.000-04:00"
+    },
+    {
+      "claim": "Empilhamento de médias ainda altista: price 770.19 > sma20 769.053 > sma50 756.8572 (também > ema20 766.2391)",
+      "status": "intacto",
+      "evidencia": "quote.price=770.19; indicators.sma20=769.053; indicators.sma50=756.8572; indicators.ema20=766.2391; indicators.bb_middle=769.053; preço − sma20 = +1.137 pts (+0.15%)",
+      "fonte": "snapshot.quote.price + snapshot.indicators.sma20/sma50/ema20",
+      "ts": "2026-09-04T00:00:00.000-04:00"
+    },
+    {
+      "claim": "Momentum de curto prazo não confirma continuação: MACD abaixo do sinal e última vela em queda",
+      "status": "intacto",
+      "evidencia": "indicators.macd=3.0988 < indicators.macd_signal=3.7762; indicators.macd_histogram=-0.6774; quote.change=-2.98; quote.change_pct=-0.39; quote.previous_close=773.17; candles.last open=772.01 close=770.19 low=769.0 high=772.87",
+      "fonte": "snapshot.indicators.macd/macd_signal/macd_histogram + snapshot.quote.change/change_pct + snapshot.candles.last",
+      "ts": "2026-09-04T00:00:00.000-04:00"
+    },
+    {
+      "claim": "Oscilador e banda sem extremo: RSI 55.64 no meio da faixa; preço dentro de bb_lower 760.1821 e bb_upper 777.9239",
+      "status": "intacto",
+      "evidencia": "indicators.rsi=55.64; indicators.bb_upper=777.9239; indicators.bb_middle=769.053; indicators.bb_lower=760.1821; quote.price=770.19; distância ao teto +7.7339 pts; ao piso −10.0079 pts",
+      "fonte": "snapshot.indicators.rsi + snapshot.indicators.bb_* + snapshot.quote.price",
+      "ts": "2026-09-04T00:00:00.000-04:00"
+    },
+    {
+      "claim": "Sem catalisador utilizável: news/social NO_DATA; filings e quote live de 2026-09-05 ausentes",
+      "status": "intacto",
+      "evidencia": "context.news claim=pulse.news.label=NO_DATA; articles=0; context.social claim=pulse.sentiment=NO_DATA; score=0.0; reddit.mentions=0; gaps: quote live 2026-09-05 [SEM FONTE], filings [SEM FONTE], news/social utilizáveis [SEM FONTE]",
+      "fonte": "snapshot.context[kind=news|social] + snapshot.gaps",
+      "ts": "2026-09-05T23:13:27.218-04:00"
+    }
+  ],
+  "invalidacao": {
+    "condicao": "Close da próxima vela diária abaixo de 769.00 (candles.last.low), o que também fica abaixo de indicators.sma20=769.053 — rompe o suporte imediato da compressão na SMA20",
+    "preco_evento": 769.0,
+    "status": "vigente"
+  },
+  "conviction": {
+    "score": 4,
+    "justificativa": "Neutro com convicção baixa-moderada (4/10): o empilhamento price 770.19 > sma20 769.053 > sma50 756.8572 e a alta 6M (+13.65% de 677.7085 a 770.19) bloqueiam short estrutural, mas macd_histogram=-0.6774, change_pct=-0.39 e a vela 2026-09-04 (772.01→770.19) bloqueiam chase long. RSI 55.64 não dá extremo. Gaps (sem last print 2026-09-05, sem news/social/filings) impedem subir o score. Score não pode ser alto: tese de 'sem edge' é o que o payload justifica, não uma leitura de regime confirmada por catalisador.",
+    "historico": [
+      {
+        "ts": "2026-09-05T23:13:26.434-04:00",
+        "de": 0,
+        "para": 4
+      }
+    ]
+  },
+  "catalysts": [
+    {
+      "evento": "Próximo close diário após candles.last 2026-09-04 resolve a compressão na sma20 769.053: reclaim de quote.previous_close 773.17 ou perda de candles.last.low 769.00",
+      "data_esperada": "[ASSUMPTION] primeira sessão com close após as_of 2026-09-05T23:13:26.434-04:00 — snapshot sem calendário de mercado",
+      "ocorreu": null,
+      "resultado_real": null
+    }
+  ],
+  "revisoes": [
+    {
+      "ts": "2026-09-05T23:13:26.434-04:00",
+      "mudanca": "Criação da tese SPY (não havia runtime/theses/SPY.json). Direção neutro. Relatório runtime/reports/SPY-2026-09-05.md. Paper only. Writer sem LLM (:8080/v1 fora).",
+      "evidencia_desconfirmante_considerada": "indicators.macd_histogram=-0.6774 (macd 3.0988 < macd_signal 3.7762); quote.change_pct=-0.39 vs previous_close 773.17; candles.last close 770.19 < open 772.01 e low 769.0 colado na sma20 769.053; gaps: sem quote live 2026-09-05, sem news/social/filings. Essa evidência impediu direção long apesar do empilhamento altista."
+    }
+  ]
+}

@@ -145,7 +145,7 @@ class MathHub:
         report.modules["var_cvar"] = self._var_module(returns)
         report.modules["kelly"] = self._kelly_module(returns)
         report.modules["dcf_proxy"] = self._dcf_module(data)
-        report.modules["crisis_aggregate"] = self._crisis_module(data, ticker, closes)
+        report.modules["crisis_aggregate"] = self._crisis_module(data, ticker, closes, candles)
         report.modules["return_bootstrap"] = self._return_bootstrap_module(returns)
         report.modules["portfolio_hrp"] = self._portfolio_module(closes, ticker)
         report.modules["f51_unified"] = self._f51_module(report.modules, data, state)
@@ -372,24 +372,37 @@ class MathHub:
             },
         }
 
+    def _dcf_lookup_blobs(self, data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+        blobs: list[Mapping[str, Any]] = []
+        for key in ("profile", "fundamentals"):
+            blob = data.get(key)
+            if isinstance(blob, Mapping):
+                blobs.append(blob)
+        blobs.append(data)
+        return blobs
+
+    def _dcf_first_float(
+        self, blobs: list[Mapping[str, Any]], keys: tuple[str, ...]
+    ) -> float | None:
+        for blob in blobs:
+            for key in keys:
+                value = _safe_float(blob.get(key))
+                if value:
+                    return value
+        return None
+
     def _dcf_module(self, data: Mapping[str, Any]) -> dict[str, Any]:
-        profile = data.get("profile") if isinstance(data.get("profile"), Mapping) else data
-        fcf = _safe_float(
-            profile.get("free_cash_flow") or profile.get("fcf") or profile.get("freeCashflow")
-            if isinstance(profile, Mapping)
-            else None
+        blobs = self._dcf_lookup_blobs(data)
+        fcf = self._dcf_first_float(
+            blobs, ("free_cash_flow", "fcf", "freeCashflow", "operatingCashflow")
         )
-        shares = _safe_float(
-            profile.get("shares_outstanding")
-            or profile.get("sharesOutstanding")
-            or profile.get("shares")
-            if isinstance(profile, Mapping)
-            else None
+        shares = self._dcf_first_float(
+            blobs, ("shares_outstanding", "sharesOutstanding", "impliedSharesOutstanding", "shares")
         )
         if not fcf or not shares:
             return {"status": "skipped", "reason": "missing_fcf_or_shares"}
-        growth = _safe_float(profile.get("growth_rate"), 0.03) or 0.03
-        discount = _safe_float(profile.get("discount_rate"), 0.10) or 0.10
+        growth = self._dcf_first_float(blobs, ("growth_rate",)) or 0.03
+        discount = self._dcf_first_float(blobs, ("discount_rate",)) or 0.10
         terminal_growth = min(growth, 0.03)
         pv = 0.0
         current_fcf = fcf
@@ -413,16 +426,25 @@ class MathHub:
         data: Mapping[str, Any],
         ticker: str,
         closes: list[float],
+        candles: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         try:
             from .crisis import crisis_aggregate
 
+            candles = candles or []
+            dated = [
+                {"date": candle["date"], "close": candle["close"]}
+                for candle in candles
+                if candle.get("date") and candle.get("close") is not None
+            ]
+            market_dates = [item["date"] for item in dated]
             crisis_input = {
                 "asset_symbol": ticker,
                 "country": data.get("country") or data.get("market"),
                 "observations": data.get("macro_observations") or data.get("observations") or [],
-                "market_series": data.get("market_series"),
+                "market_series": data.get("market_series") or dated or None,
                 "prices": closes,
+                "market_dates": market_dates if len(market_dates) == len(closes) else [],
             }
             result = crisis_aggregate(crisis_input)
             status = "ok" if result.get("models_ok", 0) > 0 else "insufficient_data"

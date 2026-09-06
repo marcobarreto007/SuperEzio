@@ -181,3 +181,24 @@ def test_format_math_context_is_compact_and_hides_crisis_details():
     assert "VWAP=$210.96" in prompt
     assert "model_scores" not in prompt
     assert "{" not in prompt
+
+
+def test_dcf_reads_fundamentals_when_profile_missing():
+    state = _sample_state()
+    state["data"].pop("profile")
+    state["data"]["fundamentals"] = {
+        "free_cash_flow": 12_000_000,
+        "shares_outstanding": 2_000_000,
+    }
+    report = MathHub().calculate_all(state)
+    assert report["modules"]["dcf_proxy"]["status"] == "ok"
+    assert report["modules"]["dcf_proxy"]["values"]["dcf_value_per_share"]
+
+
+def test_crisis_uses_candle_dates_instead_of_skipping():
+    report = MathHub().calculate_all(_sample_state())
+    status = report["modules"]["crisis_aggregate"]["status"]
+    assert status in {"ok", "insufficient_data"}
+    if status == "insufficient_data":
+        values = report["modules"]["crisis_aggregate"].get("values") or {}
+        assert values.get("models_run", 0) >= 1

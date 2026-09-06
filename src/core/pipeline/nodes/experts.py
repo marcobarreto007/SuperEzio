@@ -263,6 +263,15 @@ EXPERT_CONTEXT_MODULES: dict[str, tuple[str, ...]] = {
     "social_forensics": ("price_series", "penny_momentum"),
 }
 
+# Collector slices each analyst is allowed to see. MathHub modules alone
+# starved fundamental/sentiment/social (NO_DATA while collector had data).
+EXPERT_COLLECTOR_KEYS: dict[str, tuple[str, ...]] = {
+    "macro_risk": ("macro",),
+    "fundamental_value": ("fundamentals", "profile"),
+    "sentiment": ("sentiment", "news"),
+    "social_forensics": ("social",),
+}
+
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
     "macro_risk": (
         "You are SuperEzio's Macro/Risk analyst, modeled on the Risk Manager "
@@ -366,15 +375,63 @@ def _format_module_section(name: str, module: Any) -> str:
     return f"[{name}] {parts}" if parts else f"[{name}] ok (no scalar fields)"
 
 
-def build_role_context(role: str, math_report: dict[str, Any] | None, raw_context: str) -> str:
+def _format_collector_slice(role: str, data: dict[str, Any] | None) -> str:
+    """Expose collector organs to the matching expert, including explicit gaps."""
+    if not isinstance(data, dict):
+        return ""
+    keys = EXPERT_COLLECTOR_KEYS.get(role)
+    if not keys:
+        return ""
+    lines: list[str] = []
+    for key in keys:
+        payload = data.get(key)
+        if payload in (None, "", {}, []):
+            lines.append(f"[collector.{key}] MISSING")
+            continue
+        if isinstance(payload, dict):
+            status = str(payload.get("status") or "").lower()
+            signal = payload.get("signal_label")
+            if status in {"unavailable", "error", "failed"} or signal == "NO_DATA":
+                lines.append(
+                    f"[collector.{key}] FAILED: {payload.get('error') or signal or status}"
+                )
+                continue
+            scalars = []
+            for name, value in payload.items():
+                if name.startswith("_") or isinstance(value, (dict, list)):
+                    continue
+                scalars.append(f"{name}={value}")
+                if len(scalars) >= 12:
+                    break
+            lines.append(
+                f"[collector.{key}] {', '.join(scalars)}"
+                if scalars
+                else f"[collector.{key}] present"
+            )
+        else:
+            lines.append(f"[collector.{key}] {str(payload)[:400]}")
+    return "\n".join(lines)
+
+
+def build_role_context(
+    role: str,
+    math_report: dict[str, Any] | None,
+    raw_context: str,
+    data: dict[str, Any] | None = None,
+) -> str:
     """Slice math_report down to the module(s) a given role is allowed to see.
 
     Falls back to the full raw_context (existing behaviour) for roles not in
     EXPERT_CONTEXT_MODULES (red team, judge, auditor, or unknown roles) —
     those are handled separately by build_judge_context for judge/auditor.
+    Collector slices are appended so a skipped math module does not hide
+    data the collector already fetched.
     """
     modules_allowed = EXPERT_CONTEXT_MODULES.get(role)
     if not modules_allowed or not isinstance(math_report, dict):
+        collector = _format_collector_slice(role, data)
+        if collector:
+            return f"{raw_context}\n{collector}" if raw_context else collector
         return raw_context
 
     modules = math_report.get("modules", {})
@@ -384,6 +441,11 @@ def build_role_context(role: str, math_report: dict[str, Any] | None, raw_contex
     for name in modules_allowed:
         if name in modules:
             lines.append(_format_module_section(name, modules[name]))
+        else:
+            lines.append(f"[{name}] MISSING")
+    collector = _format_collector_slice(role, data)
+    if collector:
+        lines.append(collector)
     return "\n".join(lines)
 
 
@@ -438,7 +500,8 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     }:
         context = build_judge_context(state.get("expert_results") or [])
     else:
-        context = build_role_context(role, state.get("math_report"), raw_context)
+        data = state.get("data") if isinstance(state.get("data"), dict) else None
+        context = build_role_context(role, state.get("math_report"), raw_context, data=data)
 
     cache_key = _cache_key(role, ticker, provider_name, context)
     if _is_cache_enabled():

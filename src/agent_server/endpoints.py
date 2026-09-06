@@ -34,6 +34,7 @@ from core.pipeline.intents import (
     detect_market_scan_intent,
     detect_ticker,
     has_hint,
+    is_investment_thesis_request,
     parse_user_intent,
     should_block_vague_financial_prompt,
 )
@@ -1496,7 +1497,13 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
         is_market_scan = detect_market_scan_intent(raw_message)
         is_paper_training = detect_decisive_trade_intent(raw_message)
-        if is_casual or is_broker_status or is_complex or is_capital_alloc:
+        _thesis_keeps_ticker = bool(
+            (detected_ticker or detect_ticker(raw_message) or explicit_ticker)
+            and is_investment_thesis_request(raw_message)
+        )
+        if (
+            is_casual or is_broker_status or is_complex or is_capital_alloc
+        ) and not _thesis_keeps_ticker:
             explicit_ticker = ""
             detected_ticker = ""
             chart_context = ""
@@ -1762,7 +1769,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 # Post-processing answer content for sub-classification if complex
                 # finance or capital allocation.
                 accumulated_answer = "".join(full_content)
-                if is_complex or is_capital_alloc:
+                if (is_complex or is_capital_alloc) and not _thesis_keeps_ticker:
                     route_used = "general"
                     sub_intent = _extract_complex_intent(accumulated_answer)
                     if sub_intent:
