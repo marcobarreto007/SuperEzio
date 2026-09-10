@@ -9,7 +9,7 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 - NUNCA `git push`, `git pull`, `git fetch`, `gh`
 - Commits locais OBRIGATÓRIOS após cada mudança mínima
 
-## Exército Versionado (22 agentes)
+## Exército Versionado (23 agentes)
 
 ### Delivery (5 candidatos)
 | Agente | Classe | Missão |
@@ -61,6 +61,11 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 |--------|--------|--------|
 | `captain` | Orchestrator | Seleciona slice e coordena delivery sem liberar o próprio trabalho |
 
+### Revisão (1)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `revisor` | Verifier | Revisa o diff pré-commit, somente leitura |
+
 ## Comandos
 
 | Comando | Descrição |
@@ -69,9 +74,11 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 | `/save` | Salva estado + commit local |
 | `/agent-lab` | Testa e evolui agentes |
 
-## F51 Skills (32 skills)
+## F51 Skills (20 ativas)
 
-Mantidas em `.claude/skills/`. Skills nucleares: inventory, contracts, runtime, refactor, tests, audit, release, money-gate.
+Mantidas em `.claude/skills/`. 11 skills descontinuadas estão em `.claude/skills/deprecated/`.
+Skills nucleares: inventory, contracts, runtime, refactor, tests, quality-gate, money-gate.
+`f51-audit` e `f51-release` estão deprecadas — os equivalentes ativos são `f51-quality-gate` (qualidade) e o comando `/ship` + agente `release-readiness-manager` (entrega).
 Agentes referenciam skills como capacidade atômica. Skills não são agentes — são ferramentas conceituais.
 
 ## Regras de Ouro
@@ -94,8 +101,9 @@ python scripts/browser_smoke.py
 
 ## Política de MCPs
 
-MCP autorizado: apenas `chrome-devtools-plugin` / `chrome_devtools` (testes de UI e
-depuração do frontend — ver CLAUDE.md, seção "MCPs Registrados e Autorizados").
+MCPs ativos: `context7`, `playwright` e `hugging-face` (`.claude/settings.local.json`,
+`enabledMcpjsonServers`; `hugging-face` via `.mcp.json`).
+Os 8 MCPs catalogados em `.claude/mcp-catalog.json` NÃO estão ativos.
 Playwright (biblioteca pytest) OBRIGATÓRIO com pytest. GitHub BLOQUEADO.
 
 ## Autonomia e Bypass de Permissões (Claude Code)
