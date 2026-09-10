@@ -8,10 +8,19 @@ por imagem.
 
 from __future__ import annotations
 
+import pytest
+
+import core.model_serving.gateway as gateway_module
 from core.model_serving.gateway import (
     LOCAL_CONTEXT_HARD_TOKEN_CAP,
+    ModelGateway,
     local_context_fits,
 )
+from core.model_serving.providers import GatewayConfig, ModelProvider
+
+
+def _provider(name: str, base_url: str, *, is_local: bool = False) -> ModelProvider:
+    return ModelProvider(name=name, base_url=base_url, api_key="", is_local=is_local)
 
 
 def test_small_prompt_fits() -> None:
@@ -46,3 +55,41 @@ def test_image_parts_are_counted() -> None:
     )
     assert fits is True
     assert estimated >= 768, "imagem precisa contar na estimativa (mmproj consome janela)"
+
+
+async def test_cloud_agent_mouth_is_not_guarded_by_local_window(monkeypatch) -> None:
+    """Incidente 2026-09-10: a boca "agent" e nuvem (deepseek-v4), janela grande."""
+    gw = ModelGateway(
+        providers=[_provider("agent", "https://api.deepseek.com")],
+        config=GatewayConfig(),
+    )
+    monkeypatch.setattr(
+        gateway_module, "local_context_fits", lambda messages: (False, 99000, "over_hard_cap")
+    )
+
+    def _fake_generate(*args, **kwargs):
+        return "ok"
+
+    monkeypatch.setattr(gw, "generate", _fake_generate)
+    out = await gw.chat_completion(
+        [{"role": "user", "content": "oi"}],
+        preferred_provider="agent",
+        allow_fallback=False,
+    )
+    assert out == "ok"
+
+
+async def test_local_llama_mouth_still_guarded(monkeypatch) -> None:
+    gw = ModelGateway(
+        providers=[_provider("agent", "http://127.0.0.1:8080/v1")],
+        config=GatewayConfig(),
+    )
+    monkeypatch.setattr(
+        gateway_module, "local_context_fits", lambda messages: (False, 99000, "over_hard_cap")
+    )
+    with pytest.raises(RuntimeError, match="local_context_exceeded"):
+        await gw.chat_completion(
+            [{"role": "user", "content": "oi"}],
+            preferred_provider="agent",
+            allow_fallback=False,
+        )

@@ -136,6 +136,21 @@ def _strip_image_content(
     return out
 
 
+def _is_local_provider(provider: Any) -> bool:
+    """True quando o provedor e a boca LOCAL (llama-server, janela 8192).
+
+    O cerebro em nuvem (deepseek-v4 na api.deepseek.com) tem janela grande —
+    o guard legado de contexto nao deve disparar nele (incidente 2026-09-10:
+    a boca "agent" e nuvem e levava "local_context_exceeded").
+    """
+    base_url = (getattr(provider, "base_url", "") or "").lower()
+    return (
+        bool(getattr(provider, "is_local", False))
+        or "127.0.0.1" in base_url
+        or "localhost" in base_url
+    )
+
+
 def _openai_messages(raw: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Drop internal keys (e.g. _chart_facts) before the provider call."""
     out: list[dict[str, Any]] = []
@@ -1248,7 +1263,11 @@ class ModelGateway:
         # rejected by llama-server with a raw 400 (demo failure 24/08: two
         # requests of 34k-37k tokens), surfacing as "runtime error". Fail here
         # first, with an actionable message, instead of sending garbage.
-        if provider_obj.name in ("agent", "local_orchestrator"):
+        # Cloud mouths (deepseek-v4) have a large window — only the LOCAL
+        # llama-server is guarded (incident 2026-09-10).
+        if provider_obj.name in ("agent", "local_orchestrator") and _is_local_provider(
+            provider_obj
+        ):
             ok, estimated, _reason = local_context_fits(messages)
             if not ok:
                 raise RuntimeError(
