@@ -15,7 +15,7 @@ from langgraph.graph import END, START, StateGraph
 from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
 from core.math.math_hub import MathHub
-from core.model_serving.providers import DEEPSEEK_PROVIDER_NAME
+from core.model_serving.providers import DAYTRADE_AUDITOR_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME
 
 from .contracts import PipelineState
 from .nodes import (
@@ -401,6 +401,63 @@ def _arbitration_agent_count(env_name: str) -> int:
     return min(max(0, value), 1)
 
 
+# Valores que desligam o papel de auditor quando postos em
+# SUPEREZIO_DAYTRADE_AUDITOR_MODEL. A var carrega o model id (o default é
+# garantido em providers.py), então "ligado" nunca pode ser inferido da
+# presença dela — o kill-switch é explícito.
+_AUDITOR_OFF_VALUES = frozenset({"off", "0", "false", "no", "none", "disabled"})
+
+
+def _arbitration_tier_enabled() -> bool:
+    """Kill-switch único do tier de arbitragem (red team/judge/auditor).
+
+    Default ligado. Testes setam SUPEREZIO_PIPELINE_ARBITRATION=0 para manter o
+    roster do comitê hermético — antes o desligamento era feito apagando
+    SUPEREZIO_DAYTRADE_AUDITOR_MODEL, que passou a ser model id e não presença.
+    """
+    return _env_bool("SUPEREZIO_PIPELINE_ARBITRATION", True)
+
+
+def _auditor_gate(gateway) -> tuple[bool, str]:
+    """O auditor roda? Se não, devolve o motivo para o rótulo NOT_RUN.
+
+    O gate é o catálogo de providers, não uma env: providers.py sempre constrói
+    `daytrade_auditor` no endpoint oficial, então a presença do model id na env
+    só dizia que a var estava setada — não que o papel rodava. Não rodar é
+    aceitável; sair como auditado sem auditoria não é (ver
+    :func:`_audit_status_from_result`).
+    """
+    if not _arbitration_tier_enabled():
+        return False, "arbitration_disabled"
+    model_env = (os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL") or "").strip().lower()
+    if model_env in _AUDITOR_OFF_VALUES:
+        return False, "auditor_kill_switch_off"
+    provider_names = {
+        str(getattr(provider, "name", "") or "")
+        for provider in (getattr(gateway, "providers", None) or [])
+    }
+    if DAYTRADE_AUDITOR_PROVIDER_NAME not in provider_names:
+        return False, "auditor_provider_missing"
+    return True, ""
+
+
+def _audit_status_from_result(auditor_result: dict[str, Any] | None) -> dict[str, Any]:
+    """Rotula o desfecho da auditoria. Nunca bloqueia; nunca mente sobre ela.
+
+    AUDITED só com payload do auditor retornado (ok diferente de False). Uma
+    exceção (o chamador grava {"ok": False, "error": ...}), um payload ok:False
+    ou resultado vazio são NOT_AUDITED com o motivo preservado.
+    """
+    if not isinstance(auditor_result, dict) or not auditor_result:
+        return {"status": "NOT_AUDITED", "reason": "auditor_returned_no_result"}
+    if auditor_result.get("ok") is False:
+        return {
+            "status": "NOT_AUDITED",
+            "reason": str(auditor_result.get("error") or "auditor_failed")[:200],
+        }
+    return {"status": "AUDITED", "reason": None}
+
+
 async def _auto_full_analysis(
     state: dict,
     *,
@@ -424,6 +481,12 @@ async def _auto_full_analysis(
     # Preserve case_pending from orchestrator (survives state propagation)
     output["case_pending"] = list(working_state.get("case_pending") or [])
     output["case_context"] = working_state.get("case_context") or ""
+
+    # Arbitration labels default to "did not run" and are overwritten below only
+    # when a step actually runs. A verdict must never inherit "audited" from an
+    # earlier turn or from the mere presence of a model id in the env.
+    output["expert_committee_status"] = "NOT_RUN"
+    output["audit_status"] = {"status": "NOT_RUN", "reason": "market_stack_skipped"}
 
     paper_only_research = _env_bool("SUPEREZIO_RESEARCH_PAPER_ONLY", False) or _env_bool(
         "SUPEREZIO_DAYTRADE_PAPER_ONLY", False
@@ -720,8 +783,10 @@ async def _auto_full_analysis(
                 {**working_state, "expert_results": expert_results}
             )
             _merge_node_update(working_state, output, collect_res)
+            _merge_node_update(working_state, output, {"expert_committee_status": "OK"})
         # Nó de pipeline arbitrário (comitê de experts) — catch amplo
-        # deliberado: falha vira resumo de erro, o pipeline segue.
+        # deliberado: falha vira resumo de erro, o pipeline segue — mas o
+        # colapso do comitê fica rotulado em vez de invisível.
         except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state,
@@ -729,11 +794,18 @@ async def _auto_full_analysis(
                 {
                     "expert_summary": f"Expert collection error: {exc}",
                     "errors": [f"auto_full_analysis.experts:{exc}"],
+                    "expert_committee_status": "FAILED",
                 },
             )
 
-        red_team_agents = _arbitration_agent_count("SUPEREZIO_RED_TEAM_AGENTS")
-        judge_agents = _arbitration_agent_count("SUPEREZIO_JUDGE_AGENTS")
+        arbitration_enabled = _arbitration_tier_enabled()
+        red_team_agents = (
+            _arbitration_agent_count("SUPEREZIO_RED_TEAM_AGENTS") if arbitration_enabled else 0
+        )
+        judge_agents = (
+            _arbitration_agent_count("SUPEREZIO_JUDGE_AGENTS") if arbitration_enabled else 0
+        )
+        auditor_enabled, auditor_skip_reason = _auditor_gate(gateway)
         red_team_results: list[dict[str, Any]] = []
         judge_results: list[dict[str, Any]] = []
         auditor_result: dict[str, Any] | None = None
@@ -780,7 +852,7 @@ async def _auto_full_analysis(
                 judge_results.extend(batch)
             _merge_node_update(working_state, output, {"judge_results": judge_results})
 
-        if os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL"):
+        if auditor_enabled:
             try:
                 auditor_res = await node_expert(
                     {
@@ -805,6 +877,17 @@ async def _auto_full_analysis(
                     "provider": "daytrade_auditor",
                 }
             _merge_node_update(working_state, output, {"auditor_result": auditor_result})
+            _merge_node_update(
+                working_state,
+                output,
+                {"audit_status": _audit_status_from_result(auditor_result)},
+            )
+        else:
+            _merge_node_update(
+                working_state,
+                output,
+                {"audit_status": {"status": "NOT_RUN", "reason": auditor_skip_reason}},
+            )
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from core.trading.portfolio_snapshot import fetch_portfolio_snapshot

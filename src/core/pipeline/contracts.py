@@ -110,6 +110,11 @@ class PipelineState(TypedDict, total=False):
     expert_structured: dict[str, Any]
     expert_weights: dict[str, float]
     expert_consensus: dict[str, Any]
+    expert_committee_status: str  # "OK" | "FAILED" | "NOT_RUN" (collect step)
+    # Arbitration tier label — {"status": AUDITED|NOT_AUDITED|NOT_RUN, "reason": str|None}.
+    # Declared here because LangGraph drops node output whose key is not a
+    # channel: an undeclared label would never reach Bob's verdict.
+    audit_status: dict[str, Any]
 
     # F51 Verdict
     f51_verdict: dict[str, Any]

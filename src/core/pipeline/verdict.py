@@ -62,6 +62,12 @@ def validate_answer_against_verdict(answer: str, verdict: dict) -> dict:
         required_modules.append("PENNY")
     if verdict.get("rag", {}).get("status") == "RAN":
         required_modules.append("RAG")
+    # Audit label is fail-closed: anything that is not AUDITED forces Bob to
+    # spell the non-audit out, so an omitted audit can never read as audited.
+    audit = verdict.get("audit")
+    audit_status = str(audit.get("status") or "").upper() if isinstance(audit, dict) else ""
+    if audit_status != "AUDITED":
+        required_modules.append("AUDIT")
 
     modules_found = 0
     missing_modules = []
@@ -171,6 +177,7 @@ def build_verdict_dict(state: dict) -> dict:
         "rag": {
             "status": rag_status,
         },
+        "audit": _extract_audit(state),
     }
 
 
@@ -188,6 +195,7 @@ def build_pipeline_verdict(state: dict) -> dict:
         "sdca": _extract_sdca(state),
         "neural": _extract_neural(state),
         "experts": _extract_experts(state),
+        "audit": _extract_audit(state),
         "trinity": _extract_trinity(state),
         "guardrails": _extract_guardrails(state),
         "pennylab": _extract_pennylab(state),
@@ -273,6 +281,20 @@ def _extract_experts(state: dict) -> dict[str, Any]:
         extracted["evaluated_count"] = len(results)
         extracted["experts"] = _safe_list(results)[:5]
     return extracted
+
+
+def _extract_audit(state: dict) -> dict[str, Any]:
+    """Extract the arbitration tier's audit label (judge/auditor).
+
+    Labelled, never blocking. A missing label is reported as NOT_RUN, not as
+    audited: absence of evidence is not evidence of audit.
+    """
+    audit = state.get("audit_status")
+    if not isinstance(audit, dict) or not audit:
+        return {"status": "NOT_RUN", "reason": "audit_status_missing"}
+    status = str(audit.get("status") or "NOT_RUN")
+    reason = audit.get("reason")
+    return {"status": status, "reason": None if reason is None else str(reason)}
 
 
 def _extract_trinity(state: dict) -> dict[str, Any]:

@@ -12,10 +12,6 @@ from fastapi.testclient import TestClient
 from agent_server.main import app
 
 
-def _configure_official_glm(monkeypatch, *, api_key: str) -> None:
-    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", api_key)
-
-
 def _configure_official_deepseek(monkeypatch, *, api_key: str) -> None:
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", api_key)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -38,9 +34,9 @@ def _healthy_local_ceo(monkeypatch) -> Iterator[None]:
 
 
 @contextmanager
-def _gateway_provider(provider: SimpleNamespace) -> Iterator[None]:
+def _gateway_provider(*providers: SimpleNamespace) -> Iterator[None]:
     original_pipeline = getattr(app.state, "pipeline", None)
-    app.state.pipeline = SimpleNamespace(gateway=SimpleNamespace(providers=[provider]))
+    app.state.pipeline = SimpleNamespace(gateway=SimpleNamespace(providers=list(providers)))
     try:
         yield
     finally:
@@ -48,6 +44,7 @@ def _gateway_provider(provider: SimpleNamespace) -> Iterator[None]:
 
 
 def _glm_provider(*, api_key: str, is_local: bool = False) -> SimpleNamespace:
+    """Optional Z.ai provider — informative only, never a readiness gate."""
     return SimpleNamespace(
         name="glm",
         is_local=is_local,
@@ -71,7 +68,12 @@ def _deepseek_provider(*, api_key: str, is_local: bool = False) -> SimpleNamespa
     )
 
 
-def test_missing_glm_key_degrades_readiness_without_exposing_a_secret(monkeypatch) -> None:
+def test_missing_glm_key_keeps_readiness_ok_without_exposing_a_secret(monkeypatch) -> None:
+    """GLM is optional: its missing key must not degrade a healthy DeepSeek tier.
+
+    Regression: /health/details answered 503 degraded_experts_unconfigured while
+    the product was healthy — the readiness gate measured the optional GLM key.
+    """
     monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
@@ -80,30 +82,33 @@ def test_missing_glm_key_degrades_readiness_without_exposing_a_secret(monkeypatc
     runtime_secret = "runtime-provider-secret-must-not-leak"
     with (
         _healthy_local_ceo(monkeypatch),
-        _gateway_provider(_glm_provider(api_key=runtime_secret)),
+        _gateway_provider(
+            _glm_provider(api_key=runtime_secret),
+            _deepseek_provider(api_key="sk-deepseek-health-test"),
+        ),
     ):
         response = TestClient(app).get("/health/details")
 
-    assert response.status_code == 503
+    assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "degraded_experts_unconfigured"
+    assert payload["status"] == "ok"
     assert payload["checks"]["providers_summary"]["primary"]["topology"] == "local"
     experts = payload["checks"]["providers_summary"]["experts"]
-    assert experts["provider"] == "glm"
-    assert experts["topology"] == "external"
-    assert experts["configured"] is False
-    assert experts["status"] == "unconfigured_missing_api_key"
+    assert experts["provider"] == "deepseek"
+    assert experts["configured"] is True
+    optional = payload["checks"]["providers_summary"]["optional_providers"]
+    assert optional["glm"]["provider"] == "glm"
+    assert optional["glm"]["configured"] is False
     serialized = json.dumps(payload).lower()
     assert runtime_secret not in serialized
     assert '"api_key"' not in serialized
 
 
-def test_configured_external_glm_and_local_ceo_make_readiness_truthful(monkeypatch) -> None:
-    secret_value = "sk-glm-health-test"
-    _configure_official_glm(monkeypatch, api_key=secret_value)
-    _configure_official_deepseek(monkeypatch, api_key="sk-deepseek-health-test")
+def test_configured_external_deepseek_and_local_ceo_make_readiness_truthful(monkeypatch) -> None:
+    secret_value = "sk-deepseek-health-test"
+    _configure_official_deepseek(monkeypatch, api_key=secret_value)
 
-    provider = _glm_provider(api_key=secret_value)
+    provider = _deepseek_provider(api_key=secret_value)
     with _healthy_local_ceo(monkeypatch), _gateway_provider(provider):
         response = TestClient(app).get("/health/details")
 
@@ -113,24 +118,26 @@ def test_configured_external_glm_and_local_ceo_make_readiness_truthful(monkeypat
     primary = payload["checks"]["providers_summary"]["primary"]
     assert primary["topology"] == "local"
     assert primary["reachable"] is True
-    experts = payload["checks"]["provider_glm"]
+    experts = payload["checks"]["provider_deepseek"]
     assert experts["topology"] == "external"
     assert experts["runtime_topology"] == "external"
     assert experts["configured"] is True
     assert experts["status"] == "configured"
+    assert payload["checks"]["providers_summary"]["experts"]["provider"] == "deepseek"
     assert secret_value not in response.text
 
 
-def test_local_runtime_cannot_masquerade_as_external_glm(monkeypatch) -> None:
-    _configure_official_glm(monkeypatch, api_key="sk-glm-health-test")
+def test_local_runtime_cannot_masquerade_as_external_deepseek(monkeypatch) -> None:
     _configure_official_deepseek(monkeypatch, api_key="sk-deepseek-health-test")
 
-    provider = _glm_provider(api_key="sk-glm-health-test", is_local=True)
+    provider = _deepseek_provider(api_key="sk-deepseek-health-test", is_local=True)
     with _healthy_local_ceo(monkeypatch), _gateway_provider(provider):
         response = TestClient(app).get("/health/details")
 
     assert response.status_code == 503
-    experts = response.json()["checks"]["provider_glm"]
+    payload = response.json()
+    assert payload["status"] == "degraded_experts_unconfigured"
+    experts = payload["checks"]["provider_deepseek"]
     assert experts["configured"] is False
     assert experts["runtime_topology"] == "local"
     assert experts["status"] == "misconfigured_runtime_topology"

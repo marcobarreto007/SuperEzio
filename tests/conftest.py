@@ -74,12 +74,17 @@ def hermetic_arbitration_agents(monkeypatch):
     Importar agent_server.main injeta as vars de runtime no os.environ do
     processo — qualquer teste que rode depois passa a ver red_team/judge/
     auditor no roster e quebra asserts de comitê exato (incidente 2026-09-10:
-    teste do comitê flaky por ordem). Cada var abaixo adiciona um membro:
-    RED_TEAM/JUDGE (graph.py:733-734) e AUDITOR_MODEL (graph.py:781).
+    teste do comitê flaky por ordem). RED_TEAM/JUDGE adicionam um membro cada.
+
+    O auditor não é mais desligado apagando SUPEREZIO_DAYTRADE_AUDITOR_MODEL:
+    essa var carrega o model id e o gate do papel passou a ser a existência do
+    provider `daytrade_auditor` no gateway (que providers.py sempre constrói).
+    O desligamento explícito é SUPEREZIO_PIPELINE_ARBITRATION=0, que zera o
+    tier inteiro (red team/judge/auditor) de uma vez.
     """
+    monkeypatch.setenv("SUPEREZIO_PIPELINE_ARBITRATION", "0")
     monkeypatch.delenv("SUPEREZIO_RED_TEAM_AGENTS", raising=False)
     monkeypatch.delenv("SUPEREZIO_JUDGE_AGENTS", raising=False)
-    monkeypatch.delenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", raising=False)
 
 
 def requires_deepseek_key():

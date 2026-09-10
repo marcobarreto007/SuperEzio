@@ -1107,6 +1107,9 @@ def health_check():
     }
     experts_info = _glm_expert_readiness()
     deepseek_info = _deepseek_expert_readiness()
+    # Topology is only set below when the provider is actually in the gateway;
+    # default it first so the readiness dict is always shape-stable.
+    deepseek_info.setdefault("runtime_topology", "unknown")
     gateway_has_providers = False
     glm_runtime_seen = False
     deepseek_runtime_seen = False
@@ -1156,9 +1159,13 @@ def health_check():
     health["checks"]["provider_glm"] = dict(experts_info)
     health["checks"]["provider_deepseek"] = dict(deepseek_info)
 
+    # `experts` measures the tier that actually serves the committee: DeepSeek.
+    # GLM is optional (built only with SUPEREZIO_GLM_CODING_PLAN_API_KEY) and is
+    # reported as informational, never as a readiness gate.
     health["checks"]["providers_summary"] = {
         "primary": primary_info,
-        "experts": dict(experts_info),
+        "experts": dict(deepseek_info),
+        "optional_providers": {"glm": dict(experts_info)},
     }
 
     # -- Circuit Breakers --
@@ -1212,7 +1219,7 @@ def health_check():
         }
 
     ceo_ready = bool(primary_info["reachable"])
-    experts_ready = bool(experts_info["configured"])
+    experts_ready = bool(deepseek_info["configured"])
     if ceo_ready and experts_ready:
         health["status"] = "ok"
     elif not ceo_ready and not experts_ready:
