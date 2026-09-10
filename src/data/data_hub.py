@@ -132,6 +132,12 @@ def _make_wolfram_provider() -> Any:
     return WolframProvider()
 
 
+def _make_news_catalyst_provider(hub: Any) -> Any:
+    from .news_catalyst_provider import NewsCatalystProvider
+
+    return NewsCatalystProvider(lambda symbol: hub.get_news(symbol, limit=5))
+
+
 def _make_finnhub_provider(api_key: str | None) -> Any:
     from .finnhub_provider import FinnhubProvider
 
@@ -284,6 +290,22 @@ class DataHub:
         # Insider / smart-money chain:
         #   1) AlphaSMO  (smart-money convergence, keyless)
         #   2) Form4API  (SEC Form 4 cluster detection, free tier)
+        # Catalisador keyless (2026-09-10): o Finnhub e o unico provedor
+        # dedicado de short_term_catalyst; sem chave valida a lista fica VAZIA
+        # e todo candidato do scan morre em missing_catalyst. Esta rota deriva
+        # catalisador de manchetes keyless (google_news_ca/yahoo) aceitando so
+        # termos concretos do gate; prioridade baixa mantem o Finnhub primario.
+        self.register_provider(
+            ProviderRoute(
+                name="news_catalyst",
+                capabilities=("short_term_catalyst",),
+                factory=lambda: _make_news_catalyst_provider(self),
+                methods={"short_term_catalyst": "get_short_term_catalyst"},
+                priority=50,
+                required_key=None,
+                metadata={"role": "keyless_catalyst_fallback"},
+            )
+        )
         self.register_provider(
             ProviderRoute(
                 name="finnhub",

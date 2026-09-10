@@ -31,6 +31,7 @@ class ScanVerdict:
     next_step_pt: str
     next_step_en: str
     source_errors: tuple[str, ...] = field(default_factory=tuple)
+    data_health: tuple[str, ...] = field(default_factory=tuple)
 
 
 _REASON_LABELS = {
@@ -70,6 +71,39 @@ def _extract_amount(message: str) -> str:
     return raw
 
 
+def _data_health_facts() -> tuple[str, ...]:
+    """Fatos de saude dos dados do scan (rotas ativas e chaves ausentes).
+
+    Transparencia pedida no incidente 2026-09-10: o operador precisa ver que
+    faltou insumo (ex.: catalisador sem provedor) em vez de so rejeicao muda.
+    Somente NOMES de chaves — nunca valores.
+    """
+    try:
+        from data.data_hub import hub
+
+        price = hub.list_routes("price")
+        catalyst = hub.list_routes("short_term_catalyst")
+    # Fronteira de melhor esforco: diagnostico nunca derruba o veredito.
+    except Exception:  # noqa: BLE001
+        return ()
+    price_active = [str(r.get("name")) for r in price if r.get("configured")]
+    catalyst_active = [str(r.get("name")) for r in catalyst if r.get("configured")]
+    missing = sorted(
+        {
+            str(r.get("required_key"))
+            for r in (*price, *catalyst)
+            if r.get("required_key") and not r.get("configured")
+        }
+    )
+    facts = [
+        f"price={','.join(price_active) or 'none'}",
+        f"catalyst={','.join(catalyst_active) or 'none'}",
+    ]
+    if missing:
+        facts.append(f"missing_keys={','.join(missing)}")
+    return tuple(facts)
+
+
 def build_scan_verdict(state: dict[str, Any]) -> ScanVerdict:
     scan = state.get("scan") or {}
     if not isinstance(scan, dict):
@@ -101,6 +135,7 @@ def build_scan_verdict(state: dict[str, Any]) -> ScanVerdict:
         next_step_pt="Me passe um ticker com preco (ex. TD.TO) ou peca um scan de mini cap com catalisador.",
         next_step_en="Give me a priced ticker (e.g. TD.TO) or ask for a mini-cap scan with a catalyst.",
         source_errors=errors,
+        data_health=_data_health_facts(),
     )
 
 
@@ -133,6 +168,8 @@ def render_scan_speech(verdict: ScanVerdict, *, portuguese: bool) -> str:
                 f"Proximo passo: {verdict.next_step_pt}",
             ]
         )
+        if verdict.data_health:
+            lines.extend(["", "Saude dos dados: " + "; ".join(verdict.data_health)])
         return "\n".join(lines)
     lines = [
         f"You asked for an idea with {amount}.",
@@ -160,6 +197,8 @@ def render_scan_speech(verdict: ScanVerdict, *, portuguese: bool) -> str:
                 f"Next step: {verdict.next_step_en}",
             ]
         )
+    if verdict.data_health:
+        lines.extend(["", "Data health: " + "; ".join(verdict.data_health)])
     return "\n".join(lines)
 
 
