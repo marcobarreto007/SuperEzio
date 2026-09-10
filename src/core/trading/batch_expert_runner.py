@@ -21,12 +21,13 @@ import logging
 import sqlite3
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
+
+from core.paths import resolve_project_path
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path("data/expert_analyses.db")
+DB_PATH = resolve_project_path("data/expert_analyses.db")
 
 
 def _get_db() -> sqlite3.Connection:

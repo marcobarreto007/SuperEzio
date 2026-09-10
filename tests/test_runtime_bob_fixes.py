@@ -46,19 +46,21 @@ def test_man_at_work_notification_makes_no_network_calls(monkeypatch, tmp_path):
     """Zero-cloud contract (2026-08-17): the MAN_AT_WORK notification must not
     call any external API — the former DeepSeek backup-CEO call was removed.
     The alert is logged and persisted locally instead."""
-    monkeypatch.chdir(tmp_path)
+    # Artifacts resolve against the project root (not the cwd), so the test
+    # redirects the root instead of chdir-ing into a tmp dir.
+    monkeypatch.setattr("core.paths.PROJECT_ROOT", tmp_path)
     with patch("urllib.request.urlopen") as urlopen:
         BobsBody()._notify_technician("test containment")
 
     urlopen.assert_not_called()
-    # The alert is persisted locally (under the tmp cwd).
+    # The alert is persisted locally (under the patched project root).
     assert (tmp_path / "data" / "man_at_work" / "latest_alert.txt").exists()
 
 
 def test_exit_man_at_work_persists_clear_record(monkeypatch, tmp_path):
     """The alert file must record recovery: monitoring that reads
     latest_alert.txt after CEO recovery must not see a stale active gate."""
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("core.paths.PROJECT_ROOT", tmp_path)
     body = BobsBody()
     body.enter_man_at_work_mode("CEO Brain down: CEO unreachable")
     alert_path = tmp_path / "data" / "man_at_work" / "latest_alert.txt"

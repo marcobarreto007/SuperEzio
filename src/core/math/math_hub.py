@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from core.paths import resolve_project_path
+
 from .indicators import bollinger, ema, macd, rsi, sma, vwap, vwap_deviation
 from .risk import (
     annualized_return,
@@ -479,7 +481,7 @@ class MathHub:
 
             # Fetch returns for up to 20 tickers from historical cache
             ticker_returns: dict[str, list[float]] = {}
-            db_path = "data/historical_cache.db"
+            db_path = str(resolve_project_path("data/historical_cache.db"))
             try:
                 conn = sqlite3.connect(db_path)
                 # Get tickers with most data points

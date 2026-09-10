@@ -8,7 +8,6 @@ import os
 import re
 from datetime import UTC
 from decimal import ROUND_FLOOR, Decimal, InvalidOperation
-from pathlib import Path
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -19,6 +18,7 @@ from core.evidence.grounding import (
     mentioned_security_symbols,
     mismatched_price_symbols,
 )
+from core.paths import resolve_project_path
 
 from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
@@ -3614,7 +3614,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     )
 
     try:
-        prompt_path = Path("runtime/prompts") / f"{run_id or 'unknown'}.txt"
+        prompt_path = resolve_project_path("runtime/prompts") / f"{run_id or 'unknown'}.txt"
         prompt_path.parent.mkdir(parents=True, exist_ok=True)
         full_prompt = (
             f"=== SYSTEM ===\n{system_prompt or '(empty)'}\n\n"

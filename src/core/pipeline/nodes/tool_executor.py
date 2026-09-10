@@ -41,9 +41,9 @@ def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
 
     Returns the lesson dict if blocking, None otherwise.
     """
-    from pathlib import Path
+    from core.paths import resolve_project_path
 
-    learning_log_path = Path("data/learning_log.jsonl")
+    learning_log_path = resolve_project_path("data/learning_log.jsonl")
     if not learning_log_path.exists():
         return None
 

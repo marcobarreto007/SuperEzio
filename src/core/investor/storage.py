@@ -24,9 +24,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from core.paths import resolve_project_path
+
 
 def _db_path() -> Path:
-    base = Path(os.getenv("SUPEREZIO_DATA_DIR", "data"))
+    base = resolve_project_path(os.getenv("SUPEREZIO_DATA_DIR", "data"))
     base.mkdir(parents=True, exist_ok=True)
     return base / "investor.db"
 

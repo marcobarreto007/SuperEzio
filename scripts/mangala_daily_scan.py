@@ -77,9 +77,11 @@ class MangalaOpportunity:
     signal: str
     factors: dict[str, int]
     whale_status: str
-    whale_score: int
+    # None = social evidence unavailable (NO_DATA), never coerced to 0
+    whale_score: int | None
     pump_risk: str
-    pump_score: int
+    pump_score: int | None
+    data_status: str
     flip_plan: dict[str, Any]
     scanned_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
@@ -130,8 +132,14 @@ def get_scan_interval() -> int:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def _map_whale_status(whale_score: int) -> str:
-    """Map whale score 0-100 to label: FORTE, PROVAVEL, MODERADO, FRACO."""
+def _map_whale_status(whale_score: int | None) -> str:
+    """Map whale score 0-100 to label: FORTE, PROVAVEL, MODERADO, FRACO.
+
+    ``None`` means the evidence was never observed — reported as SEM_DADOS
+    instead of being coerced into a clean/weak market reading.
+    """
+    if whale_score is None:
+        return "SEM_DADOS"
     if whale_score >= WHALE_FORTE_THRESHOLD:
         return "FORTE"
     if whale_score >= WHALE_PROVAVEL_THRESHOLD:
@@ -141,8 +149,10 @@ def _map_whale_status(whale_score: int) -> str:
     return "FRACO"
 
 
-def _map_pump_risk(pump_score: int) -> str:
-    """Map pump risk 0-100 to label: ALERT, RISK, CLEAN."""
+def _map_pump_risk(pump_score: int | None) -> str:
+    """Map pump risk 0-100 to label: ALERT, RISK, CLEAN (SEM_DADOS if None)."""
+    if pump_score is None:
+        return "SEM_DADOS"
     if pump_score >= PUMP_ALERT_THRESHOLD:
         return "ALERT"
     if pump_score >= PUMP_RISK_THRESHOLD:
@@ -187,13 +197,18 @@ def _get_pennylab_data(social_whale: Any, ticker: str) -> dict[str, Any]:
     """Collect whale signals and pump detection for a ticker.
 
     Returns:
-        Dict with whale_score, whale_signal, pump_risk, pump_signal.
+        Dict with whale_score, whale_signal, pump_score, pump_signal and the
+        per-source data_status plus the combined data_status. Scores stay
+        ``None`` when the source did not observe data — never coerced to 0.
     """
     result: dict[str, Any] = {
-        "whale_score": 0,
-        "whale_signal": "CLEAN",
-        "pump_score": 0,
-        "pump_signal": "CLEAN",
+        "whale_score": None,
+        "whale_signal": "UNKNOWN",
+        "whale_data_status": "NO_DATA",
+        "pump_score": None,
+        "pump_signal": "UNKNOWN",
+        "pump_data_status": "NO_DATA",
+        "data_status": "NO_DATA",
     }
 
     if social_whale is None:
@@ -202,9 +217,11 @@ def _get_pennylab_data(social_whale: Any, ticker: str) -> dict[str, Any]:
     # ── Whale signals ──
     try:
         whale_data = social_whale.get_whale_signals(ticker)
-        if isinstance(whale_data, dict) and "error" not in whale_data:
-            result["whale_score"] = int(whale_data.get("whale_score", 0) or 0)
-            result["whale_signal"] = str(whale_data.get("signal", "CLEAN"))
+        if isinstance(whale_data, dict):
+            result["whale_signal"] = str(whale_data.get("signal", "UNKNOWN"))
+            result["whale_data_status"] = str(whale_data.get("data_status", "NO_DATA"))
+            whale_score = whale_data.get("whale_score")
+            result["whale_score"] = int(whale_score) if whale_score is not None else None
     except Exception as exc:  # noqa: BLE001
         # Fronteira de melhor esforço: chamada ao SocialWhaleProvider é
         # externa (rede/API); falha só degrada o score de whale, mantendo o
@@ -214,15 +231,29 @@ def _get_pennylab_data(social_whale: Any, ticker: str) -> dict[str, Any]:
     # ── Pump detection ──
     try:
         pump_data = social_whale.get_pump_detection(ticker)
-        if isinstance(pump_data, dict) and "error" not in pump_data:
-            result["pump_score"] = int(pump_data.get("pump_risk", 0) or 0)
-            result["pump_signal"] = str(pump_data.get("signal", "CLEAN"))
+        if isinstance(pump_data, dict):
+            result["pump_signal"] = str(pump_data.get("signal", "UNKNOWN"))
+            result["pump_data_status"] = str(pump_data.get("data_status", "NO_DATA"))
+            pump_score = pump_data.get("pump_risk")
+            result["pump_score"] = int(pump_score) if pump_score is not None else None
     except Exception as exc:  # noqa: BLE001
         # Fronteira de melhor esforço: chamada ao SocialWhaleProvider é
         # externa (rede/API); falha só degrada o pump risk, mantendo o scan.
         logger.debug("MangalaScan: pump detection failed for %s: %s", ticker, exc)
 
+    result["data_status"] = _combine_data_status(
+        result["whale_data_status"], result["pump_data_status"]
+    )
     return result
+
+
+def _combine_data_status(whale_data_status: str, pump_data_status: str) -> str:
+    """Combine the two per-source statuses into one record-level status."""
+    if whale_data_status == "OBSERVED" and pump_data_status == "OBSERVED":
+        return "OBSERVED"
+    if whale_data_status == "NO_DATA" and pump_data_status == "NO_DATA":
+        return "NO_DATA"
+    return "PARTIAL"
 
 
 def _get_candidates(data_hub: Any) -> list[dict[str, Any]]:
@@ -456,6 +487,10 @@ def _inline_score_whale(data: dict[str, Any]) -> int:
     whale_info = data.get("whale_print") or {}
     if whale_info:
         label = str(whale_info.get("label", "")).upper()
+        if label == "SEM_DADOS":
+            # Sem evidência social observada: não fabricar score de whale a
+            # partir de volume/preço (o fallback de volume mede outra coisa).
+            return 0
         confidence = float(whale_info.get("confidence", 0) or 0)
         if label == "FORTE" and confidence > 0.7:
             return 25
@@ -566,8 +601,11 @@ def run_daily_scan() -> list[dict[str, Any]]:
     Returns:
         List of top 5 opportunities, each containing:
             ticker, price, volume, name, score, signal, factors,
-            whale_status, whale_score, pump_risk, pump_score,
+            whale_status, whale_score, pump_risk, pump_score, data_status,
             flip_plan, scanned_at
+
+        ``whale_score``/``pump_score`` are ``None`` when the social source did
+        not observe data (labels become SEM_DADOS; ``data_status`` records it).
     """
     data_hub = _get_data_hub()
     social_whale = _get_social_whale(data_hub)
@@ -594,10 +632,11 @@ def run_daily_scan() -> list[dict[str, Any]]:
 
             # Collect Pennylab data (whale + pump) via SocialWhaleProvider
             pennylab = _get_pennylab_data(social_whale, ticker)
+            whale_score = pennylab["whale_score"]
             stock_data["whale_print"] = {
-                "label": _map_whale_status(pennylab["whale_score"]),
-                "confidence": min(1.0, pennylab["whale_score"] / 100.0),
-                "score": pennylab["whale_score"],
+                "label": _map_whale_status(whale_score),
+                "confidence": min(1.0, whale_score / 100.0) if whale_score is not None else 0.0,
+                "score": whale_score,
             }
 
             # Calculate Mangala Score (reusing mangala.py's engine)
@@ -618,6 +657,7 @@ def run_daily_scan() -> list[dict[str, Any]]:
                 whale_score=pennylab["whale_score"],
                 pump_risk=pump_risk,
                 pump_score=pennylab["pump_score"],
+                data_status=pennylab["data_status"],
                 flip_plan=scored["flip_plan"],
             )
             opportunities.append(opp)

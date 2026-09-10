@@ -20,12 +20,15 @@ import logging
 import sqlite3
 import time
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
+
+from core.paths import resolve_project_path
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path("data/historical_cache.db")
+# Resolved against the project root: a relative path here would land in
+# src/data when the process runs with cwd=src (split-brain artifacts).
+DB_PATH = resolve_project_path("data/historical_cache.db")
 LOOKBACK_DAYS = 180  # ~6 months of trading days
 
 

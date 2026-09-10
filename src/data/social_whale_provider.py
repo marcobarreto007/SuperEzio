@@ -4,7 +4,9 @@ aggregator for equities and crypto.
 
 Sources (tried in cascade):
   1. Nitter (Twitter/X proxy — free, no API key needed)
-     Instances: nitter.net, nitter.it, nitter.cz, nitter.1d4.us, nitter.kylrth.com
+     Instances: nitter.it, nitter.cz, nitter.1d4.us, nitter.kylrth.com
+     (nitter.net was dropped on 2026-08: the instance serves a static
+     shutdown page, never a timeline)
   2. ApeWisdom (Reddit/WSB retail sentiment — free, no key), used only by
      the aggregate sentiment method
   3. Explicit NO_DATA/UNKNOWN result when specialized evidence is unavailable
@@ -16,6 +18,8 @@ Resilience guarantee:
   - Instance-level failures are logged at DEBUG level, never WARNING
   - If every source fails, ``NO_DATA``/``UNKNOWN`` is returned; absence of
     evidence is never represented as a clean market signal
+  - A HTTP 200 without a real per-tweet container (e.g. a Nitter shutdown
+    page) is treated as offline, never parsed as observed tweets
 """
 
 from __future__ import annotations
@@ -34,8 +38,9 @@ except ImportError:
     _HAS_REQUESTS = False
 
 # ── Nitter Instances (tried in order, best first) ──────────────────────────
+# nitter.net removed on 2026-08: the instance answers 200 with a shutdown
+# page instead of a timeline (parsed as zero tweets — treated as offline).
 NITTER_INSTANCES = (
-    "https://nitter.net",
     "https://nitter.it",
     "https://nitter.cz",
     "https://nitter.1d4.us",
@@ -423,9 +428,14 @@ class SocialWhaleProvider:
                     continue
 
                 tweets = self._parse_nitter_tweets(resp.text, limit)
-                if tweets:
-                    instance_name = instance.split("//")[1]
-                    return tweets, f"nitter({instance_name})"
+                if not tweets:
+                    # HTTP 200 without a per-tweet container: a shutdown /
+                    # interstitial page, not an observed timeline. Never
+                    # reported as an observed source.
+                    logger.debug("[SocialWhale] Nitter %s served no tweet container", instance)
+                    continue
+                instance_name = instance.split("//")[1]
+                return tweets, f"nitter({instance_name})"
             except Exception as exc:  # noqa: BLE001 — instância Nitter pode falhar de formas variadas; segue para a próxima em cascata
                 logger.debug("[SocialWhale] Nitter %s failed: %s", instance, exc)
                 continue
@@ -437,7 +447,9 @@ class SocialWhaleProvider:
         """Extract tweet texts from Nitter HTML.
 
         Uses multiple extraction strategies to handle different Nitter
-        versions and instance configurations.
+        versions and instance configurations. Returns ``[]`` unless a real
+        per-tweet container is present — a bare block of prose (shutdown
+        page, error page) is not tweet evidence.
         """
         # Remove script, style, svg blocks and HTML comments
         cleaned = re.sub(
@@ -492,16 +504,10 @@ class SocialWhaleProvider:
             if tweets:
                 return tweets
 
-        # Strategy 3: any sizable text block (broad fallback)
-        blocks = re.findall(r">([^<]{40,})<", cleaned)
-        if blocks:
-            result = []
-            for b in blocks[:limit]:
-                text = _clean_html_text(b)
-                if text:
-                    result.append({"text": text})
-            return result
-
+        # No tweet container found. A broad "any sizable text block" fallback
+        # used to live here and it parsed Nitter's shutdown page as ten
+        # tweets, identical for every ticker. Evidence requires a real tweet
+        # container (tweet-content / timeline-item) — otherwise: no tweets.
         return []
 
     # ──────────────────────────────────────────────────────────────────────

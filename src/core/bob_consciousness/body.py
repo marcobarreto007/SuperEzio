@@ -31,10 +31,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 from core.config.logging_config import get_logger
+from core.paths import resolve_project_path
 
 logger = get_logger(__name__)
 
@@ -332,7 +332,7 @@ def _check_dead_letter_queue() -> tuple:
 def _check_historical_cache() -> tuple:
     """Check if historical cache has data."""
     try:
-        db_path = Path("data/historical_cache.db")
+        db_path = resolve_project_path("data/historical_cache.db")
         if not db_path.exists():
             return False, "Cache DB does not exist"
         conn = sqlite3.connect(str(db_path))
@@ -468,7 +468,9 @@ class BobsBody:
         self.last_full_scan: str = ""
         self.total_scans: int = 0
         self.total_heals: int = 0
-        self._pain_log_path = Path(os.getenv("SUPEREZIO_BOB_PAIN_LOG", "data/bob_pain_log.jsonl"))
+        self._pain_log_path = resolve_project_path(
+            os.getenv("SUPEREZIO_BOB_PAIN_LOG", "data/bob_pain_log.jsonl")
+        )
         # System mode: NORMAL, MAN_AT_WORK, EMERGENCY_SHUTDOWN
         self.system_mode = SystemMode.NORMAL
         self._mode_entered_at: str = ""
@@ -519,7 +521,7 @@ class BobsBody:
         # alert file) see the gate cleared, with the original reason retained
         # for audit. Forensic detail stays in the diagnostic snapshots.
         try:
-            alert_path = Path("data/man_at_work/latest_alert.txt")
+            alert_path = resolve_project_path("data/man_at_work/latest_alert.txt")
             alert_path.parent.mkdir(parents=True, exist_ok=True)
             cleared = (
                 "MAN_AT_WORK CLEARED\n"
@@ -577,7 +579,7 @@ class BobsBody:
             }
 
             # Save to file
-            diag_dir = Path("data/man_at_work")
+            diag_dir = resolve_project_path("data/man_at_work")
             diag_dir.mkdir(parents=True, exist_ok=True)
             diag_path = diag_dir / f"diagnosis_{int(time.time())}.json"
             with open(diag_path, "w", encoding="utf-8") as f:
@@ -607,7 +609,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
             # logged above and persisted below for the operator to find.
 
             # Save alert to dedicated file
-            alert_path = Path("data/man_at_work/latest_alert.txt")
+            alert_path = resolve_project_path("data/man_at_work/latest_alert.txt")
             alert_path.parent.mkdir(parents=True, exist_ok=True)
             with open(alert_path, "w", encoding="utf-8") as f:
                 f.write(alert_msg.strip())

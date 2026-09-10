@@ -22,6 +22,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from core.paths import resolve_project_path
 from core.trading.td_universe import is_commission_free
 
 from ..circuit_breaker import CircuitBreaker
@@ -1086,9 +1087,10 @@ async def _run_scan(
     if len(raw_candidates) < 5:
         try:
             import json as _json
-            from pathlib import Path as _Path
 
-            daily_path = _Path(os.getenv("SUPEREZIO_MANGALA_SEED_PATH", "data/mangala_daily.json"))
+            daily_path = resolve_project_path(
+                os.getenv("SUPEREZIO_MANGALA_SEED_PATH", "data/mangala_daily.json")
+            )
             if daily_path.exists():
                 daily = _json.loads(daily_path.read_text(encoding="utf-8"))
                 existing = {str(c.get("ticker") or "").upper() for c in raw_candidates}
