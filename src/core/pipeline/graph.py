@@ -387,6 +387,19 @@ def _is_simple_query(state: dict) -> bool:
     return True
 
 
+def _arbitration_agent_count(env_name: str) -> int:
+    """Agentes de arbitragem por papel: 0..1, valor inválido vira 0.
+
+    Red team/judge são um por rodada (réplicas não adicionam diversidade) e
+    env quebrado não pode derrubar o pipeline com ValueError.
+    """
+    try:
+        value = int(os.getenv(env_name, "0"))
+    except (TypeError, ValueError):
+        return 0
+    return min(max(0, value), 1)
+
+
 async def _auto_full_analysis(
     state: dict,
     *,
@@ -717,8 +730,8 @@ async def _auto_full_analysis(
                 },
             )
 
-        red_team_agents = min(max(0, int(os.getenv("SUPEREZIO_RED_TEAM_AGENTS", "0"))), 1)
-        judge_agents = min(max(0, int(os.getenv("SUPEREZIO_JUDGE_AGENTS", "0"))), 1)
+        red_team_agents = _arbitration_agent_count("SUPEREZIO_RED_TEAM_AGENTS")
+        judge_agents = _arbitration_agent_count("SUPEREZIO_JUDGE_AGENTS")
         red_team_results: list[dict[str, Any]] = []
         judge_results: list[dict[str, Any]] = []
         auditor_result: dict[str, Any] | None = None

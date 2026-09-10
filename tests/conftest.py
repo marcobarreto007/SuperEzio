@@ -67,6 +67,21 @@ def isolated_trading_state(monkeypatch, tmp_path):
     monkeypatch.setenv("SUPEREZIO_DEAD_LETTER_DIR", str(tmp_path / "dead-letter"))
 
 
+@pytest.fixture(autouse=True)
+def hermetic_arbitration_agents(monkeypatch):
+    """Zera o comitê de arbitragem por teste.
+
+    Importar agent_server.main injeta as vars de runtime no os.environ do
+    processo — qualquer teste que rode depois passa a ver red_team/judge/
+    auditor no roster e quebra asserts de comitê exato (incidente 2026-09-10:
+    teste do comitê flaky por ordem). Cada var abaixo adiciona um membro:
+    RED_TEAM/JUDGE (graph.py:733-734) e AUDITOR_MODEL (graph.py:781).
+    """
+    monkeypatch.delenv("SUPEREZIO_RED_TEAM_AGENTS", raising=False)
+    monkeypatch.delenv("SUPEREZIO_JUDGE_AGENTS", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", raising=False)
+
+
 def requires_deepseek_key():
     """Skip decorator para testes que precisam de API key."""
     key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") or os.getenv("SUPEREZIO_PRIMARY_API_KEY")
