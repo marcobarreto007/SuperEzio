@@ -945,12 +945,19 @@ _MARKET_INTENT_VALUES = {"market_scan", "ticker_analysis", "another_trade_recomm
 
 
 def _is_market_data_request_without_data(state: dict) -> bool:
-    """Pedido de mercado sem insumo: honesto, nunca o enlatado de advisory."""
+    """Pedido de mercado sem insumo: honesto, nunca o enlatado de advisory.
+
+    O estado nem sempre carrega route/intent na hora do fallback (o trace
+    monta route_used depois) — a propria mensagem tambem decide.
+    """
+    message = str(state.get("message") or "")
+    scan_detector = _get_agent_attr("detect_market_scan_intent")
     return bool(
         state.get("route") in _MARKET_ROUTE_VALUES
         or state.get("intent") in _MARKET_INTENT_VALUES
         or state.get("scanner_invoked")
         or state.get("cognitive_mode") in {"DISCOVERY_SCAN", "TICKER_ANALYSIS"}
+        or (scan_detector is not None and scan_detector(message))
     )
 
 

@@ -44,6 +44,24 @@ def test_advisory_without_market_context_keeps_deliberate_answer():
     assert CANNED in answer  # comportamento deliberado (commit 3ac68461)
 
 
+USER_SCAN_MSG = (
+    "Pesquise oportunidades de curto prazo nas bolsas canadenses e americanas, apenas ativos listados. "
+    "Prefira ETFs sem comissao quando existirem. Mostre os candidatos que passaram nos gates com entrada, stop e alvo."
+)
+
+
+def test_scan_message_without_route_field_still_honest():
+    """Incidente 2: no run real o state nao tinha route na hora do fallback."""
+    answer = _contract_fallback_answer({"message": USER_SCAN_MSG})
+    assert CANNED not in answer
+    assert "WAIT" in answer
+
+
+def test_market_detection_uses_message_when_state_is_bare():
+    assert _is_market_data_request_without_data({"message": USER_SCAN_MSG}) is True
+    assert _is_market_data_request_without_data({"message": "me da uma dica"}) is True
+
+
 def test_market_detection_matrix():
     assert _is_market_data_request_without_data({"route": "market_scan"}) is True
     assert _is_market_data_request_without_data({"intent": "another_trade_recommendation"}) is True

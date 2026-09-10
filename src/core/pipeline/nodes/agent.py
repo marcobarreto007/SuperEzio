@@ -26,6 +26,7 @@ from ..intents import (
     detect_another_trade_recommendation_intent,
     detect_complex_finance_intent,
     detect_decisive_trade_intent,
+    detect_market_scan_intent,
     looks_financially_substantive,
     normalize_message,
 )
@@ -2580,13 +2581,17 @@ def _is_market_data_request_without_data(state: dict) -> bool:
     """Pedido de dados de mercado que rodou sem insumo (nada para deliberar).
 
     Nessas rodadas o honesto e dizer que faltou dado — nao servir o texto
-    enlatado de advisory, que parece recusa deliberada do Bob.
+    enlatado de advisory, que parece recusa deliberada do Bob. O estado nem
+    sempre carrega route/intent no momento do fallback (o trace monta
+    route_used depois) — por isso a propria mensagem tambem decide.
     """
+    message = str(state.get("message") or "")
     return bool(
         state.get("route") in _MARKET_ROUTE_VALUES
         or state.get("intent") in _MARKET_INTENT_VALUES
         or state.get("scanner_invoked")
         or state.get("cognitive_mode") in {"DISCOVERY_SCAN", "TICKER_ANALYSIS"}
+        or detect_market_scan_intent(message)
     )
 
 
