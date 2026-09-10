@@ -590,10 +590,12 @@
       scanData.opportunities.forEach(function (opp) {
         var sig = opp.signal || "PASS";
         var sigCls = sig === "MANGALA!" ? "is-positive" : (sig === "WATCH" ? "is-warn" : "");
-        var whale = opp.whale_status || "FRACO";
+        /* No silent fallback: a missing/unknown label must read as missing
+           (neutral), never as the unbacked "CLEAN" (green) or "FRACO" claim. */
+        var whale = opp.whale_status || "SEM_DADOS";
         var whaleCls = whale === "FORTE" ? "is-positive" : (whale === "PROVAVEL" || whale === "MODERADO" ? "is-warn" : "");
-        var pump = opp.pump_risk || "CLEAN";
-        var pumpCls = pump === "ALERT" ? "is-negative" : (pump === "RISK" ? "is-warn" : "is-positive");
+        var pump = opp.pump_risk || "SEM_DADOS";
+        var pumpCls = pump === "ALERT" ? "is-negative" : (pump === "RISK" ? "is-warn" : (pump === "CLEAN" ? "is-positive" : ""));
         var flip = opp.flip_plan || {};
 
         html += '<div class="mangala-scan-row">';
@@ -942,19 +944,26 @@
 
 
   /* - Paper Trade Inline Form - */
+  /* The submit button records a ticket in the local journal; it never reaches
+     the broker (endpoint answers submitted_to_broker:false). One constant for
+     the label, so markup and handler cannot drift apart. */
+  var TRADE_SUBMIT_LABEL = 'Registrar no journal';
+  var TRADE_PAPER_HINT = 'Registrar um ticket PAPER no journal — nada é enviado à corretora';
+
   function tradeFormHTML(cardId) {
     return '<div class="trade-bar">' +
-      '<button class="trade-btn" data-card="' + cardId + '" type="button">+ Trade</button>' +
-      '<span class="trade-confirm" id="trade-confirm-' + cardId + '"></span>' +
+      '<button class="trade-btn" data-card="' + cardId + '" type="button" title="' + TRADE_PAPER_HINT + '" aria-label="' + TRADE_PAPER_HINT + '">+ Trade</button>' +
+      '<span class="trade-confirm" id="trade-confirm-' + cardId + '" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<div class="trade-inline-form" id="trade-form-' + cardId + '">' +
+      '<div class="trade-paper-notice" data-paper-notice="paper">Modo PAPER · simulação. Nada é enviado à corretora: o ticket fica no journal para validação.</div>' +
       '<div class="trade-form-row">' +
       '<input class="trade-ticker-inp" type="text" placeholder="TICKER" maxlength="10">' +
       '<select class="trade-action-select" aria-label="Acao da ordem"><option value="buy">BUY</option><option value="sell">SELL</option></select>' +
       '<input class="trade-qty-inp" type="text" inputmode="decimal" value="10" min="1" max="99999" step="1" placeholder="Qty" aria-label="Quantidade">' +
       '</div>' +
       '<div class="trade-form-actions">' +
-      '<button class="trade-submit-btn" data-card="' + cardId + '" type="button">Confirm</button>' +
+      '<button class="trade-submit-btn" data-card="' + cardId + '" type="button">' + TRADE_SUBMIT_LABEL + '</button>' +
       '<button class="trade-cancel-btn" data-card="' + cardId + '" type="button">Cancel</button>' +
       '</div>' +
       '</div>';
@@ -965,10 +974,8 @@
     if (el) {
       el.textContent = msg;
       el.classList.add('is-visible');
-      clearTimeout(el._hideTimer);
-      el._hideTimer = setTimeout(function () {
-        el.classList.remove('is-visible');
-      }, 6000);
+      /* No auto-hide: this line carries the PAPER disclosure ("NÃO enviado à
+         corretora"). A 6s timer used to erase it before the operator read it. */
     }
   }
 
@@ -1008,18 +1015,18 @@
     var qty = parseInt(qtyEl.value, 10);
 
     if (!ticker || ticker.length < 1) {
-      showTradeConfirm(cardId, 'Enter a valid ticker');
+      showTradeConfirm(cardId, 'Informe um ticker válido');
       tickerEl.focus();
       return;
     }
     if (isNaN(qty) || qty <= 0) {
-      showTradeConfirm(cardId, 'Enter a valid quantity');
+      showTradeConfirm(cardId, 'Informe uma quantidade válida');
       qtyEl.focus();
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Sending...';
+    btn.textContent = 'Registrando...';
 
     try {
       var r = await window.SZ.api.fetchWithAuth('/trade/execute', {
@@ -1032,20 +1039,20 @@
         // The server deduplicated this intent: it is the SAME ticket, not a
         // second order. Say so — silently showing "pending" again would make
         // the user believe two orders were queued.
-        showTradeConfirm(cardId, 'This order was already registered — ticket ' + (data.order_id || 'unknown'));
+        showTradeConfirm(cardId, 'Este ticket já estava registrado — protocolo ' + (data.order_id || 'desconhecido'));
         refreshMangala();
       } else if (r.ok && data && data.order_id) {
         var pendingStatus = data.status || data.phase || 'pending validation';
-        showTradeConfirm(cardId, 'Ticket ' + data.order_id + ' — Not submitted to broker (' + String(pendingStatus).replace(/_/g, ' ') + ')');
+        showTradeConfirm(cardId, 'Ticket ' + data.order_id + ' — NÃO enviado à corretora (PAPER · ' + String(pendingStatus).replace(/_/g, ' ') + '). Registrado no journal para validação.');
       } else {
-        var errMsg = data.detail || data.error || data.reason || 'Unknown error';
-        showTradeConfirm(cardId, 'Error: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'unknown'));
+        var errMsg = data.detail || data.error || data.reason || 'erro desconhecido';
+        showTradeConfirm(cardId, 'Erro: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'desconhecido'));
       }
     } catch (ex) {
-      showTradeConfirm(cardId, 'Error: ' + (ex.message || 'request failed').substring(0, 120));
+      showTradeConfirm(cardId, 'Erro: ' + (ex.message || 'falha na requisição').substring(0, 120));
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Confirm';
+      btn.textContent = TRADE_SUBMIT_LABEL;
     }
   }
 

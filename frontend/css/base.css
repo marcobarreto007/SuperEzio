@@ -9,7 +9,6 @@ body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
-  min-width: 1180px;
   overflow: hidden;
   position: relative;
 }

@@ -83,6 +83,16 @@ body::after {
   padding: 4px 0;
 }
 
+/* Placeholder copy rendered inside cards/panels (init.js, deep-panel.js,
+   genie-panel.js, bob-panel.js, blame-panel.js). It had no rule at all, so
+   long lines inflated the min-content width of their grid/flex parents. */
+.cockpit-empty {
+  font: 500 11px/1.45 var(--font-sans);
+  color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* ── TOP BAR ── */
 .topbar {
   display: flex;
@@ -445,16 +455,26 @@ body::after {
 /* ── APP MAIN LAYOUT ── */
 .app-main {
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 1px;
   flex: 1;
   min-height: 0;
+  /* Reset the landmine declared in charts.css: the shell must shrink with the
+     viewport instead of forcing a 1180px document. */
+  min-width: 0;
+  /* Reserve the docked Bob chat tab (32px, position:fixed right:0) so it
+     never overlays the right rail's verdict chips. */
+  padding-right: 32px;
   overflow: hidden;
 }
 
 /* ── CHART ZONE (70% equiv) ── */
 .chart-zone {
   display: grid;
+  /* Without an explicit column the implicit one is min-content sized: a
+     non-shrinkable .market-header__prices pushed the column to ~464px and
+     painted it under the header buttons at narrow widths. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   background: var(--bg-primary);
@@ -559,22 +579,32 @@ body::after {
 /* Chart Stage */
 .chart-stage {
   min-height: 0;
+  min-width: 0;
   padding: 8px;
   background: var(--bg-primary);
+  /* charts.css keeps position:relative here, so the stage paints above the
+     static .orders-mirror below it. On phones the stage row shrinks to a few
+     dozen px while the canvas holds min-height:200px, and the chart used to
+     paint over the mirror's text. Clip it to its own row. */
+  overflow: hidden;
 }
 
 .chart-stage__canvas {
   height: 100%;
   min-height: 200px;
+  min-width: 0;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-primary);
 }
 
+/* min-width survives the inline style.cssText that chart.js writes on boot
+   (that text sets width/height/flex only). */
 #live-canvas {
   width: 100%;
   height: 100%;
+  min-width: 0;
   display: block;
 }
 
@@ -586,6 +616,11 @@ body::after {
   overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  /* charts.css centres the rows (align-items:center) and keeps min-height:84px.
+     Centred items keep their content height and overflow the 1fr track, so the
+     body was painted half above / half below the clipped box. Stretch instead. */
+  align-items: stretch;
+  padding: 10px 12px 12px;
 }
 
 .orders-mirror__header {
@@ -618,6 +653,8 @@ body::after {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
   background: var(--border-subtle);
 }
@@ -628,6 +665,7 @@ body::after {
   padding: 6px 8px;
   background: var(--bg-secondary);
   min-height: 0;
+  min-width: 0;
 }
 
 .orders-list {
@@ -1618,15 +1656,16 @@ body.show-debug-cards .bob-runtime {
   background: rgba(0, 230, 118, 0.25);
 }
 .trade-confirm {
-  font: 600 9px var(--font-mono);
+  font: 600 9px/1.4 var(--font-mono);
   color: var(--green-buy);
   opacity: 0;
   transition: opacity 0.3s ease;
   flex: 1;
+  min-width: 0;
   text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Wraps instead of ellipsis: the post-click line states that the ticket was
+     NOT sent to the broker and must be readable in full. */
+  overflow-wrap: anywhere;
 }
 .trade-confirm.is-visible {
   opacity: 1;
@@ -1680,6 +1719,18 @@ body.show-debug-cards .bob-runtime {
   gap: 4px;
   justify-content: flex-end;
 }
+/* Permanent PAPER disclosure above the ticket form. Green is the product's
+   execution colour, so the submit button below must NOT use it: this button
+   only records a ticket in the journal for validation. */
+.trade-paper-notice {
+  margin-bottom: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--yellow-dim);
+  border-radius: var(--radius-sm);
+  background: var(--yellow-dim);
+  color: var(--yellow-warn);
+  font: 600 9px/1.4 var(--font-mono);
+}
 .trade-submit-btn {
   all: unset;
   display: inline-flex;
@@ -1687,10 +1738,10 @@ body.show-debug-cards .bob-runtime {
   justify-content: center;
   height: 22px;
   padding: 0 10px;
-  border: 1px solid var(--green-dim);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  background: var(--green-dim);
-  color: var(--green-buy);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font: 700 9px var(--font-mono);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -1700,7 +1751,7 @@ body.show-debug-cards .bob-runtime {
   pointer-events: none;
 }
 .trade-submit-btn:hover:not(:disabled) {
-  background: rgba(0, 230, 118, 0.25);
+  background: var(--bg-hover);
 }
 .trade-cancel-btn {
   all: unset;
@@ -1724,7 +1775,7 @@ body.show-debug-cards .bob-runtime {
 
 @media (max-width: 1100px) {
   .app-main {
-    grid-template-columns: 1fr minmax(260px, 320px);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
   }
 
   .market-header__prices .price-cell {
@@ -1898,9 +1949,35 @@ body.show-debug-cards .bob-runtime {
   }
 
   /* R1: the orders mirror shrinks so the chart stage (and the price pane
-     inside it) grows instead of being crushed by the 124px header. */
+     inside it) grows instead of being crushed by the 124px header.
+     A hard 84px cap squeezed the body row to ~9px while the body kept its
+     136px content height, cutting the list above and below. Cap by viewport
+     share and let the rows shrink instead. */
   .orders-mirror {
-    max-height: 84px;
+    max-height: 30vh;
+    min-height: 0;
+  }
+
+  /* Two columns do not fit at phone widths: one column keeps both lists
+     readable and inside the clipped mirror box. */
+  .orders-mirror__body {
+    grid-template-columns: 1fr;
+  }
+
+  /* The price pane is flex-shrink:0 at base width; on phones it must give
+     room to the header buttons instead of painting under them. */
+  .market-header {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .market-header__info {
+    flex-wrap: wrap;
+  }
+
+  .market-header__prices {
+    flex-shrink: 1;
+    min-width: 0;
   }
 }
 

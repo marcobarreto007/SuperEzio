@@ -1700,10 +1700,54 @@ def test_frontend_trade_confirmation_requires_explicit_broker_confirmation():
     trade_submit = cockpit_js[start:end]
 
     assert "data.idempotent_replay === true" in trade_submit
-    assert "Not submitted to broker" in trade_submit
+    # The permanent PAPER disclosure is asserted through its stable marker
+    # (the surrounding prose is translated; the marker is not).
+    assert 'data-paper-notice="paper"' in cockpit_js
+    # …and the post-click line must still say the ticket was NOT sent.
+    assert "NÃO enviado à corretora" in trade_submit
+    # One label constant: markup and handler may not drift.
+    assert "TRADE_SUBMIT_LABEL" in trade_submit
+    assert ">Confirm<" not in cockpit_js
+    # The disclosure may not auto-hide any more (it used a 6000ms timer).
+    assert "6000" not in trade_submit
     assert "Broker confirmed" not in trade_submit
     assert "if (r.ok) {" not in trade_submit
     assert "Paper order submitted" not in trade_submit
+
+
+def test_frontend_layout_shell_shrinks_with_the_viewport():
+    """The cockpit shell must fit normal widths (live guard: scripts/layout_guard.py).
+
+    `min-width: 1180px` on body/.app-main forced a 1180px document at every
+    viewport below it, and body{overflow:hidden} made the clipped right rail
+    unreachable even by scroll. The docked Bob chat tab (32px, fixed at
+    right:0) must also have reserved space, otherwise it overlays the rail's
+    verdict chips, and .chart-zone must clamp its implicit column instead of
+    sizing it by min-content. Text-level contract: the live DOM invariants
+    (A1-A8) are measured by scripts/layout_guard.py.
+    """
+    from pathlib import Path
+
+    base_css = Path("frontend/css/base.css").read_text(encoding="utf-8")
+    charts_css = Path("frontend/css/charts.css").read_text(encoding="utf-8")
+    cockpit_css = Path("frontend/css/cockpit.css").read_text(encoding="utf-8")
+
+    assert "min-width: 1180px" not in charts_css
+    assert "min-width: 1180px" not in base_css
+
+    app_main_rule = cockpit_css.split(".app-main {", 1)[1].split("}", 1)[0]
+    assert "min-width: 0" in app_main_rule
+    assert "padding-right: 32px" in app_main_rule
+
+    chart_zone_rule = cockpit_css.split(".chart-zone {", 1)[1].split("}", 1)[0]
+    assert "grid-template-columns: minmax(0, 1fr)" in chart_zone_rule
+
+    orders_mirror_rule = cockpit_css.split(".orders-mirror {", 1)[1].split("}", 1)[0]
+    assert "align-items: stretch" in orders_mirror_rule
+    assert "padding: 10px 12px 12px" in orders_mirror_rule
+
+    # Placeholder copy used by the panels had no rule at all.
+    assert ".cockpit-empty {" in cockpit_css
 
 
 def test_frontend_does_not_autostart_missing_pipeline_stream():

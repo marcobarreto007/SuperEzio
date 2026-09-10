@@ -1,9 +1,12 @@
 /* Trading workspace */
 .app-main {
   display: grid;
-  grid-template-columns: minmax(640px, 1fr) minmax(460px, 520px);
+  /* Fluid columns: the old fixed mins (640px/460px, plus min-width:1180px)
+     forced a 1180px shell that overflowed every viewport below 1180 and was
+     unreachable by scroll (body{overflow:hidden}). cockpit.css owns the
+     column widths now — keep them shrinkable here. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
   min-height: 0;
-  min-width: 1180px;
   overflow: hidden;
   background: var(--bg);
   border-top: 1px solid var(--line);
