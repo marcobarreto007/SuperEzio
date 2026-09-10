@@ -1897,20 +1897,6 @@ body.show-debug-cards .bob-runtime {
     max-width: none;
   }
 
-  /* R1: chart header buttons become icon-only so the wrapped button row
-     disappears at 320px and the price pane keeps >=180px (R4 G3). */
-  #analyze-chart-bob-btn span,
-  #suggest-btn span {
-    display: none;
-  }
-
-  #analyze-chart-bob-btn,
-  #suggest-btn {
-    width: 40px;
-    padding: 5px 0;
-    justify-content: center;
-  }
-
   /* R1: the orders mirror shrinks so the chart stage (and the price pane
      inside it) grows instead of being crushed by the 124px header. */
   .orders-mirror {
