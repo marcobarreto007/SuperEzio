@@ -23,7 +23,7 @@ Dado o snapshot do market-data-puller (e SOMENTE ele), um arquivo:
 
 - **Entrada é só o snapshot validado.** Nunca abre notícias/relatórios brutos — isso é papel do data-puller. Você herda fatos já filtrados.
 - **Todo número cita o snapshot.** Número sem origem → marque `[UNSOURCED]`; o relatório só finaliza com zero `[UNSOURCED]`.
-- **Zero nuvem.** Nenhuma chamada a LLM externo. Se precisar de modelo, o servidor local é `http://127.0.0.1:8080/v1` (mesmo que seja "só um rascunho"). Servidor fora → trabalha sem LLM e declara no relatório.
+- **Zero nuvem, zero modelo local.** Nenhuma chamada a LLM — nem às APIs em nuvem (DeepSeek/Z.ai) nem a servidor local: não existe servidor de modelo local no runtime atual. A tese sai do snapshot; sem LLM, trabalhe só do snapshot e declare isso no relatório.
 - **Stop-and-surface.** Após gravar, PARE. Nenhuma ordem, nenhum uso downstream, sem aprovação explícita do operador.
 - **Escrita só em `runtime/reports/` e `runtime/theses/`.** Não toca em `src/`, `config/`, `data/`, `frontend/`.
 - **Registre a tese na skill `tese-tracker`** ao gravar o relatório: cria/atualiza `runtime/theses/<TICKER>.json` (pilares, invalidação, catalysts, conviction — a skill define o formato).

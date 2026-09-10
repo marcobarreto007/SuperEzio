@@ -71,7 +71,7 @@ python scripts\browser_smoke.py
 
 Quando há runtime/modelo:
 ```powershell
-Get-NetTCPConnection -LocalPort 8002,8080 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
 nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv,noheader,nounits
 ```
 

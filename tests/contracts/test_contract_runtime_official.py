@@ -71,8 +71,10 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
     assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-flash"
-    assert "deepseek-v4-pro" in contract
+    # Every role runs deepseek-v4-flash as of 2026-09-10; deepseek-v4-pro is no
+    # longer a documented default in the runtime contract.
     assert "deepseek-v4-flash" in contract
+    assert "deepseek-v4-pro" not in contract
     assert "8082" not in canonical_text
     assert "80B" not in canonical_text
 
@@ -169,7 +171,11 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     ]
     css_text = "\n".join(path.read_text(encoding="utf-8") for path in css_files)
     assert "max-width: 768px" not in css_text
-    assert "min-width: 1180px" in css_text
+    # The retired 1180px fixed shell (body/.app-main min-width) is exactly what
+    # made every viewport below 1180px overflow, with the right rail
+    # unreachable. The contract now pins the fluid, clamped columns instead.
+    assert "min-width: 1180px" not in css_text
+    assert "grid-template-columns: minmax(0, 1fr) minmax(0, 380px)" in css_text
     assert "panel-drawer" not in html
     assert "data-panel" not in html
     assert "css/panels.css" not in html

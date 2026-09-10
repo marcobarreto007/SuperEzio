@@ -28,11 +28,13 @@ incorporates the detailed module contracts but does not duplicate them.
 | Product launcher | `setup_superezio.bat run` -> `start.ps1` | 8002 | `http://127.0.0.1:8002/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The production runtime uses official DeepSeek HTTPS APIs (`https://api.deepseek.com`):
-`deepseek-v4-pro` for Bob CEO and orchestrator, and `deepseek-v4-flash` for financial
-experts, judge, and auditor. No local inference server or GPU is required.
-`SUPEREZIO_DEEPSEEK_API_KEY` is supplied through ignored local configuration or the
-process environment. No cross-provider fallback is permitted.
+The production runtime uses the official DeepSeek HTTPS API (`https://api.deepseek.com`):
+`deepseek-v4-flash` serves every role — Bob CEO, orchestrator, financial experts, judge,
+and auditor. No local inference server or GPU is required. The Z.ai GLM coding-plan
+provider (`glm-5.3`) is an optional path only: it is built when
+`SUPEREZIO_GLM_CODING_PLAN_API_KEY` is present, and requesting a `glm-*` model without
+that key fails closed. `SUPEREZIO_DEEPSEEK_API_KEY` is supplied through ignored local
+configuration or the process environment. No cross-provider fallback is permitted.
 
 `start.ps1` accepts `-SkipBrowser`, `-IsolatedValidation`, and
 `-HealthTimeoutMinutes` (default 6). It refuses occupied API ports. Isolated

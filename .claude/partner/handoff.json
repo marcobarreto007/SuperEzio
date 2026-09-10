@@ -4,22 +4,22 @@
     "bob": {
       "role": "implementer",
       "responsibilities": ["escrever codigo", "criar patches", "implementar features", "commitar"],
-      "provider": "qwen_local",
-      "brain": "Qwen3-Next-80B-A3B Abliterated IQ4_XS",
-      "endpoint": "http://127.0.0.1:8082/v1",
-      "model": "superezio-ceo-intent-merged",
+      "provider": "deepseek",
+      "brain": "deepseek-v4-flash (API HTTPS oficial DeepSeek)",
+      "endpoint": "https://api.deepseek.com",
+      "model": "deepseek-v4-flash",
       "persona": "BOB_SOVEREIGN_PROMPT",
       "invoke_via": "openai_compatible",
-      "note": "Bob NAO e Claude. Bob e o modelo Qwen local rodando via llama.cpp. Invocacao via API OpenAI-compatible na porta 8082."
+      "note": "Bob NAO e Claude. Bob e servido pelo DeepSeek oficial em nuvem (deepseek-v4-flash) via API OpenAI-compatible. Nao existe mais modelo local no caminho de resposta (portas :8080/:8082 aposentadas)."
     },
     "deep": {
       "role": "auditor",
       "responsibilities": ["auditar diffs", "rodar testes", "verificar contratos", "reportar riscos", "arquitetar"],
-      "provider": "claude_code_glm",
-      "brain": "Claude Code + GLM Code Plan (glm-5.2 / glm-4.7)",
+      "provider": "claude_code",
+      "brain": "Claude Code (sessao residente) + GLM Coding Plan opcional (glm-5.3)",
       "persona": ".claude/partner/PARTNER.md",
       "claude_md": "CLAUDE.md",
-      "note": "Deep e o auditor e parceiro estrategico de Bob. Usa Claude Code com GLM Code Plan para programar e auditar. Deep NAO e Sasaki — Deep e o irmao do Bob."
+      "note": "Deep e o auditor e parceiro estrategico de Bob. Usa a sessao Claude Code para programar e auditar; o GLM Coding Plan (Z.ai) e um caminho opcional. Deep NAO e Sasaki — Deep e o irmao do Bob."
     }
   },
   "handoff": {
@@ -31,9 +31,9 @@
   "invocation": {
     "bob": {
       "method": "openai_chat_completions",
-      "url": "http://127.0.0.1:8082/v1/chat/completions",
-      "model": "superezio-ceo-intent-merged",
-      "requires": "llama-server rodando na porta 8082 com o modelo CEO carregado",
+      "url": "https://api.deepseek.com/v1/chat/completions",
+      "model": "deepseek-v4-flash",
+      "requires": "SUPEREZIO_DEEPSEEK_API_KEY configurada na API HTTPS oficial; nenhum servidor de modelo local",
       "system_prompt_source": "src/core/pipeline/prompts/_prompts.py → QWEN_SYSTEM_PROMPT"
     },
     "deep": {

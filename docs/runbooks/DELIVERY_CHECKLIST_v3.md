@@ -1,41 +1,35 @@
-# SUPEREZIO — Delivery Checklist v3 (Hybrid Models)
+# SUPEREZIO — Delivery Checklist v3 (Cloud Models)
 
-**Atualizado:** 2026-08-21 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 e roteamento antigo)
-**Runtime alvo:** Qwen3.8-27B-UD-IQ2_XXS local para CEO/orquestrador (`:8080`), DeepSeek V4 Pro externo para experts/judge/auditor e API em `:8002`. **Nao existe fallback cruzado entre os tiers.**
+**Atualizado:** 2026-09-10 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 e roteamento antigo)
+**Runtime alvo:** 100% nuvem — `deepseek-v4-flash` na API oficial `https://api.deepseek.com` atende TODOS os papeis (Bob/CEO, orquestrador, experts financeiros, judge e auditor) e a API/UI fica em `:8002`. O caminho Z.ai/GLM (`glm-5.3`) e opcional e so existe com `SUPEREZIO_GLM_CODING_PLAN_API_KEY`. **Nao existe modelo local no caminho de resposta nem fallback cruzado entre providers.**
 
 ---
 
 ## ⬜ PRÉ-VOO
 
-- [ ] GPUs livres: `nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader`
-      (perfil canônico: única GPU funcional RTX 3060 12 GB, tensor split `12` — config/runtime.yml:44-48; a RTX 2070 8 GB existe fisicamente mas está em estado FAILED, Code 31, e não é usada)
-- [ ] `.env.local` hibrido: agent em `http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-UD-IQ2_XXS`, DeepSeek em `https://api.deepseek.com`, model `deepseek-v4-pro` e `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada
+- [ ] `.env.local`: `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada — e a UNICA chave exigida para o boot. `SUPEREZIO_GLM_CODING_PLAN_API_KEY` e opcional (so habilita o caminho Z.ai/GLM)
+- [ ] Rede liberada para `https://api.deepseek.com` em HTTPS/443. Nenhuma GPU e nenhum servidor de modelo local sao necessarios
 - [ ] TWS Paper (opcional nesta fase; obrigatório para loops de ordem): porta 7497, TIF DAY default desmarcado (M1)
 
-## ⬜ BOOT (ordem documentada — cc primeiro)
+## ⬜ BOOT (ordem documentada)
 
-- [ ] **Terminal 1 — servidor de modelo (perfil cc):**
+- [ ] **Terminal — API + frontend:**
   ```powershell
-  C:\Users\marco\models\qwen3.8-27b\run-cc.ps1   # ou botão direito → Run with PowerShell
-  ```
-  Aguardar health: `curl.exe -fsS http://127.0.0.1:8080/health` → 200. Carga do modelo ~30-90 s.
-  **Nota:** primeira inferência fria pode levar minutos (prompt grande); depois entra em cache.
-- [ ] **Confirmar model id** (fecha a pendência do INV-R15/manifesto):
-  ```powershell
-  curl.exe -fsS http://127.0.0.1:8080/v1/models
-  ```
-  Esperado: `Qwen3.8-27B-UD-IQ2_XXS`. Se divergir do `config/model_manifest.json`, interromper o gate e corrigir o contrato antes de prosseguir.
-- [ ] **Terminal 2 — API + frontend:**
-  ```powershell
+  $env:PYTHONPATH = "src;$env:PYTHONPATH"
   python -m agent_server.main
   ```
-  Aguardar `Uvicorn running on http://127.0.0.1:8002`
+  Aguardar `Uvicorn running on http://127.0.0.1:8002`. Nao existe mais servidor de modelo local para subir antes.
 - [ ] Health:
   ```powershell
   curl.exe -fsS http://127.0.0.1:8002/health
   curl.exe -fsS http://127.0.0.1:8002/health/details
   ```
-  Esperado: CEO local online e `provider_deepseek` externo/configurado; nenhum fallback cruzado
+  Esperado: API online, provider DeepSeek `configured` em `checks.providers_summary` e nenhum fallback cruzado
+- [ ] **Confirmar model id** (fecha a pendencia do INV-R15/manifesto):
+  ```powershell
+  curl.exe -fsS http://127.0.0.1:8002/cockpit/summary
+  ```
+  Esperado: `"primary_model": "deepseek-v4-flash"`. Se divergir do `config/model_manifest.json`, interromper o gate e corrigir o contrato antes de prosseguir.
 
 ## ⬜ VERIFICAÇÃO PRÉ-TRADE
 
@@ -54,17 +48,16 @@
   $env:SUPEREZIO_SMOKE_CHAT = "1"
   python scripts/browser_smoke.py --headed
   ```
-- [ ] Cockpit em http://127.0.0.1:8002: Bob responde via Qwen local; Deep Panel identifica DeepSeek externo e registra experts reais
-- [ ] MAN_AT_WORK: com CEO online, alerta deve limpar; se não limpar sozinho, investigar `data/man_at_work/latest_alert.txt` antes de qualquer ordem
+- [ ] Cockpit em http://127.0.0.1:8002: Bob responde pelo tier DeepSeek em nuvem (`deepseek-v4-flash`); o Deep Panel identifica o provider externo e registra experts reais
+- [ ] MAN_AT_WORK: com o provider DeepSeek configurado, alerta deve limpar; se não limpar sozinho, investigar `data/man_at_work/latest_alert.txt` antes de qualquer ordem
 
 ## ⬜ TESTES DE FAIL-CLOSED
 
-- [ ] Com sistema operacional, derrubar :8080 (Ctrl+C no Terminal 1)
-- [ ] `curl.exe http://127.0.0.1:8002/health/details` → CEO offline, sistema em MAN_AT_WORK
-- [ ] Confirmar que o CEO nao cai para DeepSeek e entra em MAN_AT_WORK
-- [ ] Religar :8080 → recuperação para online
-- [ ] Invalidar temporariamente a chave DeepSeek → `/health/details` 503 e expert explicitamente indisponivel, sem chamada a Qwen
-- [ ] Restaurar a chave local e confirmar `provider_deepseek.status=configured`
+- [ ] Com sistema operacional, remover/invalidar temporariamente `SUPEREZIO_DEEPSEEK_API_KEY` em `.env.local` e reiniciar a API
+- [ ] `curl.exe http://127.0.0.1:8002/health/details` → tier de modelos indisponível (503), sistema em MAN_AT_WORK
+- [ ] Confirmar que nenhum papel cai para outro provider: chave DeepSeek ausente/inválida → MAN_AT_WORK
+- [ ] Restaurar a chave válida e reiniciar a API → recuperação para online
+- [ ] Com a chave Z.ai ausente, pedir um modelo `glm-*` deve falhar fechado (o caminho GLM é opcional e não atende nenhum papel por padrão)
 
 ## ⬌ LOOPS DE TRADING (fase seguinte, com TWS paper)
 
@@ -73,16 +66,16 @@
 ## ⬜ SIGN-OFF
 
 ```
-SUPEREZIO DELIVERY v3 HYBRID — 2026-08-21
+SUPEREZIO DELIVERY v3 CLOUD — 2026-09-10
 ===========================================
-Model server:  :8080 Qwen3.8-27B local    [ ]
-Model id:      confirmado via /v1/models  [ ]
-Experts:       DeepSeek V4 Pro externo     [ ]
-API:           :8002 online               [ ]
-Bob chat real: smoke chat respondendo     [ ]
-Fail-closed:   tiers isolados              [ ]
-Ruff:          0 erros                    [ ]
-Check agents:  0 issues                   [ ]
+Model tier:    deepseek-v4-flash (api.deepseek.com)   [ ]
+Local model server: nao existe no caminho de resposta [ ]
+Experts/judge/auditor: deepseek-v4-flash              [ ]
+API:           :8002 online                           [ ]
+Bob chat real: smoke chat respondendo                 [ ]
+Fail-closed:   chave DeepSeek ausente/invalida → MAN_AT_WORK [ ]
+Ruff:          0 erros                                [ ]
+Check agents:  0 issues                               [ ]
 Pytest:        ___ collected ___ passed ___ failed ___ skipped
 TWS/loops:     [ ] fase seguinte
 ```

@@ -11,7 +11,7 @@ Goal: $ARGUMENTS
 ### Phase 1: Reconnaissance (parallel only when independent)
 
 2. **recon-researcher** — architecture, entrypoints and impact
-3. **runtime-verifier** — liveness/readiness on API 8002 and CEO 8080
+3. **runtime-verifier** — liveness/readiness on API 8002 and the cloud model tier (DeepSeek official; GLM optional)
 4. **api-contract-verifier** — public contract impact
 
 ### Phase 2: Implementation (sequential)

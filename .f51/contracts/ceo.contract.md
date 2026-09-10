@@ -7,10 +7,10 @@
 
 | Function | Signature | Returns | Contract |
 |----------|-----------|---------|----------|
-| `node_agent` | `async (state: dict) -> dict` | `{"final": str, ...}` | NÃ³ ativo do grafo v4. ReAct + CEO local via llama.cpp. |
+| `node_agent` | `async (state: dict) -> dict` | `{"final": str, ...}` | NÃ³ ativo do grafo v4. ReAct + CEO no tier DeepSeek em nuvem. |
 | `build_ceo_prompt` | `(state: PipelineState, mandamentos: list \| None) -> str` | `str` | Monta prompt completo para o CEO. |
-| `ceo_system_prompt` | `() -> str` | `str` | Retorna system prompt do modelo local. |
-| `missing_ceo_text` | `(ticker="", route="general", local_ready=False) -> str` | `str` | Texto de erro quando CEO offline. |
+| `ceo_system_prompt` | `() -> str` | `str` | Retorna system prompt do CEO (`deepseek-v4-flash`). |
+| `missing_ceo_text` | `(ticker="", route="general", local_ready=False) -> str` | `str` | Texto de erro quando o provider do CEO nao esta pronto (fail-closed). |
 
 ### CEO output format (mandatory)
 
@@ -32,9 +32,9 @@ CEO deve referenciar explicitamente cada mÃ³dulo disponÃ­vel:
 ## Invariants
 
 1. CEO responde no idioma do usuario; o gate V1 valida respostas em portugues quando o prompt esta em portugues.
-2. Modelo canonico: `Ornith-1.0-9B-Q4_K_M.gguf` (single-GPU RTX 3060 12GB), servido localmente em `http://127.0.0.1:8080/v1`.
-3. Temperatura: 0.3, max_tokens: 512, timeout: 600s e contexto efetivo: 8192 tokens. O limite de saida mantem a geracao no orcamento do gateway no perfil validado de ~1,3 token/s.
-4. O prompt final e limitado a 24.000 caracteres, com relatorio/observacoes truncados antes dos contratos binding, para reservar a janela da resposta no contexto de 8192 tokens.
+2. Modelo canonico: `deepseek-v4-flash` na API HTTPS oficial `https://api.deepseek.com` (backend `openai_compatible`, chave em `SUPEREZIO_DEEPSEEK_API_KEY`), o mesmo tier de todos os papeis. Nao existe modelo local no caminho de resposta.
+3. Temperatura: 0.3, max_tokens: 1800 e timeout: 180s (`config/runtime.yml`, secao `models.agent`). O limite de saida mantem a geracao no orcamento do gateway.
+4. O prompt final e limitado a 24.000 caracteres (`LOCAL_AGENT_INPUT_CHAR_BUDGET`), com relatorio/observacoes truncados antes dos contratos binding, para reservar a janela da resposta no orcamento de saida.
 4. `_strip_thinking` remove blocos `<think>...</think>` do output.
 5. Se rota = "general" sem dados financeiros, usa persona casual (nÃ£o formato de anÃ¡lise).
 6. Horizon constraint: TIMEFRAME deve corresponder ao time_horizon do state.
@@ -43,5 +43,4 @@ CEO deve referenciar explicitamente cada mÃ³dulo disponÃ­vel:
 
 - `src/core/pipeline/prompts/builder.py` â€” build_ceo_prompt
 - `src/core/pipeline/prompts/_prompts.py` â€” QWEN_SYSTEM_PROMPT, QWEN_PERSONA, MODEL_PROMPTS
-- servidor llama.cpp local em `:8080`
-- NÃ£o depende de rede externa (modelo local)
+- depende de rede externa: nao existe servidor de modelo local no runtime

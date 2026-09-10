@@ -32,7 +32,7 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ├── runtime-verifier.md          # Runtime — health checks, GPU, processos, logs
 ├── training-verifier.md         # Treino — classifica scripts, valida datasets
 ├── api-contract-verifier.md     # Contratos — breaking changes, schema drift
-├── model-gateway-verifier.md    # Gateway — provider cascade, latência, fallback, GGUF
+├── model-gateway-verifier.md    # Gateway — DeepSeek oficial, latência, fail-closed (GLM opcional)
 ├── frontend-ux-reviewer.md      # Frontend — smoke test, acessibilidade, chat
 ├── kb-domain-reviewer.md        # Conhecimento — precisão conceitual, docs
 ├── savekeeper.md                # Verdade durável — docs, checkpoints, changelog
