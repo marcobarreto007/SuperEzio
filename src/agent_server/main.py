@@ -1016,6 +1016,7 @@ def health_check():
 
     from core.investor.cost_guard import get_cost_guard
     from core.model_serving.gateway import PRIMARY_PROVIDER_NAME
+    from core.model_serving.providers import AGENT_MODEL_ID
 
     health = {
         "status": "ok",
@@ -1099,7 +1100,7 @@ def health_check():
         "provider": PRIMARY_PROVIDER_NAME,
         "role": "ceo",
         "topology": "local" if ceo_is_local else "external",
-        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "glm-5.3"),
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID),
         "base_url": ceo_runtime["url"],
         "reachable": ceo_runtime["reachable"],
         "status": ceo_runtime["status"],

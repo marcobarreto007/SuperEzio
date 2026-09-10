@@ -121,8 +121,8 @@ class Settings(BaseSettings):
         description="OpenAI-compatible external DeepSeek API base URL.",
     )
     superezio_deepseek_model: str = Field(
-        default="deepseek-v4-pro",
-        description="External DeepSeek model used by financial experts.",
+        default="deepseek-v4-flash",
+        description="External DeepSeek model used by every role (Bob, orchestrator, experts).",
     )
     superezio_allow_custom_deepseek_base_url: bool = Field(
         default=False,
@@ -131,15 +131,15 @@ class Settings(BaseSettings):
     superezio_deepseek_max_tokens: int = Field(default=1800, ge=128, le=8192)
     superezio_deepseek_timeout_sec: int = Field(default=180, ge=10, le=600)
     superezio_deepseek_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
-    superezio_daytrade_judge_model: str = Field(default="deepseek-v4-pro")
-    superezio_daytrade_auditor_model: str = Field(default="deepseek-v4-pro")
+    superezio_daytrade_judge_model: str = Field(default="deepseek-v4-flash")
+    superezio_daytrade_auditor_model: str = Field(default="deepseek-v4-flash")
     # Read-only schema coverage for provider migration fallbacks. The provider
     # owns precedence; retaining these names avoids rejecting legacy deployments.
     superezio_expert_max_tokens: int | None = Field(default=None, ge=128, le=8192)
     superezio_expert_timeout: int | None = Field(default=None, ge=10, le=600)
     superezio_glm_coding_plan_api_key: SecretStr | None = Field(
         default=None,
-        description="Z.ai Coding Plan credential for GLM-5.3 (Bob, orchestrator, experts).",
+        description="Optional Z.ai Coding Plan credential; without it the glm provider is not built.",
     )
 
     # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.

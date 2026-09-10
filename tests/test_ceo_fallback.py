@@ -34,7 +34,7 @@ def _deepseek_contract_env(monkeypatch):
         monkeypatch.delenv(var, raising=False)
 
 
-def test_default_build_has_glm_ceo_and_pinned_experts(monkeypatch) -> None:
+def test_default_build_is_deepseek_for_every_role(monkeypatch) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
     from core.config import get_config
@@ -52,14 +52,14 @@ def test_default_build_has_glm_ceo_and_pinned_experts(monkeypatch) -> None:
     providers, _ = build_default_providers(cfg)
     assert providers, "default provider build must not be empty"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator", "glm"):
-        assert by_name[name].is_local is False
-        assert by_name[name].base_url == "https://api.z.ai/api/coding/paas/v4"
-        assert by_name[name].model == "glm-5.3"
-    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
         assert by_name[name].is_local is False
         assert by_name[name].base_url == "https://api.deepseek.com"
         assert by_name[name].model == "deepseek-v4-flash"
+    # The GLM path is optional: it is built here only because the fixture
+    # (autouse) arms its coding-plan key.
+    assert by_name["glm"].base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert by_name["glm"].model == "glm-5.3"
     names = list(by_name)
     assert "ceo_fallback_glm" not in names
     assert "gemini" not in names

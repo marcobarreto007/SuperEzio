@@ -70,7 +70,7 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert api["command"] == cfg["server"]["entrypoint"]
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
-    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "glm-5.3"
+    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-flash"
     assert "deepseek-v4-pro" in contract
     assert "deepseek-v4-flash" in contract
     assert "8082" not in canonical_text
@@ -196,12 +196,8 @@ def test_agent_runtime_config_matches_manifest_and_script():
     agent_manifest = manifest["agent"]
 
     assert agent_cfg["provider_name"] == "agent"
-    assert agent_cfg["model_id"] == agent_manifest["model"] == "glm-5.3"
-    assert (
-        agent_cfg["base_url"]
-        == agent_manifest["server_url"]
-        == "https://api.z.ai/api/coding/paas/v4"
-    )
+    assert agent_cfg["model_id"] == agent_manifest["model"] == "deepseek-v4-flash"
+    assert agent_cfg["base_url"] == agent_manifest["server_url"] == "https://api.deepseek.com"
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is False
     assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
@@ -262,7 +258,7 @@ def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypat
     assert "validation" not in json.dumps(payload.get("paths", {})).lower()
 
 
-def test_provider_factory_uses_glm_agent_and_pins_experts_to_glm(monkeypatch):
+def test_provider_factory_uses_deepseek_for_agent_and_experts(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
@@ -306,20 +302,21 @@ def test_provider_factory_uses_glm_agent_and_pins_experts_to_glm(monkeypatch):
     assert gateway_config.timeout_s == cfg.gateway.timeout_s
     assert by_name[AGENT_PROVIDER_NAME].is_local is False
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[AGENT_PROVIDER_NAME].base_url == GLM_CODING_PLAN_BASE_URL
-    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID == GLM_CODING_PLAN_MODEL
+    assert by_name[AGENT_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
+    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID == DEEPSEEK_MODEL_ID
     assert by_name[AGENT_PROVIDER_NAME].max_tokens == 1800
     assert by_name[AGENT_PROVIDER_NAME].timeout_s == 180
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[PRIMARY_PROVIDER_NAME].base_url == GLM_CODING_PLAN_BASE_URL
+    assert by_name[PRIMARY_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
     assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 1800
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 180
     assert gateway_config.timeout_s == 600
 
+    # Optional GLM path, built only because this test arms the coding-plan key.
     glm = by_name[GLM_PROVIDER_NAME]
     assert glm.is_local is False
     assert glm.base_url == GLM_CODING_PLAN_BASE_URL
@@ -343,12 +340,12 @@ def test_provider_factory_uses_glm_agent_and_pins_experts_to_glm(monkeypatch):
 
     raw_cfg = _runtime_config()
     experts_cfg = raw_cfg["models"]["experts"]
-    assert experts_cfg["base_url"] == GLM_CODING_PLAN_BASE_URL
-    assert experts_cfg["model_id"] == GLM_CODING_PLAN_MODEL
-    assert experts_cfg["provider_name"] == GLM_PROVIDER_NAME
+    assert experts_cfg["base_url"] == DEEPSEEK_OFFICIAL_BASE_URL
+    assert experts_cfg["model_id"] == DEEPSEEK_MODEL_ID
+    assert experts_cfg["provider_name"] == DEEPSEEK_PROVIDER_NAME
     assert experts_cfg["is_local"] is False
     assert experts_cfg["allow_fallback"] is False
-    assert experts_cfg["api_key_env"] == "SUPEREZIO_GLM_CODING_PLAN_API_KEY"
+    assert experts_cfg["api_key_env"] == "SUPEREZIO_DEEPSEEK_API_KEY"
     for section in ("daytrade_judge", "daytrade_auditor"):
         assert raw_cfg["models"][section]["base_url"] == DEEPSEEK_OFFICIAL_BASE_URL
         assert raw_cfg["models"][section]["model_id"] == DEEPSEEK_MODEL_ID
@@ -383,7 +380,8 @@ def test_runbook_documents_official_runtime_commands():
     assert "-File stop.ps1" in text
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
-    assert "deepseek-v4-pro" in text
+    # Every role runs on deepseek-v4-flash as of 2026-09-10; v4-pro is no
+    # longer a documented default anywhere in the runtime.
     assert "deepseek-v4-flash" in text
     assert "http://127.0.0.1:8002/health/details" in text
     assert "http://127.0.0.1:8080" not in text

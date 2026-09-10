@@ -13,7 +13,7 @@ Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob
 ## Arquitetura em cinco linhas
 - entrada: dados de mercado (IBKR, DataHub) via market-data-puller + mensagens do operador no chat
 - núcleo: Bob (agent_server :8002) + gateway de modelos em nuvem + teses em runtime/theses + execução com journal e idempotency
-- modelos de IA: 100% em nuvem (Z.ai GLM-5.3 para Bob/CEO e orquestrador; DeepSeek V4 Pro HTTPS oficial para comitê de experts, judge e auditor). Inteligência = pipeline
+- modelos de IA: 100% em nuvem — DeepSeek V4 Flash (deepseek-v4-flash) na API oficial https://api.deepseek.com para todos os papéis (Bob/CEO, orquestrador, experts, judge e auditor); Z.ai GLM-5.3 vira caminho opcional, religável por env. Inteligência = pipeline
 - persistência: runtime/ (teses, reports, checkpoints) + data/ (logs) + .f51/ (estado operacional)
 - saída: frontend web (chat) + relatórios de tese + logs estruturados
 - fora do escopo deste repositório: GitHub (DISK ONLY), hospedagem de dados/bancos em nuvem, dinheiro real (corretora), MCPs não aprovados

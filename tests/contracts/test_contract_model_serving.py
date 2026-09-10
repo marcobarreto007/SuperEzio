@@ -114,6 +114,7 @@ def test_build_default_providers_agent_present(monkeypatch):
     from core.model_serving.providers import (
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        DEEPSEEK_OFFICIAL_BASE_URL,
         build_default_providers,
     )
 
@@ -125,7 +126,7 @@ def test_build_default_providers_agent_present(monkeypatch):
     agent = by_name[AGENT_PROVIDER_NAME]
     assert agent.is_local is False
     assert agent.model == AGENT_MODEL_ID
-    assert "api.z.ai" in agent.base_url
+    assert agent.base_url == DEEPSEEK_OFFICIAL_BASE_URL
 
 
 def test_build_default_providers_primary_is_present(monkeypatch):
@@ -135,7 +136,11 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
-    from core.model_serving.providers import PRIMARY_PROVIDER_NAME, build_default_providers
+    from core.model_serving.providers import (
+        DEEPSEEK_MODEL_ID,
+        PRIMARY_PROVIDER_NAME,
+        build_default_providers,
+    )
 
     cfg = UniversalConfig()
     providers, _ = build_default_providers(cfg)
@@ -143,7 +148,7 @@ def test_build_default_providers_primary_is_present(monkeypatch):
 
     assert PRIMARY_PROVIDER_NAME in by_name
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
-    assert by_name[PRIMARY_PROVIDER_NAME].model == "glm-5.3"
+    assert by_name[PRIMARY_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
 
 
 def test_experts_are_pinned_to_glm53(monkeypatch):
@@ -188,14 +193,20 @@ def test_experts_are_pinned_to_glm53(monkeypatch):
         assert provider.timeout_s == 60
 
 
-def test_missing_glm_key_fails_closed_without_echoing_secret(monkeypatch):
+def test_missing_glm_key_skips_provider_but_fails_closed_when_requested(monkeypatch):
+    """No coding-plan key: the glm provider is simply not built. A role pointed
+    explicitly at a glm model still fails closed, without echoing any secret."""
     monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
 
     from core.config.schema import UniversalConfig
-    from core.model_serving.providers import build_default_providers
+    from core.model_serving.providers import GLM_PROVIDER_NAME, build_default_providers
 
+    providers, _ = build_default_providers(UniversalConfig())
+    assert GLM_PROVIDER_NAME not in {p.name for p in providers}
+
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
     with pytest.raises(RuntimeError, match="SUPEREZIO_GLM_CODING_PLAN_API_KEY is required") as exc:
         build_default_providers(UniversalConfig())
     assert "sk-" not in str(exc.value)

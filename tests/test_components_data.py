@@ -16,9 +16,9 @@ def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "glm-5.3"
+    assert manifest["agent"]["model"] == "deepseek-v4-flash"
     assert manifest["agent"]["backend"] == "openai_compatible"
-    assert manifest["agent"]["server_url"].startswith("https://api.z.ai")
+    assert manifest["agent"]["server_url"].startswith("https://api.deepseek.com")
 
 
 def test_model_manifest_providers():
@@ -86,14 +86,14 @@ def test_provider_constants():
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "glm-5.3"
+    assert AGENT_MODEL_ID == "deepseek-v4-flash"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
     assert GLM_PROVIDER_NAME == "glm"
 
 
 def test_provider_boundaries_and_credentials(monkeypatch):
-    """GLM experts inherit the Coding Plan key; DeepSeek judge stays isolated."""
+    """DeepSeek serves every role; the optional GLM path stays isolated."""
     from core.config import reload_config
     from core.model_serving.providers import build_default_providers
 
@@ -117,18 +117,18 @@ def test_provider_boundaries_and_credentials(monkeypatch):
 
     assert providers, "build_default_providers retornou lista vazia"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator", "glm"):
-        p = by_name[name]
-        assert p.is_local is False
-        assert p.base_url == "https://api.z.ai/api/coding/paas/v4"
-        assert p.model == "glm-5.3"
-        assert p.api_key == "test-glm-secret"
-    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
         p = by_name[name]
         assert p.is_local is False
         assert p.base_url == "https://api.deepseek.com"
         assert p.model == "deepseek-v4-flash"
         assert p.api_key == "test-deepseek-secret"
+    # O caminho GLM e opcional: existe aqui so porque o teste arma a chave.
+    glm = by_name["glm"]
+    assert glm.is_local is False
+    assert glm.base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert glm.model == "glm-5.3"
+    assert glm.api_key == "test-glm-secret"
 
 
 # ── Model Serving: Sanitizer ──

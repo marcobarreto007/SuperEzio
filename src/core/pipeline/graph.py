@@ -15,7 +15,7 @@ from langgraph.graph import END, START, StateGraph
 from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
 from core.math.math_hub import MathHub
-from core.model_serving.providers import GLM_PROVIDER_NAME
+from core.model_serving.providers import DEEPSEEK_PROVIDER_NAME
 
 from .contracts import PipelineState
 from .nodes import (
@@ -680,7 +680,7 @@ async def _auto_full_analysis(
                         expert_result.setdefault("role", role)
                         expert_result.setdefault("replica_id", replica_id)
                         expert_result.setdefault(
-                            "provider", EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+                            "provider", EXPERT_PROVIDERS.get(role, DEEPSEEK_PROVIDER_NAME)
                         )
                         out.append(expert_result)
                     return out
@@ -694,7 +694,7 @@ async def _auto_full_analysis(
                             "replica_id": replica_id,
                             "ok": False,
                             "error": str(exc)[:200],
-                            "provider": EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME),
+                            "provider": EXPERT_PROVIDERS.get(role, DEEPSEEK_PROVIDER_NAME),
                         }
                     ]
 

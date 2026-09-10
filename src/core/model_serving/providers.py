@@ -1,11 +1,17 @@
 """Provider dataclasses and the external cloud provider factory.
 
-The CEO/agent, orchestrator and financial expert committee default to the
-Z.ai Coding Plan endpoint (glm-5.3). The ModelGateway adds automatic credit
-fallback GLM -> DeepSeek for Bob (SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default
-on). Expert calls pin allow_fallback=False, so the committee stays on GLM.
-The day-trade judge and auditor remain on the official DeepSeek HTTPS API.
-Trust boundaries never silently substitute for one another except for that
+Every role — CEO/agent, orchestrator, financial expert committee, day-trade
+judge and auditor — defaults to the official DeepSeek HTTPS API
+(deepseek-v4-flash). The Z.ai Coding Plan endpoint (glm-5.3) is optional:
+SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL switch a role back to it, and
+the ``glm`` provider is only built when SUPEREZIO_GLM_CODING_PLAN_API_KEY (or
+one of its legacy aliases) is present. Asking for a glm model without the key
+still fails closed.
+
+The ModelGateway keeps the automatic credit fallback GLM -> DeepSeek for Bob
+(SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default on) for when that path is armed.
+Expert calls pin allow_fallback=False, so the committee never silently swaps
+provenance. Trust boundaries never substitute for one another except for that
 explicit CEO credit fallback.
 """
 
@@ -29,12 +35,16 @@ GLM_CODING_PLAN_HOST = "api.z.ai"
 GLM_PROVIDER_NAME = "glm"
 
 AGENT_PROVIDER_NAME = "agent"
-AGENT_MODEL_ID = GLM_CODING_PLAN_MODEL
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
-# Judge/auditor stay on the fast DeepSeek tier. The expert committee is GLM.
+# DeepSeek-only default (2026-09-10): every role — Bob, orchestrator, the
+# expert committee, judge and auditor — runs on the official DeepSeek HTTPS
+# API. GLM-5.3 stays reachable via SUPEREZIO_PRIMARY_MODEL /
+# SUPEREZIO_AGENT_MODEL and is only instantiated when its coding-plan key is
+# present; requesting a glm model without that key still fails closed.
 DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
+AGENT_MODEL_ID = DEEPSEEK_MODEL_ID
+PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
@@ -55,8 +65,8 @@ DEEPSEEK_DEFAULT_MAX_TOKENS = 1800
 DEEPSEEK_MIN_MAX_TOKENS = 128
 DEEPSEEK_MAX_MAX_TOKENS = 8192
 DEEPSEEK_DEFAULT_TIMEOUT_S = 60
-# Agent (GLM, thinking + 4096-token budget) keeps the 180s floor the experts
-# used to inherit — a long PT answer after deliberation can exceed 60s.
+# The agent (CEO) keeps the 180s floor the experts used to inherit — a long PT
+# answer after deliberation can exceed the 60s expert timeout.
 AGENT_DEFAULT_TIMEOUT_S = 180
 DEEPSEEK_MIN_TIMEOUT_S = 10
 DEEPSEEK_MAX_TIMEOUT_S = 600
@@ -261,10 +271,12 @@ class ModelProvider:
 def build_default_providers(
     config: "UniversalConfig",
 ) -> tuple[list[ModelProvider], GatewayConfig]:
-    """Build the provider list with GLM-5.3 as Bob/orchestrator/experts default."""
+    """Build the provider list with DeepSeek as the default for every role."""
     providers: list[ModelProvider] = []
 
-    glm_key = _require_glm_coding_plan_key()
+    # Optional GLM path: an absent key simply means the provider is not built.
+    # A role explicitly configured for a glm model still fails closed below.
+    glm_key = _glm_coding_plan_key()
     glm_experts_base_url = GLM_CODING_PLAN_BASE_URL
 
     # Judge/auditor and GLM credit fallback remain a DeepSeek trust boundary.
@@ -286,7 +298,7 @@ def build_default_providers(
     if _is_glm_coding_model(primary_model):
         primary_base_url = _normalize_zai_base_url(primary_env_url or GLM_CODING_PLAN_BASE_URL)
         primary_is_local = False
-        primary_api_key = glm_key
+        primary_api_key = _require_glm_coding_plan_key()
     else:
         primary_base_url = primary_env_url or experts_base_url
         primary_is_local = _is_local_url(primary_base_url)
@@ -317,20 +329,23 @@ def build_default_providers(
         )
     )
 
-    providers.append(
-        ModelProvider(
-            name=GLM_PROVIDER_NAME,
-            base_url=glm_experts_base_url,
-            api_key=glm_key,
-            priority=-300,
-            model=GLM_CODING_PLAN_MODEL,
-            timeout_s=experts_timeout_s,
-            max_tokens=experts_max_tokens,
-            temperature=0.2,
-            is_local=False,
-            backend="openai_compatible",
+    # Built only when the coding-plan key exists: without it no role can reach
+    # GLM, and an unauthenticated provider entry would only add a dead target.
+    if glm_key:
+        providers.append(
+            ModelProvider(
+                name=GLM_PROVIDER_NAME,
+                base_url=glm_experts_base_url,
+                api_key=glm_key,
+                priority=-300,
+                model=GLM_CODING_PLAN_MODEL,
+                timeout_s=experts_timeout_s,
+                max_tokens=experts_max_tokens,
+                temperature=0.2,
+                is_local=False,
+                backend="openai_compatible",
+            )
         )
-    )
 
     providers.append(
         ModelProvider(
@@ -378,13 +393,13 @@ def build_default_providers(
             )
         )
 
-    # Agent (CEO) — GLM-5.3 by default; DeepSeek remains an explicit env override.
+    # Agent (CEO) — DeepSeek by default; GLM-5.3 needs the coding-plan key.
     agent_env_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "").strip()
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
     if _is_glm_coding_model(agent_model):
         agent_base_url = _normalize_zai_base_url(agent_env_url or GLM_CODING_PLAN_BASE_URL)
         agent_is_local = False
-        agent_api_key = glm_key
+        agent_api_key = _require_glm_coding_plan_key()
     else:
         agent_base_url = agent_env_url or experts_base_url
         agent_is_local = _is_local_url(agent_base_url)

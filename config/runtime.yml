@@ -1,7 +1,8 @@
 # SuperEzio Runtime Configuration v4.2.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-09-10 - Experts + Bob/orchestrator em glm-5.3 (Z.ai);
-# judge e auditor permanecem em deepseek-v4-flash (API oficial).
+# ATUALIZADO: 2026-09-10 - DeepSeek em TODOS os papeis (Bob, orquestrador,
+# experts, judge e auditor) via API oficial. GLM-5.3 fica opcional e
+# religavel por SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL.
 
 project_name: SuperEzio
 version: 4.2.0
@@ -19,45 +20,45 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (Z.ai GLM-5.3 Bob/orchestrator/experts; DeepSeek judge/auditor)
+# Modelos (DeepSeek em todos os papeis; GLM-5.3 opcional/religavel)
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: GLM-5.3 (CEO mouth)
+    name: DeepSeek V4 Flash (CEO mouth)
     provider_name: agent
-    model_id: glm-5.3
-    base_url: https://api.z.ai/api/coding/paas/v4
+    model_id: deepseek-v4-flash
+    base_url: https://api.deepseek.com
     backend: openai_compatible
     role: agent
     is_local: false
-    api_key_env: SUPEREZIO_GLM_CODING_PLAN_API_KEY
+    api_key_env: SUPEREZIO_DEEPSEEK_API_KEY
     api_key_required: true
     temperature: 0.3
     max_tokens: 1800
     timeout_s: 180
 
   orchestrator:
-    name: GLM-5.3 (orchestrator)
+    name: DeepSeek V4 Flash (orchestrator)
     provider_name: local_orchestrator
-    base_url: https://api.z.ai/api/coding/paas/v4
-    model_id: glm-5.3
+    base_url: https://api.deepseek.com
+    model_id: deepseek-v4-flash
     backend: openai_compatible
     role: orchestrator
     is_local: false
-    api_key_env: SUPEREZIO_GLM_CODING_PLAN_API_KEY
+    api_key_env: SUPEREZIO_DEEPSEEK_API_KEY
     api_key_required: true
     max_tokens: 1800
     timeout_s: 180
 
   experts:
-    name: GLM-5.3 financial experts
-    provider_name: glm
-    base_url: https://api.z.ai/api/coding/paas/v4
-    model_id: glm-5.3
+    name: DeepSeek V4 Flash financial experts
+    provider_name: deepseek
+    base_url: https://api.deepseek.com
+    model_id: deepseek-v4-flash
     backend: openai_compatible
     role: worker
     is_local: false
-    api_key_env: SUPEREZIO_GLM_CODING_PLAN_API_KEY
+    api_key_env: SUPEREZIO_DEEPSEEK_API_KEY
     api_key_required: true
     allow_fallback: false
     max_tokens: 1800

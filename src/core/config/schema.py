@@ -166,7 +166,7 @@ class UniversalConfig:
                     temperature=section.get("temperature", 0.7),
                     n_threads=section.get("n_threads", 0),
                     is_local=section.get("is_local", False),
-                    model_id=section.get("model_id", "deepseek-v4-pro"),
+                    model_id=section.get("model_id", "deepseek-v4-flash"),
                 )
 
         if "gateway" in data:

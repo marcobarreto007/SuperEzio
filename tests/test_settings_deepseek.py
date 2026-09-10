@@ -58,13 +58,13 @@ def test_deepseek_operational_defaults_match_provider_contract(
     settings = _settings()
 
     assert settings.superezio_deepseek_base_url == "https://api.deepseek.com"
-    assert settings.superezio_deepseek_model == "deepseek-v4-pro"
+    assert settings.superezio_deepseek_model == "deepseek-v4-flash"
     assert settings.superezio_allow_custom_deepseek_base_url is False
     assert settings.superezio_deepseek_max_tokens == 1800
     assert settings.superezio_deepseek_timeout_sec == 180
     assert settings.superezio_deepseek_temperature == 0.2
-    assert settings.superezio_daytrade_judge_model == "deepseek-v4-pro"
-    assert settings.superezio_daytrade_auditor_model == "deepseek-v4-pro"
+    assert settings.superezio_daytrade_judge_model == "deepseek-v4-flash"
+    assert settings.superezio_daytrade_auditor_model == "deepseek-v4-flash"
 
 
 def test_missing_deepseek_key_is_explicitly_unconfigured_without_invalidating_settings() -> None:

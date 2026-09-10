@@ -470,7 +470,7 @@ def _cockpit_status_snapshot(
     portfolio: dict[str, Any],
 ) -> dict[str, Any]:
     guardrails = _cockpit_guardrail_summary()
-    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", "deepseek-v4-pro")
+    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", "deepseek-v4-flash")
     try:
         from core.config.settings import Settings
 

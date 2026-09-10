@@ -26,21 +26,18 @@ The system should not output BUY, SELL, ALL_IN, leverage instructions, options s
 ## Known Limitations
 
 1. Data gaps: missing fundamentals, delayed prices, or rate-limited APIs can produce incomplete analysis.
-2. Model latency: the local 80B model can take 30-120 seconds or more for complex analysis.
+2. Model latency: analysis depends on external cloud model APIs; complex requests can take noticeably longer and response time varies with network and provider load.
 3. Market coverage: primary coverage is US and Canadian equities. Other markets may have weaker data.
 4. No execution: the system analyzes; it does not connect to brokers for trading.
 5. Language: English financial prompts are the best-tested path.
 
 ## Privacy And External Providers
 
-The final CEO synthesis is designed to run locally on the user's machine when the local model/runtime are installed.
+The final CEO synthesis runs on external cloud model APIs (official DeepSeek HTTPS API by default). All model inference — CEO synthesis, expert sub-analysis, judge, and auditor — is performed by external providers; the optional Z.ai GLM-5.3 path, when configured, is also external.
 
-Optional external providers may be used when configured in `.env`, including:
+Runtime data (journals, logs, theses) is kept on local disk (DISK ONLY), but prompts and analysis context are sent to the configured model provider. Do not claim that no data ever leaves the machine.
 
-- Market-data providers for price, profile, fundamentals, and catalysts.
-- Cloud model providers for expert sub-analysis or fallback.
-
-The operator controls which providers are active through API keys and environment variables. Do not claim that no data ever leaves the machine when external providers are enabled.
+Market-data providers for price, profile, fundamentals, and catalysts are configured separately. The operator controls which providers are active through API keys and environment variables.
 
 ## Regulatory
 

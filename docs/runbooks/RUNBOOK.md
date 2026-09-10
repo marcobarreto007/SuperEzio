@@ -1,9 +1,14 @@
 # Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-09-05
+Updated: 2026-09-10
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
-Model policy: external cloud APIs only. DeepSeek V4 Pro serves Bob and the
-orchestrator; DeepSeek V4 Flash serves experts, judge, and auditor.
+Model policy: external cloud APIs only. DeepSeek V4 Flash (`deepseek-v4-flash`)
+serves every role — Bob, orchestrator, experts, judge, and auditor — at the
+official DeepSeek HTTPS API. The Z.ai GLM-5.3 Coding Plan path is optional and
+re-armable per role via `SUPEREZIO_PRIMARY_MODEL` / `SUPEREZIO_AGENT_MODEL` plus
+`SUPEREZIO_GLM_CODING_PLAN_API_KEY`; without that key no `glm` provider is built
+and the runtime boots DeepSeek-only. A role set to a glm model without the key
+still fails closed.
 
 Version boundary: Python package and public API `4.0.0`; runtime configuration and model manifest `4.2.0`.
 
@@ -21,12 +26,13 @@ Store `SUPEREZIO_DEEPSEEK_API_KEY` only in ignored local environment files
 
 Official config file: `config/runtime.yml`.
 
-Current official model routing:
+Current official model routing (all roles on the official DeepSeek HTTPS API):
 
-- `agent`: `deepseek-v4-pro` for Bob's investment-assistant responses.
-- `local_orchestrator`: historical provider identifier, now routed to cloud `deepseek-v4-pro`.
+- `agent`: `deepseek-v4-flash` for Bob's investment-assistant responses.
+- `local_orchestrator`: historical provider identifier, now routed to cloud `deepseek-v4-flash`.
 - `deepseek`: financial experts use `deepseek-v4-flash`.
 - `daytrade_judge` and `daytrade_auditor`: separate roles using `deepseek-v4-flash`.
+- `glm`: optional Z.ai Coding Plan provider (`glm-5.3`), built only when `SUPEREZIO_GLM_CODING_PLAN_API_KEY` is present; requesting a glm model without it fails closed.
 - Missing/invalid cloud configuration fails closed; no local model installation is required.
 
 Official Windows launcher: `start.ps1`, invoked directly or through `setup_superezio.bat run`.

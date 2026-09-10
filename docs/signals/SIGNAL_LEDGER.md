@@ -8,15 +8,17 @@ Não altera `src/` até você congelar a regra de negócio.
 
 ---
 
-## Arquivos no disco
+## Arquivos
 
-| Caminho | Conteúdo |
-|---------|----------|
-| `data/signals/emitted.jsonl` | Um JSON por linha: sinal emitido ou candidato rejeitado |
-| `data/signals/resolutions.jsonl` | Resultado T+N por `signal_id` |
-| `data/signals/raw_ndjson/{run_id}.ndjson` | Cópia opcional do stream bruto (auditoria) |
-| `docs/signals/signal_ledger.schema.json` | JSON Schema (`signal_emit`, `signal_resolution`) |
-| `docs/signals/official_signal_policy.v1.json` | Regras versionadas de elegibilidade |
+O diretório `data/signals/` ainda não existe. Os três primeiros caminhos abaixo são **planejados** (destinos futuros, não dados existentes); somente os dois últimos já existem no repositório.
+
+| Caminho | Conteúdo | Estado |
+|---------|----------|--------|
+| `data/signals/emitted.jsonl` | Um JSON por linha: sinal emitido ou candidato rejeitado | Planejado — não existe |
+| `data/signals/resolutions.jsonl` | Resultado T+N por `signal_id` | Planejado — não existe |
+| `data/signals/raw_ndjson/{run_id}.ndjson` | Cópia opcional do stream bruto (auditoria) | Planejado — não existe |
+| `docs/signals/signal_ledger.schema.json` | JSON Schema (`signal_emit`, `signal_resolution`) | Existe |
+| `docs/signals/official_signal_policy.v1.json` | Regras versionadas de elegibilidade | Existe |
 
 ---
 
@@ -24,7 +26,7 @@ Não altera `src/` até você congelar a regra de negócio.
 
 ### `signal_emit`
 
-Gravado ao final de cada análise processada pelo script `append_from_ndjson.py`.
+Planejado: será gravado ao final de cada análise quando um writer append-only for implementado (o script `append_from_ndjson.py` jamais existiu no repositório).
 
 - `status: "official"` — passou na política v1; conta no track record público.
 - `status: "watchlist"` — passou parcialmente (ex.: SDCA `REVIEW`); não vender como sinal “oficial” até política v2.
@@ -32,7 +34,7 @@ Gravado ao final de cada análise processada pelo script `append_from_ndjson.py`
 
 ### `signal_resolution`
 
-Gravado por `resolve_signals.py` quando o horizonte vence (ex.: 5 dias úteis após `reference_ts`).
+Planejado: será gravado por um resolvedor quando o horizonte vencer (ex.: 5 dias úteis após `reference_ts`); o `resolve_signals.py` citado em versões antigas jamais existiu no repositório.
 
 Campos: `return_pct`, `direction_hit`, `max_adverse_pct` (drawdown do período contra a posição).
 
@@ -40,7 +42,7 @@ Campos: `return_pct`, `direction_hit`, `max_adverse_pct` (drawdown do período c
 
 ## Mapeamento NDJSON → ledger
 
-Eventos que o coletor entende (stream `/task/submit`):
+Eventos que o coletor deverá entender quando implementado (stream `/task/submit`):
 
 | `type` | Uso no ledger |
 |--------|----------------|

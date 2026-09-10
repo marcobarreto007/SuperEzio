@@ -46,7 +46,7 @@ def test_expert_providers_has_required_roles():
     assert set(EXPERT_ROLES) == required
     assert required.issubset(set(EXPERT_PROVIDERS))
     for role in EXPERT_ROLES:
-        assert EXPERT_PROVIDERS[role] == "glm"
+        assert EXPERT_PROVIDERS[role] == "deepseek"
 
 
 def test_node_expert_skips_when_gateway_none():
@@ -190,7 +190,7 @@ def test_node_expert_red_team_fallback_survives_stray_braces_in_context(monkeypa
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "1800")
 
     class _FakeGateway:
-        last_provider_used = "glm"
+        last_provider_used = "deepseek"
         calls: ClassVar[list] = []
 
         async def chat_completion(self, **kwargs):

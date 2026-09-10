@@ -119,7 +119,7 @@ class InvestorStorage:
         ticker: str,
         user_input: dict[str, Any],
         response: dict[str, Any],
-        model_used: str = "deepseek-v4-pro",
+        model_used: str = "deepseek-v4-flash",
         cost_usd: float = 0.0,
     ) -> int:
         """

@@ -14,7 +14,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
-from core.model_serving.providers import GLM_PROVIDER_NAME, get_deepseek_max_tokens
+from core.model_serving.providers import DEEPSEEK_PROVIDER_NAME, get_deepseek_max_tokens
 from core.trading.outcome_learning import get_effective_expert_weights
 
 from .expert_dialogue import ExpertDialogue
@@ -217,12 +217,12 @@ EXPERT_ROLES: list[str] = [
 ]
 
 EXPERT_PROVIDERS: dict[str, str] = {
-    "macro_risk": GLM_PROVIDER_NAME,
-    "fundamental_value": GLM_PROVIDER_NAME,
-    "momentum_technical": GLM_PROVIDER_NAME,
-    "contrarian_opportunity": GLM_PROVIDER_NAME,
-    "sentiment": GLM_PROVIDER_NAME,
-    "social_forensics": GLM_PROVIDER_NAME,
+    "macro_risk": DEEPSEEK_PROVIDER_NAME,
+    "fundamental_value": DEEPSEEK_PROVIDER_NAME,
+    "momentum_technical": DEEPSEEK_PROVIDER_NAME,
+    "contrarian_opportunity": DEEPSEEK_PROVIDER_NAME,
+    "sentiment": DEEPSEEK_PROVIDER_NAME,
+    "social_forensics": DEEPSEEK_PROVIDER_NAME,
 }
 
 # Anti-guessing contract appended to every expert system prompt. Modeled on
@@ -488,7 +488,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     replica_id: int = int(state.get("replica_id") or 1)
     raw_context: str = state.get("data_context", "")
     provider_name: str = str(
-        state.get("provider_name") or EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+        state.get("provider_name") or EXPERT_PROVIDERS.get(role, DEEPSEEK_PROVIDER_NAME)
     )
     expert_max_tokens = get_deepseek_max_tokens()
 
@@ -956,7 +956,7 @@ async def run_experts_parallel(
                     expert_result.setdefault("role", role)
                     expert_result.setdefault("replica_id", 1)
                     expert_result.setdefault(
-                        "provider", EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+                        "provider", EXPERT_PROVIDERS.get(role, DEEPSEEK_PROVIDER_NAME)
                     )
                     out.append(expert_result)
                 return out
@@ -967,7 +967,7 @@ async def run_experts_parallel(
                         "replica_id": 1,
                         "ok": False,
                         "error": str(exc)[:200],
-                        "provider": EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME),
+                        "provider": EXPERT_PROVIDERS.get(role, DEEPSEEK_PROVIDER_NAME),
                     }
                 ]
 
