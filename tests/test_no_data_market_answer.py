@@ -74,3 +74,9 @@ def test_no_data_answer_mentions_wait_not_refusal():
     pt = _no_data_market_answer({"message": "pesquisa oportunidades"})
     assert "WAIT" in pt
     assert "nao uma escolha de nao responder" in pt
+
+
+def test_no_data_answer_carries_data_health():
+    pt = _no_data_market_answer({"message": "pesquisa oportunidades"})
+    assert "price=" in pt
+    assert "catalyst=" in pt

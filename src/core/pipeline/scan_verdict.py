@@ -71,7 +71,7 @@ def _extract_amount(message: str) -> str:
     return raw
 
 
-def _data_health_facts() -> tuple[str, ...]:
+def data_health_facts() -> tuple[str, ...]:
     """Fatos de saude dos dados do scan (rotas ativas e chaves ausentes).
 
     Transparencia pedida no incidente 2026-09-10: o operador precisa ver que
@@ -135,7 +135,7 @@ def build_scan_verdict(state: dict[str, Any]) -> ScanVerdict:
         next_step_pt="Me passe um ticker com preco (ex. TD.TO) ou peca um scan de mini cap com catalisador.",
         next_step_en="Give me a priced ticker (e.g. TD.TO) or ask for a mini-cap scan with a catalyst.",
         source_errors=errors,
-        data_health=_data_health_facts(),
+        data_health=data_health_facts(),
     )
 
 

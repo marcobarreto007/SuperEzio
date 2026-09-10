@@ -2597,8 +2597,16 @@ def _is_market_data_request_without_data(state: dict) -> bool:
 
 def _no_data_market_answer(state: dict) -> str:
     """Rodada de mercado sem dado utilizavel: honesta, curta, sem inventar."""
+    try:
+        from ..scan_verdict import data_health_facts
+
+        health = data_health_facts()
+    # Fronteira de melhor esforco: diagnostico nunca derruba a resposta.
+    except Exception:  # noqa: BLE001
+        health = ()
+    facts = "; ".join(health)
     if _is_portuguese_request(state.get("message", "")):
-        return (
+        answer = (
             "Bob: rodei o pipeline de mercado e nao recebi dado utilizavel nesta rodada "
             "(preco/serie OHLCV ausentes; provedores ou chaves de dados indisponiveis). "
             "Sem preco e sem catalisador verificado eu nao invento candidato — "
@@ -2606,7 +2614,8 @@ def _no_data_market_answer(state: dict) -> str:
             "Final verdict: WAIT — falta insumo de dados, nao uma escolha de nao responder.\n"
             "Confidence: 20/100"
         )
-    return (
+        return f"{answer}\n\nSaude dos dados: {facts}" if facts else answer
+    answer = (
         "Bob: the market pipeline ran without usable data this round "
         "(no price/OHLCV series; data providers or keys unavailable). "
         "Without verified price and catalyst I will not invent a candidate — "
@@ -2614,6 +2623,7 @@ def _no_data_market_answer(state: dict) -> str:
         "Final verdict: WAIT — missing data input, not a deliberate refusal.\n"
         "Confidence: 20/100"
     )
+    return f"{answer}\n\nData health: {facts}" if facts else answer
 
 
 def _contract_fallback_answer(state: dict) -> str:
