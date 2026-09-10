@@ -2679,6 +2679,45 @@ def _leaks_scan_or_reject_text(text: str) -> bool:
     )
 
 
+_PROVIDER_FAILURE_MARKERS = (
+    "badrequesterror",
+    "provider agent failed",
+    "all external providers failed",
+    "apierror",
+    "apiconnection",
+    "ratelimit",
+    "timeout",
+    "insufficient_credit",
+)
+
+
+def _looks_like_provider_failure(detail: str) -> bool:
+    low = (detail or "").lower()
+    return any(marker in low for marker in _PROVIDER_FAILURE_MARKERS)
+
+
+def _provider_failure_answer(state: dict, detail: str) -> str:
+    """Resposta honesta quando o provedor de modelos falha.
+
+    Falha de provedor nunca pode virar o texto enlatado de contrato (que
+    parece recusa deliberada do Bob) nem sumir do radar do operador.
+    """
+    bits = str(detail or "").strip()
+    if bits.startswith("[ERROR]"):
+        bits = bits[len("[ERROR]") :].strip()
+    if _is_portuguese_request(state.get("message", "")):
+        return (
+            f"Nao consegui falar com os modelos de nuvem agora ({bits}). "
+            "Isto e falha do provedor, nao uma recusa: a sua pergunta nao foi respondida. "
+            "Tente de novo em instantes; se repetir, verifique credito e chave do provedor no painel de saude."
+        )
+    return (
+        f"I could not reach the cloud models right now ({bits}). "
+        "This is a provider failure, not a refusal: the question was not answered. "
+        "Retry in a moment; if it repeats, check the provider credit/key in the health panel."
+    )
+
+
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     return {
         "final": content,
@@ -3552,13 +3591,22 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             ):
                 if token:
                     raw_parts.append(token)
-                    visible = _sse_visible_after_think("".join(raw_parts))
+                    joined = "".join(raw_parts)
+                    # Falha de provider chega como linha "[ERROR] ..." no
+                    # stream: nunca vai ao operador como se fosse resposta.
+                    if "[ERROR]" in joined:
+                        continue
+                    visible = _sse_visible_after_think(joined)
                     if visible.startswith(emitted_visible):
                         delta = visible[len(emitted_visible) :]
                         if delta:
                             writer({"type": "CHUNK", "run_id": run_id, "content": delta})
                             emitted_visible = visible
             raw = "".join(raw_parts)
+            if "[ERROR]" in raw:
+                marker_at = raw.find("[ERROR]")
+                state["provider_error"] = raw[marker_at:].strip()[:300]
+                raw = raw[:marker_at]
             # Stream path: the visible chunks were ALREADY emitted token by
             # token above, so this cleanup cannot retract what the operator
             # saw live — it only ensures the raw text parsed/recorded
@@ -3574,6 +3622,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 preferred_provider=AGENT_PROVIDER_NAME,
                 json_mode=not (bob_sovereign or chart_message),
             )
+            if "[ERROR]" in raw:
+                marker_at = raw.find("[ERROR]")
+                state["provider_error"] = raw[marker_at:].strip()[:300]
+                raw = raw[:marker_at]
             # Non-stream path: trim a mid-word max_tokens cut back to the
             # last sentence boundary BEFORE the CHUNK writer emits it, so
             # the operator-visible text and the evidence record are clean.
@@ -3586,6 +3638,38 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 "status": "completed",
             }
         )
+
+        # ── Provider failure: honest answer, never the canned contract text ──
+        provider_error = str(state.get("provider_error") or "")
+        if provider_error:
+            note = _provider_failure_answer(state, provider_error)
+            content = f"{raw.strip()}\n\n{note}" if raw.strip() else note
+            tail = "\n\n" + note if (raw.strip() and bob_streamed_live) else content
+            writer({"type": "CHUNK", "run_id": run_id, "content": tail})
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "agent_primary",
+                    "status": "completed",
+                }
+            )
+            _tracer.end_node(
+                trace_token,
+                status="completed",
+                decision="PROVIDER_ERROR",
+                reason=provider_error[:100],
+                agent="bob",
+            )
+            return {
+                "final": content,
+                "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
+                "agent_iterations": iterations + 1,
+                "_pending_tool_calls": [],
+                "bob_thesis": state.get("bob_thesis", ""),
+                "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                "current_datetime": state.get("current_datetime", ""),
+            }
 
         # Extract sovereign reasoning before cleaning thinking blocks
         reasoning = ""
@@ -3820,17 +3904,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     except Exception as exc:  # noqa: BLE001 — defesa ampla deliberada: erro inesperado no no agente vira resposta final graciosa, nao crash do pipeline
         logger.error(f"Agent error: {exc}")
+        detail = str(exc)
+        if "local_context_exceeded" in detail:
+            content = (
+                "O meu cerebro local ficou sem espaco de contexto para esta conversa. "
+                "Recomece com uma pergunta mais curta (um ticker especifico ajuda) e sem anexos."
+            )
+        elif _looks_like_provider_failure(detail):
+            content = _provider_failure_answer(state, f"{type(exc).__name__}: {detail}")
+        else:
+            content = f"Internal agent error: {exc}"
         return {
             "agent_tool_call": {
                 "tool": "final_answer",
-                "args": {
-                    "content": (
-                        "O meu cerebro local ficou sem espaco de contexto para esta conversa. "
-                        "Recomece com uma pergunta mais curta (um ticker especifico ajuda) e sem anexos."
-                        if "local_context_exceeded" in str(exc)
-                        else f"Internal agent error: {exc}"
-                    )
-                },
+                "args": {"content": content},
             },
             "bob_thesis": state.get("bob_thesis", ""),
             "bob_reasoning_trace": state.get("bob_reasoning_trace", []),

@@ -149,6 +149,38 @@ def _openai_messages(raw: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     return out
 
 
+_JSON_MODE_HINT = "Responda somente com JSON valido."
+
+
+def _ensure_json_word(api_messages: list[dict[str, Any]]) -> None:
+    """Garante a palavra "json" no request quando o modo JSON esta ativo.
+
+    A API OpenAI-compatible (DeepSeek oficial) devolve 400 quando
+    ``response_format={"type": "json_object"}`` e enviado sem a palavra
+    "json" em nenhuma mensagem ("Prompt must contain the word 'json' ...
+    to use 'response_format' of type 'json_object'"). Injeta a instrucao de
+    forma idempotente: no system prompt, senao na ultima mensagem; se nao
+    houver texto mutavel, prepende um system novo.
+    """
+    for msg in api_messages:
+        content = msg.get("content")
+        if isinstance(content, str) and "json" in content.lower():
+            return
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and "json" in str(part.get("text") or "").lower():
+                    return
+    for msg in api_messages:
+        if msg.get("role") == "system" and isinstance(msg.get("content"), str):
+            msg["content"] = f"{msg['content']}\n{_JSON_MODE_HINT}"
+            return
+    for msg in reversed(api_messages):
+        if msg.get("role") == "user" and isinstance(msg.get("content"), str):
+            msg["content"] = f"{msg['content']}\n{_JSON_MODE_HINT}"
+            return
+    api_messages.insert(0, {"role": "system", "content": _JSON_MODE_HINT})
+
+
 class _FailureKind(Enum):
     """Internal retry classification for provider failures."""
 
@@ -600,6 +632,8 @@ class ModelGateway:
                 "json_mode disabled: image content present (vision cannot emit structured JSON)"
             )
         use_json = bool(json_mode) and not _has_image_content(api_messages)
+        if use_json:
+            _ensure_json_word(api_messages)
 
         kwargs = {
             "model": provider.model,
@@ -697,6 +731,8 @@ class ModelGateway:
                 "json_mode disabled: image content present (vision cannot emit structured JSON)"
             )
         use_json = bool(json_mode) and not _has_image_content(api_messages)
+        if use_json:
+            _ensure_json_word(api_messages)
 
         kwargs = {
             "model": provider.model,
@@ -1016,12 +1052,23 @@ class ModelGateway:
                                 next_provider.name,
                             )
                             break
+                        logger.error(
+                            "PROVIDER_OUT_OF_CREDIT (stream): %s - %s",
+                            provider.name,
+                            str(exc)[:400],
+                        )
                         yield f"[ERROR] Provider {provider.name} out of credit: {type(exc).__name__}."
                         return
                     if emitted or failure_kind is _FailureKind.PERMANENT:
                         circuit.record_failure(exc)
                         self._record_circuit_state(provider.name, circuit)
                         metrics.increment(f"model.{provider.name}.retry_suppressed")
+                        logger.error(
+                            "PROVIDER_FAILED (stream): %s (%s) - %s",
+                            provider.name,
+                            type(exc).__name__,
+                            str(exc)[:400],
+                        )
                         yield f"[ERROR] Provider {provider.name} failed: {type(exc).__name__}."
                         return
                     if retry_index < retry_attempts - 1:
@@ -1124,12 +1171,23 @@ class ModelGateway:
                                 next_provider.name,
                             )
                             break
+                        logger.error(
+                            "PROVIDER_OUT_OF_CREDIT (async stream): %s - %s",
+                            provider.name,
+                            str(exc)[:400],
+                        )
                         yield f"[ERROR] Provider {provider.name} out of credit: {type(exc).__name__}."
                         return
                     if emitted or failure_kind is _FailureKind.PERMANENT:
                         circuit.record_failure(exc)
                         self._record_circuit_state(provider.name, circuit)
                         metrics.increment(f"model.{provider.name}.retry_suppressed")
+                        logger.error(
+                            "PROVIDER_FAILED (async stream): %s (%s) - %s",
+                            provider.name,
+                            type(exc).__name__,
+                            str(exc)[:400],
+                        )
                         yield f"[ERROR] Provider {provider.name} failed: {type(exc).__name__}."
                         return
                     if retry_index < retry_attempts - 1:
