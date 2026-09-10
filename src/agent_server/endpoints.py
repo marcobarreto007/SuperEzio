@@ -31,6 +31,7 @@ from core.pipeline.intents import (
     detect_capital_allocation_intent,
     detect_complex_finance_intent,
     detect_decisive_trade_intent,
+    detect_industry_research_intent,
     detect_market_scan_intent,
     detect_ticker,
     has_hint,
@@ -533,6 +534,29 @@ def _is_what_happened_query(message: str) -> bool:
         "bug",
         "what went wrong",
     }
+
+
+def _should_keep_ui_ticker(
+    *,
+    message: str,
+    detected_ticker: str,
+    explicit_ticker: str,
+    is_complex: bool,
+    is_capital_alloc: bool,
+) -> bool:
+    """True quando a tese/dica mantem o ticker selecionado no dropdown da UI.
+
+    Tese macro/tematica (complex finance, alocacao de capital ou pesquisa de
+    setor) NAO herda o ticker da UI: o teste de 2026-09-10 flagrou "Build a
+    thesis ... secular opportunity" grudando em AAPL so porque a palavra
+    "thesis" esta na lista de hints de tese de ativo.
+    """
+    macro_theme = bool(is_complex or is_capital_alloc or detect_industry_research_intent(message))
+    return bool(
+        (detected_ticker or detect_ticker(message) or explicit_ticker)
+        and is_investment_thesis_request(message)
+        and not macro_theme
+    )
 
 
 def _extract_complex_intent(content: str) -> str | None:
@@ -1497,9 +1521,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
         is_market_scan = detect_market_scan_intent(raw_message)
         is_paper_training = detect_decisive_trade_intent(raw_message)
-        _thesis_keeps_ticker = bool(
-            (detected_ticker or detect_ticker(raw_message) or explicit_ticker)
-            and is_investment_thesis_request(raw_message)
+        _thesis_keeps_ticker = _should_keep_ui_ticker(
+            message=raw_message,
+            detected_ticker=detected_ticker,
+            explicit_ticker=explicit_ticker,
+            is_complex=is_complex,
+            is_capital_alloc=is_capital_alloc,
         )
         if (
             is_casual or is_broker_status or is_complex or is_capital_alloc
