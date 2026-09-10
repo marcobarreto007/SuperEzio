@@ -940,6 +940,42 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
     )
 
 
+_MARKET_ROUTE_VALUES = {"market_scan", "ticker_analysis"}
+_MARKET_INTENT_VALUES = {"market_scan", "ticker_analysis", "another_trade_recommendation"}
+
+
+def _is_market_data_request_without_data(state: dict) -> bool:
+    """Pedido de mercado sem insumo: honesto, nunca o enlatado de advisory."""
+    return bool(
+        state.get("route") in _MARKET_ROUTE_VALUES
+        or state.get("intent") in _MARKET_INTENT_VALUES
+        or state.get("scanner_invoked")
+        or state.get("cognitive_mode") in {"DISCOVERY_SCAN", "TICKER_ANALYSIS"}
+    )
+
+
+def _no_data_market_answer(state: dict) -> str:
+    is_pt = _get_agent_attr("_is_portuguese_request")
+    portuguese = is_pt(state.get("message", "")) if is_pt else False
+    if portuguese:
+        return (
+            "Bob: rodei o pipeline de mercado e nao recebi dado utilizavel nesta rodada "
+            "(preco/serie OHLCV ausentes; provedores ou chaves de dados indisponiveis). "
+            "Sem preco e sem catalisador verificado eu nao invento candidato — "
+            "nenhuma entrada, stop ou alvo foi sugerido.\n\n"
+            "Final verdict: WAIT — falta insumo de dados, nao uma escolha de nao responder.\n"
+            "Confidence: 20/100"
+        )
+    return (
+        "Bob: the market pipeline ran without usable data this round "
+        "(no price/OHLCV series; data providers or keys unavailable). "
+        "Without verified price and catalyst I will not invent a candidate — "
+        "no entry, stop or target was suggested.\n\n"
+        "Final verdict: WAIT — missing data input, not a deliberate refusal.\n"
+        "Confidence: 20/100"
+    )
+
+
 def _contract_fallback_answer(state: dict) -> str:
     mode = state.get("cognitive_mode", "ADVISORY_KNOWLEDGE")
     message = state.get("message", "")
@@ -972,6 +1008,10 @@ def _contract_fallback_answer(state: dict) -> str:
             "Final verdict: REJECT_ALL\n"
             "Confidence: 70/100"
         )
+    # Pedido de mercado sem dado nenhum: veredito honesto — nunca o enlatado
+    # de advisory (incidente 2026-09-10, ramo de falta de dado).
+    if _is_market_data_request_without_data(state):
+        return _no_data_market_answer(state)
     return _advisory_knowledge_fallback_answer(state)
 
 
