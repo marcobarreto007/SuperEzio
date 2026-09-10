@@ -19,6 +19,7 @@ from core.model_serving.providers import (
 @pytest.fixture(autouse=True)
 def _deepseek_contract_env(monkeypatch):
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-coding-plan-key")
     for var in (
         "SUPEREZIO_DEEPSEEK_BASE_URL",
         "SUPEREZIO_DEEPSEEK_MODEL",
@@ -27,20 +28,14 @@ def _deepseek_contract_env(monkeypatch):
         "SUPEREZIO_PRIMARY_BASE_URL",
         "SUPEREZIO_AGENT_MODEL",
         "SUPEREZIO_PRIMARY_MODEL",
-        "SUPEREZIO_GLM_CODING_PLAN_API_KEY",
         "SUPEREZIO_AGENT_API_KEY",
         "SUPEREZIO_PRIMARY_API_KEY",
     ):
         monkeypatch.delenv(var, raising=False)
 
 
-def test_default_build_has_deepseek_ceo_and_pinned_experts(monkeypatch) -> None:
-    monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
+def test_default_build_has_glm_ceo_and_pinned_experts(monkeypatch) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro")
-    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "deepseek-v4-pro")
-    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.deepseek.com")
-    monkeypatch.setenv("SUPEREZIO_PRIMARY_BASE_URL", "https://api.deepseek.com")
 
     from core.config import get_config
     from core.model_serving.providers import build_default_providers
@@ -57,11 +52,10 @@ def test_default_build_has_deepseek_ceo_and_pinned_experts(monkeypatch) -> None:
     providers, _ = build_default_providers(cfg)
     assert providers, "default provider build must not be empty"
     by_name = {p.name: p for p in providers}
-    # All-DeepSeek stack: CEO/orchestrator pro; committee on flash.
-    for name in ("agent", "local_orchestrator"):
+    for name in ("agent", "local_orchestrator", "glm"):
         assert by_name[name].is_local is False
-        assert by_name[name].base_url == "https://api.deepseek.com"
-        assert by_name[name].model == "deepseek-v4-pro"
+        assert by_name[name].base_url == "https://api.z.ai/api/coding/paas/v4"
+        assert by_name[name].model == "glm-5.3"
     for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
         assert by_name[name].is_local is False
         assert by_name[name].base_url == "https://api.deepseek.com"
@@ -72,8 +66,10 @@ def test_default_build_has_deepseek_ceo_and_pinned_experts(monkeypatch) -> None:
 
 
 def test_agent_ceo_never_cascades(monkeypatch) -> None:
-    """An agent/CEO request must resolve to the agent alone."""
-    for var in ("SUPEREZIO_AGENT_BASE_URL", "SUPEREZIO_PRIMARY_BASE_URL"):
+    """A DeepSeek-pinned agent/CEO request must resolve to the agent alone."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.deepseek.com")
+    for var in ("SUPEREZIO_PRIMARY_BASE_URL",):
         monkeypatch.delenv(var, raising=False)
 
     providers, gw_config = build_providers()
@@ -111,6 +107,8 @@ def test_glm53_coding_plan_rewrites_general_paas_url(monkeypatch) -> None:
     assert by_name["agent"].model == "glm-5.3"
     assert by_name["agent"].is_local is False
     assert by_name["local_orchestrator"].base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert by_name["glm"].base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert by_name["glm"].model == "glm-5.3"
     assert by_name["deepseek"].base_url == "https://api.deepseek.com"
     assert by_name["deepseek"].model == "deepseek-v4-flash"
 

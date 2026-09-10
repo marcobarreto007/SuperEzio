@@ -23,6 +23,7 @@ def _deepseek_contract_env(monkeypatch):
     monkeypatch.setattr(_gateway, "load_local_env", lambda: None)
 
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-ds-test-only")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "sk-glm-test-only")
     for name in (
         "SUPEREZIO_DEEPSEEK_BASE_URL",
         "SUPEREZIO_DEEPSEEK_MODEL",
@@ -40,7 +41,6 @@ def _deepseek_contract_env(monkeypatch):
         "SUPEREZIO_PRIMARY_MODEL",
         "SUPEREZIO_PRIMARY_BASE_URL",
         "SUPEREZIO_PRIMARY_API_KEY",
-        "SUPEREZIO_GLM_CODING_PLAN_API_KEY",
         "SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK",
         "SUPEREZIO_GLM_REASONING_EFFORT",
         "SUPEREZIO_DEEPSEEK_THINKING",
@@ -125,7 +125,7 @@ def test_build_default_providers_agent_present(monkeypatch):
     agent = by_name[AGENT_PROVIDER_NAME]
     assert agent.is_local is False
     assert agent.model == AGENT_MODEL_ID
-    assert "api.deepseek.com" in agent.base_url
+    assert "api.z.ai" in agent.base_url
 
 
 def test_build_default_providers_primary_is_present(monkeypatch):
@@ -143,10 +143,10 @@ def test_build_default_providers_primary_is_present(monkeypatch):
 
     assert PRIMARY_PROVIDER_NAME in by_name
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
-    assert by_name[PRIMARY_PROVIDER_NAME].model == "deepseek-v4-pro"
+    assert by_name[PRIMARY_PROVIDER_NAME].model == "glm-5.3"
 
 
-def test_experts_are_pinned_to_official_deepseek(monkeypatch):
+def test_experts_are_pinned_to_glm53(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
@@ -156,12 +156,24 @@ def test_experts_are_pinned_to_official_deepseek(monkeypatch):
         DEEPSEEK_MODEL_ID,
         DEEPSEEK_OFFICIAL_BASE_URL,
         DEEPSEEK_PROVIDER_NAME,
+        GLM_CODING_PLAN_BASE_URL,
+        GLM_CODING_PLAN_MODEL,
+        GLM_PROVIDER_NAME,
         build_default_providers,
     )
 
     cfg = UniversalConfig()
     providers, _ = build_default_providers(cfg)
     by_name = {p.name: p for p in providers}
+
+    glm = by_name[GLM_PROVIDER_NAME]
+    assert glm.base_url == GLM_CODING_PLAN_BASE_URL
+    assert glm.model == GLM_CODING_PLAN_MODEL
+    assert glm.api_key == "sk-glm-test-only"
+    assert glm.is_local is False
+    assert glm.max_tokens == 1800
+    assert glm.timeout_s == 60
+
     for name in (
         DEEPSEEK_PROVIDER_NAME,
         DAYTRADE_JUDGE_PROVIDER_NAME,
@@ -174,6 +186,19 @@ def test_experts_are_pinned_to_official_deepseek(monkeypatch):
         assert provider.is_local is False
         assert provider.max_tokens == 1800
         assert provider.timeout_s == 60
+
+
+def test_missing_glm_key_fails_closed_without_echoing_secret(monkeypatch):
+    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    with pytest.raises(RuntimeError, match="SUPEREZIO_GLM_CODING_PLAN_API_KEY is required") as exc:
+        build_default_providers(UniversalConfig())
+    assert "sk-" not in str(exc.value)
 
 
 def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):
@@ -274,6 +299,19 @@ def test_deepseek_limits_respect_specific_and_legacy_env(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+def test_glm_expert_provider_has_no_fallback(monkeypatch):
+    from core.config.schema import UniversalConfig
+    from core.model_serving.gateway import create_gateway_from_config
+    from core.model_serving.providers import GLM_PROVIDER_NAME
+
+    cfg = UniversalConfig()
+    gw = create_gateway_from_config(cfg)
+    pinned = gw._providers_for_request(GLM_PROVIDER_NAME, allow_fallback=False)
+    assert [p.name for p in pinned] == [GLM_PROVIDER_NAME]
+    assert pinned[0].model == "glm-5.3"
+    assert pinned[0].base_url.startswith("https://api.z.ai")
+
+
 def test_gateway_instantiation():
     from core.model_serving.gateway import ModelGateway
     from core.model_serving.providers import GatewayConfig, ModelProvider
@@ -303,11 +341,9 @@ def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
 
 
 def test_gateway_agent_never_has_cloud_fallback(monkeypatch):
-    """Zero-cloud default: with the agent on its default DeepSeek pin (the
-    hermetic default here), no ceo_fallback_glm provider may exist and the
-    agent/CEO must resolve to itself alone — a GLM-pinned agent is a separate
-    contract, covered by test_gateway_glm_agent_falls_back_only_to_deepseek."""
-    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    """A DeepSeek-pinned agent resolves to itself alone (no GLM credit path)."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.deepseek.com")
     monkeypatch.delenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)

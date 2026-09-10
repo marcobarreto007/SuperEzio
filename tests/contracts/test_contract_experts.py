@@ -5,6 +5,7 @@ from typing import ClassVar
 import src.core.pipeline.nodes.experts as experts_node
 from src.core.pipeline.nodes.experts import (
     EXPERT_PROVIDERS,
+    EXPERT_ROLES,
     calculate_weighted_expert_consensus,
     node_collect_experts,
     node_expert,
@@ -34,10 +35,18 @@ def _noop_writer(_event: dict) -> None:
 
 
 def test_expert_providers_has_required_roles():
-    required = {"macro_risk", "fundamental_value", "momentum_technical", "contrarian_opportunity"}
+    required = {
+        "macro_risk",
+        "fundamental_value",
+        "momentum_technical",
+        "contrarian_opportunity",
+        "sentiment",
+        "social_forensics",
+    }
+    assert set(EXPERT_ROLES) == required
     assert required.issubset(set(EXPERT_PROVIDERS))
-    for role in required:
-        assert EXPERT_PROVIDERS[role] == "deepseek"
+    for role in EXPERT_ROLES:
+        assert EXPERT_PROVIDERS[role] == "glm"
 
 
 def test_node_expert_skips_when_gateway_none():
@@ -181,7 +190,7 @@ def test_node_expert_red_team_fallback_survives_stray_braces_in_context(monkeypa
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "1800")
 
     class _FakeGateway:
-        last_provider_used = "deepseek"
+        last_provider_used = "glm"
         calls: ClassVar[list] = []
 
         async def chat_completion(self, **kwargs):

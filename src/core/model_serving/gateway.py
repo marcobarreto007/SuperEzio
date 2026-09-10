@@ -29,6 +29,7 @@ from .providers import (  # noqa: F401 — re-exports
     DAYTRADE_AUDITOR_PROVIDER_NAME,
     DAYTRADE_JUDGE_PROVIDER_NAME,
     DEEPSEEK_PROVIDER_NAME,
+    GLM_PROVIDER_NAME,
     PRIMARY_MODEL_ID,
     PRIMARY_PROVIDER_NAME,
     GatewayConfig,
@@ -387,6 +388,7 @@ class ModelGateway:
                         p.name
                         in {
                             AGENT_PROVIDER_NAME,
+                            GLM_PROVIDER_NAME,
                             DEEPSEEK_PROVIDER_NAME,
                             DAYTRADE_JUDGE_PROVIDER_NAME,
                             DAYTRADE_AUDITOR_PROVIDER_NAME,

@@ -15,6 +15,7 @@ from langgraph.graph import END, START, StateGraph
 from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
 from core.math.math_hub import MathHub
+from core.model_serving.providers import GLM_PROVIDER_NAME
 
 from .contracts import PipelineState
 from .nodes import (
@@ -656,9 +657,8 @@ async def _auto_full_analysis(
         # The official profile has one inference slot. Replicas above one
         # multiply wall-clock latency without adding model diversity.
         replicas = 1
-        # Experts run on the cloud DeepSeek API (2026-09-05): the old
-        # concurrency=1 pinned a single local llama-server slot and serialized
-        # the committee. Fan out now (env SUPEREZIO_EXPERT_CONCURRENCY).
+        # Experts run on the Z.ai GLM-5.3 API. Fan out with
+        # SUPEREZIO_EXPERT_CONCURRENCY (default: all roles in parallel).
         concurrency = expert_concurrency(len(roles))
         semaphore = asyncio.Semaphore(concurrency)
 
@@ -679,7 +679,9 @@ async def _auto_full_analysis(
                     for expert_result in res.get("expert_results", []):
                         expert_result.setdefault("role", role)
                         expert_result.setdefault("replica_id", replica_id)
-                        expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
+                        expert_result.setdefault(
+                            "provider", EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+                        )
                         out.append(expert_result)
                     return out
                 # Fronteira de melhor esforço: chamada LLM (node_expert) falha
@@ -692,7 +694,7 @@ async def _auto_full_analysis(
                             "replica_id": replica_id,
                             "ok": False,
                             "error": str(exc)[:200],
-                            "provider": EXPERT_PROVIDERS.get(role, "?"),
+                            "provider": EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME),
                         }
                     ]
 

@@ -1,14 +1,14 @@
 {
     "project": "SuperEzio",
     "version": "4.2.0",
-    "updated": "2026-09-05",
-    "note": "ALL-DEEPSEEK STACK (2026-09-05): CEO/agent and orchestrator run on deepseek-v4-pro at the official DeepSeek HTTPS API with CEO prompt. Financial experts, daytrade judge/auditor and trinity lanes run on deepseek-v4-flash at the official DeepSeek HTTPS API.",
+    "updated": "2026-09-10",
+    "note": "GLM-5.3 STACK (2026-09-10): CEO/agent, orchestrator and financial experts run on glm-5.3 at the Z.ai Coding Plan HTTPS API. Daytrade judge/auditor remain on deepseek-v4-flash at the official DeepSeek HTTPS API.",
     "agent": {
         "provider_name": "agent",
         "persona": "Bob",
-        "base_model": "deepseek-v4-pro",
-        "model": "deepseek-v4-pro",
-        "server_url": "https://api.deepseek.com",
+        "base_model": "glm-5.3",
+        "model": "glm-5.3",
+        "server_url": "https://api.z.ai/api/coding/paas/v4",
         "priority": -10,
         "backend": "openai_compatible",
         "temperature": 0.3,
@@ -20,17 +20,29 @@
     "providers": {
         "local_orchestrator": {
             "provider_name": "local_orchestrator",
-            "base_url": "https://api.deepseek.com",
-            "model": "deepseek-v4-pro",
+            "base_url": "https://api.z.ai/api/coding/paas/v4",
+            "model": "glm-5.3",
             "priority": 0,
             "role": "orchestrator"
+        },
+        "glm": {
+            "provider_name": "glm",
+            "base_url": "https://api.z.ai/api/coding/paas/v4",
+            "model": "glm-5.3",
+            "priority": -300,
+            "role": "financial experts (external, provider-pinned)",
+            "api_key_env": "SUPEREZIO_GLM_CODING_PLAN_API_KEY",
+            "api_key_required": true,
+            "allow_fallback": false,
+            "max_tokens": 1800,
+            "timeout_s": 60
         },
         "deepseek": {
             "provider_name": "deepseek",
             "base_url": "https://api.deepseek.com",
             "model": "deepseek-v4-flash",
-            "priority": -300,
-            "role": "financial experts (external, provider-pinned)",
+            "priority": -290,
+            "role": "judge/auditor fallback (external, provider-pinned)",
             "api_key_env": "SUPEREZIO_DEEPSEEK_API_KEY",
             "api_key_required": true,
             "allow_fallback": false,
@@ -63,7 +75,7 @@
         }
     },
     "expert_runtime": {
-        "description": "Experts are role prompts selected by intent and pinned to deepseek-v4-flash at the official DeepSeek HTTPS API. CEO/agent and orchestrator run on deepseek-v4-pro (all-DeepSeek stack, 2026-09-05).",
+        "description": "Experts are role prompts selected by intent and pinned to glm-5.3 at the Z.ai Coding Plan HTTPS API. CEO/agent and orchestrator also run glm-5.3. Judge and auditor remain on deepseek-v4-flash.",
         "roles": [
             "fundamental",
             "technical",

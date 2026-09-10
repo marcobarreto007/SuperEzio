@@ -18,6 +18,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.math.math_hub import MathHub
+from core.model_serving.providers import GLM_PROVIDER_NAME
 from core.pipeline.prompts.math_prompt import format_math_context
 from core.pipeline.prompts.sentiment_prompt import format_sentiment_context
 
@@ -262,26 +263,21 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
         "Give the sentiment/social-forensics verdict for Bob."
     )
 
-    # Lanes run in parallel (2026-09-05): Genie and Deep have no cross
-    # dependency — only the consensus below joins them. Genie was pinned to a
-    # nonexistent "gemini" provider (always provider_not_configured); it now
-    # runs on the agent provider (GLM) for model diversity vs Deep (DeepSeek).
+    # Both Trinity lanes use the GLM-5.3 expert committee (operator 2026-09-10).
     async def _run_deep_lane() -> dict[str, Any]:
         dialogue = ExpertDialogue(gateway, max_rounds=max_rounds)
-        await dialogue.ask("fundamental_value", "deepseek", deep_system, deep_user)
+        await dialogue.ask("fundamental_value", GLM_PROVIDER_NAME, deep_system, deep_user)
         follow = _requires_deep_follow_up(math_report, dialogue.get_verdict())
         if follow:
-            await dialogue.follow_up("fundamental_value", "deepseek", follow)
+            await dialogue.follow_up("fundamental_value", GLM_PROVIDER_NAME, follow)
         return dialogue.get_verdict()
 
     async def _run_genie_lane() -> dict[str, Any]:
         dialogue = ExpertDialogue(gateway, max_rounds=max_rounds)
-        # Genie runs on DeepSeek too (operator decision 2026-09-05: all-DeepSeek
-        # stack — pro for the CEO, flash tier for the committee lanes).
-        await dialogue.ask("sentiment", "deepseek", genie_system, genie_user)
+        await dialogue.ask("sentiment", GLM_PROVIDER_NAME, genie_system, genie_user)
         follow = _requires_genie_follow_up(state, dialogue.get_verdict())
         if follow:
-            await dialogue.follow_up("sentiment", "deepseek", follow)
+            await dialogue.follow_up("sentiment", GLM_PROVIDER_NAME, follow)
         return dialogue.get_verdict()
 
     deep_verdict, genie_verdict = await asyncio.gather(_run_deep_lane(), _run_genie_lane())

@@ -14,7 +14,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
-from core.model_serving.providers import get_deepseek_max_tokens
+from core.model_serving.providers import GLM_PROVIDER_NAME, get_deepseek_max_tokens
 from core.trading.outcome_learning import get_effective_expert_weights
 
 from .expert_dialogue import ExpertDialogue
@@ -206,7 +206,7 @@ async def _reserve_research_tokens(requested_tokens: int) -> tuple[bool, int, in
         return True, _RESEARCH_TOKENS_SPENT, budget
 
 
-# Expert roles mapped to the provider-pinned external DeepSeek boundary.
+# Expert roles mapped to the provider-pinned Z.ai GLM-5.3 committee.
 EXPERT_ROLES: list[str] = [
     "macro_risk",
     "fundamental_value",
@@ -217,12 +217,12 @@ EXPERT_ROLES: list[str] = [
 ]
 
 EXPERT_PROVIDERS: dict[str, str] = {
-    "macro_risk": "deepseek",
-    "fundamental_value": "deepseek",
-    "momentum_technical": "deepseek",
-    "contrarian_opportunity": "deepseek",
-    "sentiment": "deepseek",
-    "social_forensics": "deepseek",
+    "macro_risk": GLM_PROVIDER_NAME,
+    "fundamental_value": GLM_PROVIDER_NAME,
+    "momentum_technical": GLM_PROVIDER_NAME,
+    "contrarian_opportunity": GLM_PROVIDER_NAME,
+    "sentiment": GLM_PROVIDER_NAME,
+    "social_forensics": GLM_PROVIDER_NAME,
 }
 
 # Anti-guessing contract appended to every expert system prompt. Modeled on
@@ -487,7 +487,9 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     ticker: str = state["ticker"]
     replica_id: int = int(state.get("replica_id") or 1)
     raw_context: str = state.get("data_context", "")
-    provider_name: str = str(state.get("provider_name") or EXPERT_PROVIDERS.get(role, "deepseek"))
+    provider_name: str = str(
+        state.get("provider_name") or EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+    )
     expert_max_tokens = get_deepseek_max_tokens()
 
     # Role-scoped context: judge/auditor arbitrate expert verdicts (not raw
@@ -919,10 +921,9 @@ async def node_collect_experts(state: dict) -> dict:
 
 
 def expert_concurrency(role_count: int) -> int:
-    """Concurrency for the cloud expert committee (2026-09-05).
+    """Concurrency for the cloud expert committee.
 
-    The old concurrency=1 pinned a single local llama-server inference slot;
-    experts now run on the DeepSeek API and may fan out. Default is all roles
+    Experts run on the Z.ai GLM-5.3 API and may fan out. Default is all roles
     in parallel; override with SUPEREZIO_EXPERT_CONCURRENCY (1..role_count).
     """
     raw = os.getenv("SUPEREZIO_EXPERT_CONCURRENCY", "").strip()
@@ -954,7 +955,9 @@ async def run_experts_parallel(
                 for expert_result in res.get("expert_results", []):
                     expert_result.setdefault("role", role)
                     expert_result.setdefault("replica_id", 1)
-                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
+                    expert_result.setdefault(
+                        "provider", EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME)
+                    )
                     out.append(expert_result)
                 return out
             except Exception as exc:  # noqa: BLE001 — melhor esforco: falha vira erro estruturado
@@ -964,7 +967,7 @@ async def run_experts_parallel(
                         "replica_id": 1,
                         "ok": False,
                         "error": str(exc)[:200],
-                        "provider": EXPERT_PROVIDERS.get(role, "?"),
+                        "provider": EXPERT_PROVIDERS.get(role, GLM_PROVIDER_NAME),
                     }
                 ]
 

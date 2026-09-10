@@ -94,9 +94,9 @@ async def test_node_trinity_runs_deep_and_genie_followups():
     result = await node_trinity(_state(), gateway=gateway)
 
     assert len(gateway.calls) == 4
-    # All-DeepSeek stack: both lanes use the deepseek provider; identify the
+    # All-GLM committee: both Trinity lanes use the glm provider; identify the
     # lane by its system prompt.
-    assert all(c["preferred_provider"] == "deepseek" for c in gateway.calls)
+    assert all(c["preferred_provider"] == "glm" for c in gateway.calls)
     deep_calls = [c for c in gateway.calls if "You are Deep" in c["messages"][0]["content"]]
     genie_calls = [c for c in gateway.calls if "You are Genie" in c["messages"][0]["content"]]
     assert len(deep_calls) == 2

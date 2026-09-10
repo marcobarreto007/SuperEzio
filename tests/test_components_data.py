@@ -16,9 +16,9 @@ def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "deepseek-v4-pro"
+    assert manifest["agent"]["model"] == "glm-5.3"
     assert manifest["agent"]["backend"] == "openai_compatible"
-    assert manifest["agent"]["server_url"].startswith("https://api.deepseek.com")
+    assert manifest["agent"]["server_url"].startswith("https://api.z.ai")
 
 
 def test_model_manifest_providers():
@@ -26,6 +26,9 @@ def test_model_manifest_providers():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "providers" in manifest
     assert "local_orchestrator" in manifest["providers"]
+    assert manifest["providers"]["glm"]["base_url"] == "https://api.z.ai/api/coding/paas/v4"
+    assert manifest["providers"]["glm"]["model"] == "glm-5.3"
+    assert manifest["providers"]["glm"]["allow_fallback"] is False
     assert manifest["providers"]["deepseek"]["base_url"] == "https://api.deepseek.com"
     assert manifest["providers"]["deepseek"]["model"] == "deepseek-v4-flash"
     assert manifest["providers"]["deepseek"]["allow_fallback"] is False
@@ -78,37 +81,32 @@ def test_provider_constants():
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
         DEEPSEEK_PROVIDER_NAME,
+        GLM_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "deepseek-v4-pro"
+    assert AGENT_MODEL_ID == "glm-5.3"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
+    assert GLM_PROVIDER_NAME == "glm"
 
 
 def test_provider_boundaries_and_credentials(monkeypatch):
-    """External DeepSeek providers inherit the secret env."""
+    """GLM experts inherit the Coding Plan key; DeepSeek judge stays isolated."""
     from core.config import reload_config
     from core.model_serving.providers import build_default_providers
 
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
-    # Hermetic boundary: reload_config() triggers the .env hydrator
-    # (core.config.secrets.load_local_env), which would otherwise leak the
-    # operator's GLM agent pin (SUPEREZIO_AGENT_MODEL/AGENT_BASE_URL) into this
-    # DeepSeek-boundary test. Neutralize the loader and clear the pins.
     import core.config.secrets as _secrets
 
     monkeypatch.setattr(_secrets, "load_local_env", lambda: None)
     monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
-    # The operator .env also pins the orchestrator (local_orchestrator) on GLM
-    # via SUPEREZIO_PRIMARY_MODEL — clear the primary pins too, otherwise the
-    # boundary below sees api.z.ai instead of the official DeepSeek endpoint.
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
-    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-glm-secret")
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-deepseek-secret")
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
@@ -119,14 +117,12 @@ def test_provider_boundaries_and_credentials(monkeypatch):
 
     assert providers, "build_default_providers retornou lista vazia"
     by_name = {p.name: p for p in providers}
-    # All-DeepSeek stack (2026-09-05): CEO/orchestrator on pro; the expert
-    # committee (deepseek/judge/auditor) on the flash tier.
-    for name in ("agent", "local_orchestrator"):
+    for name in ("agent", "local_orchestrator", "glm"):
         p = by_name[name]
         assert p.is_local is False
-        assert p.base_url == "https://api.deepseek.com"
-        assert p.model == "deepseek-v4-pro"
-        assert p.api_key == "test-deepseek-secret"
+        assert p.base_url == "https://api.z.ai/api/coding/paas/v4"
+        assert p.model == "glm-5.3"
+        assert p.api_key == "test-glm-secret"
     for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
         p = by_name[name]
         assert p.is_local is False

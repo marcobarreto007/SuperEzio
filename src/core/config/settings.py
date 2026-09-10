@@ -137,6 +137,10 @@ class Settings(BaseSettings):
     # owns precedence; retaining these names avoids rejecting legacy deployments.
     superezio_expert_max_tokens: int | None = Field(default=None, ge=128, le=8192)
     superezio_expert_timeout: int | None = Field(default=None, ge=10, le=600)
+    superezio_glm_coding_plan_api_key: SecretStr | None = Field(
+        default=None,
+        description="Z.ai Coding Plan credential for GLM-5.3 (Bob, orchestrator, experts).",
+    )
 
     # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.
     # SINGLE SOURCE OF TRUTH for the gate's risk-per-trade limit: default 0.5%,
@@ -156,6 +160,14 @@ class Settings(BaseSettings):
     @field_validator("superezio_deepseek_api_key", mode="before")
     @classmethod
     def _normalize_deepseek_api_key(cls, value: object) -> object:
+        if value is None or isinstance(value, SecretStr):
+            return value
+        cleaned = str(value).strip()
+        return cleaned or None
+
+    @field_validator("superezio_glm_coding_plan_api_key", mode="before")
+    @classmethod
+    def _normalize_glm_api_key(cls, value: object) -> object:
         if value is None or isinstance(value, SecretStr):
             return value
         cleaned = str(value).strip()
@@ -222,6 +234,21 @@ class Settings(BaseSettings):
             )
         ):
             return "misconfigured_unsupported_model"
+        return "configured"
+
+    @property
+    def glm_api_key_configured(self) -> bool:
+        secret = self.superezio_glm_coding_plan_api_key
+        return bool(secret and secret.get_secret_value().strip())
+
+    @property
+    def glm_experts_configured(self) -> bool:
+        return self.glm_configuration_status == "configured"
+
+    @property
+    def glm_configuration_status(self) -> str:
+        if not self.glm_api_key_configured:
+            return "unconfigured_missing_api_key"
         return "configured"
 
 

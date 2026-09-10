@@ -70,7 +70,7 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert api["command"] == cfg["server"]["entrypoint"]
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
-    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-pro"
+    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "glm-5.3"
     assert "deepseek-v4-pro" in contract
     assert "deepseek-v4-flash" in contract
     assert "8082" not in canonical_text
@@ -196,8 +196,12 @@ def test_agent_runtime_config_matches_manifest_and_script():
     agent_manifest = manifest["agent"]
 
     assert agent_cfg["provider_name"] == "agent"
-    assert agent_cfg["model_id"] == agent_manifest["model"] == "deepseek-v4-pro"
-    assert agent_cfg["base_url"] == agent_manifest["server_url"] == "https://api.deepseek.com"
+    assert agent_cfg["model_id"] == agent_manifest["model"] == "glm-5.3"
+    assert (
+        agent_cfg["base_url"]
+        == agent_manifest["server_url"]
+        == "https://api.z.ai/api/coding/paas/v4"
+    )
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is False
     assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
@@ -258,17 +262,14 @@ def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypat
     assert "validation" not in json.dumps(payload.get("paths", {})).lower()
 
 
-def test_provider_factory_uses_cloud_agent_and_pins_experts_to_deepseek(monkeypatch):
+def test_provider_factory_uses_glm_agent_and_pins_experts_to_glm(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "runtime-contract-test-key")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "runtime-glm-test-key")
     monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
-    # Added when providers.py's "agent" provider started reading model/api_key
-    # from env too (was hardcoded before — see providers.py comment,
-    # 2026-07-19). A real .env pointing "agent" at a cloud provider must not
-    # leak into this contract test.
     monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
 
@@ -281,6 +282,9 @@ def test_provider_factory_uses_cloud_agent_and_pins_experts_to_deepseek(monkeypa
         DEEPSEEK_MODEL_ID,
         DEEPSEEK_OFFICIAL_BASE_URL,
         DEEPSEEK_PROVIDER_NAME,
+        GLM_CODING_PLAN_BASE_URL,
+        GLM_CODING_PLAN_MODEL,
+        GLM_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
     )
@@ -302,19 +306,28 @@ def test_provider_factory_uses_cloud_agent_and_pins_experts_to_deepseek(monkeypa
     assert gateway_config.timeout_s == cfg.gateway.timeout_s
     assert by_name[AGENT_PROVIDER_NAME].is_local is False
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[AGENT_PROVIDER_NAME].base_url == "https://api.deepseek.com"
-    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
+    assert by_name[AGENT_PROVIDER_NAME].base_url == GLM_CODING_PLAN_BASE_URL
+    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID == GLM_CODING_PLAN_MODEL
     assert by_name[AGENT_PROVIDER_NAME].max_tokens == 1800
     assert by_name[AGENT_PROVIDER_NAME].timeout_s == 180
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[PRIMARY_PROVIDER_NAME].base_url == "https://api.deepseek.com"
+    assert by_name[PRIMARY_PROVIDER_NAME].base_url == GLM_CODING_PLAN_BASE_URL
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
     assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 1800
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 180
     assert gateway_config.timeout_s == 600
+
+    glm = by_name[GLM_PROVIDER_NAME]
+    assert glm.is_local is False
+    assert glm.base_url == GLM_CODING_PLAN_BASE_URL
+    assert glm.model == GLM_CODING_PLAN_MODEL
+    assert glm.max_tokens == 1800
+    assert glm.timeout_s == 60
+    assert glm.api_key == "runtime-glm-test-key"
+
     for name in (
         DEEPSEEK_PROVIDER_NAME,
         DAYTRADE_JUDGE_PROVIDER_NAME,
@@ -329,7 +342,14 @@ def test_provider_factory_uses_cloud_agent_and_pins_experts_to_deepseek(monkeypa
         assert provider.api_key == "runtime-contract-test-key"
 
     raw_cfg = _runtime_config()
-    for section in ("experts", "daytrade_judge", "daytrade_auditor"):
+    experts_cfg = raw_cfg["models"]["experts"]
+    assert experts_cfg["base_url"] == GLM_CODING_PLAN_BASE_URL
+    assert experts_cfg["model_id"] == GLM_CODING_PLAN_MODEL
+    assert experts_cfg["provider_name"] == GLM_PROVIDER_NAME
+    assert experts_cfg["is_local"] is False
+    assert experts_cfg["allow_fallback"] is False
+    assert experts_cfg["api_key_env"] == "SUPEREZIO_GLM_CODING_PLAN_API_KEY"
+    for section in ("daytrade_judge", "daytrade_auditor"):
         assert raw_cfg["models"][section]["base_url"] == DEEPSEEK_OFFICIAL_BASE_URL
         assert raw_cfg["models"][section]["model_id"] == DEEPSEEK_MODEL_ID
         assert raw_cfg["models"][section]["is_local"] is False

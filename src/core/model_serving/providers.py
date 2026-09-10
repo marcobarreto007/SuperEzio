@@ -1,13 +1,12 @@
 """Provider dataclasses and the external cloud provider factory.
 
-The CEO/agent and orchestrator default to the official DeepSeek HTTPS API
-(deepseek-v4-pro). When pinned to glm-5.x via SUPEREZIO_AGENT_MODEL or
-SUPEREZIO_PRIMARY_MODEL they are served by the Z.ai Coding Plan endpoint, and
-the ModelGateway adds the automatic credit fallback GLM -> DeepSeek
-(SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default on). Financial experts,
-including the day-trade judge and auditor, are pinned to the official
-DeepSeek HTTPS API. Trust boundaries never silently substitute for one
-another except for that explicit credit fallback.
+The CEO/agent, orchestrator and financial expert committee default to the
+Z.ai Coding Plan endpoint (glm-5.3). The ModelGateway adds automatic credit
+fallback GLM -> DeepSeek for Bob (SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default
+on). Expert calls pin allow_fallback=False, so the committee stays on GLM.
+The day-trade judge and auditor remain on the official DeepSeek HTTPS API.
+Trust boundaries never silently substitute for one another except for that
+explicit CEO credit fallback.
 """
 
 import ipaddress
@@ -24,19 +23,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-AGENT_PROVIDER_NAME = "agent"
-AGENT_MODEL_ID = "deepseek-v4-pro"
-PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_MODEL_ID = AGENT_MODEL_ID
-DEEPSEEK_PROVIDER_NAME = "deepseek"
-# Experts/judge/auditor run on the fast tier (2026-09-05, operator decision:
-# "tudo DeepSeek"): flash for the committee, pro reserved for CEO/orchestrator.
-DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
-DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4"
 GLM_CODING_PLAN_MODEL = "glm-5.3"
 GLM_CODING_PLAN_HOST = "api.z.ai"
+GLM_PROVIDER_NAME = "glm"
+
+AGENT_PROVIDER_NAME = "agent"
+AGENT_MODEL_ID = GLM_CODING_PLAN_MODEL
+PRIMARY_PROVIDER_NAME = "local_orchestrator"
+PRIMARY_MODEL_ID = AGENT_MODEL_ID
+DEEPSEEK_PROVIDER_NAME = "deepseek"
+# Judge/auditor stay on the fast DeepSeek tier. The expert committee is GLM.
+DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
+DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
@@ -171,13 +171,23 @@ def _glm_coding_plan_key() -> str:
     )
 
 
+def _require_glm_coding_plan_key() -> str:
+    glm_key = _glm_coding_plan_key()
+    if not glm_key:
+        raise RuntimeError(
+            "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
+            "(Coding Plan key, not the general /api/paas/v4 key)"
+        )
+    return glm_key
+
+
 def _deepseek_api_key() -> str:
     api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError(
-            "SUPEREZIO_DEEPSEEK_API_KEY is required for external financial experts "
-            "(set it in the environment or in .env/.env.local; entrypoints load "
-            "both via core.config.secrets.load_local_env)"
+            "SUPEREZIO_DEEPSEEK_API_KEY is required for the day-trade judge, "
+            "auditor and GLM credit fallback (set it in the environment or in "
+            ".env/.env.local; entrypoints load both via core.config.secrets.load_local_env)"
         )
     return api_key
 
@@ -251,10 +261,13 @@ class ModelProvider:
 def build_default_providers(
     config: "UniversalConfig",
 ) -> tuple[list[ModelProvider], GatewayConfig]:
-    """Build the provider list with DeepSeek V4 Pro as default external brain and experts."""
+    """Build the provider list with GLM-5.3 as Bob/orchestrator/experts default."""
     providers: list[ModelProvider] = []
 
-    # Financial experts are an external, provider-pinned trust boundary.
+    glm_key = _require_glm_coding_plan_key()
+    glm_experts_base_url = GLM_CODING_PLAN_BASE_URL
+
+    # Judge/auditor and GLM credit fallback remain a DeepSeek trust boundary.
     experts_api_key = _deepseek_api_key()
     experts_base_url = _deepseek_base_url()
     official_endpoint = experts_base_url == DEEPSEEK_OFFICIAL_BASE_URL
@@ -273,12 +286,6 @@ def build_default_providers(
     if _is_glm_coding_model(primary_model):
         primary_base_url = _normalize_zai_base_url(primary_env_url or GLM_CODING_PLAN_BASE_URL)
         primary_is_local = False
-        glm_key = _glm_coding_plan_key()
-        if not glm_key:
-            raise RuntimeError(
-                "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
-                "(Coding Plan key, not the general /api/paas/v4 key)"
-            )
         primary_api_key = glm_key
     else:
         primary_base_url = primary_env_url or experts_base_url
@@ -312,10 +319,25 @@ def build_default_providers(
 
     providers.append(
         ModelProvider(
+            name=GLM_PROVIDER_NAME,
+            base_url=glm_experts_base_url,
+            api_key=glm_key,
+            priority=-300,
+            model=GLM_CODING_PLAN_MODEL,
+            timeout_s=experts_timeout_s,
+            max_tokens=experts_max_tokens,
+            temperature=0.2,
+            is_local=False,
+            backend="openai_compatible",
+        )
+    )
+
+    providers.append(
+        ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,
             base_url=experts_base_url,
             api_key=experts_api_key,
-            priority=-300,
+            priority=-290,
             model=experts_model,
             timeout_s=experts_timeout_s,
             max_tokens=experts_max_tokens,
@@ -356,18 +378,12 @@ def build_default_providers(
             )
         )
 
-    # Agent (CEO) — DeepSeek V4 Pro external API running the CEO prompt
+    # Agent (CEO) — GLM-5.3 by default; DeepSeek remains an explicit env override.
     agent_env_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "").strip()
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
     if _is_glm_coding_model(agent_model):
         agent_base_url = _normalize_zai_base_url(agent_env_url or GLM_CODING_PLAN_BASE_URL)
         agent_is_local = False
-        glm_key = _glm_coding_plan_key()
-        if not glm_key:
-            raise RuntimeError(
-                "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
-                "(Coding Plan key, not the general /api/paas/v4 key)"
-            )
         agent_api_key = glm_key
     else:
         agent_base_url = agent_env_url or experts_base_url

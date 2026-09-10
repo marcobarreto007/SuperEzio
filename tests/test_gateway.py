@@ -16,9 +16,14 @@ from core.model_serving.providers import (
 from core.resilience import CircuitBreaker, CircuitState
 
 
-def _provider(name, priority=0, base_url="http://x/api", backend="cloud"):
+def _provider(name, priority=0, base_url="http://x/api", backend="cloud", model="test-model"):
     return ModelProvider(
-        name=name, base_url=base_url, priority=priority, api_key="", backend=backend
+        name=name,
+        base_url=base_url,
+        priority=priority,
+        api_key="",
+        backend=backend,
+        model=model,
     )
 
 

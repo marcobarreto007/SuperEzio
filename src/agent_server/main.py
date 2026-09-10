@@ -86,7 +86,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 
 def _deepseek_expert_readiness() -> dict[str, object]:
-    """Return secret-safe configuration readiness for the external expert tier."""
+    """Return secret-safe configuration readiness for the DeepSeek judge/auditor tier."""
     try:
         from core.config.settings import Settings
 
@@ -94,7 +94,7 @@ def _deepseek_expert_readiness() -> dict[str, object]:
     except (ImportError, ValueError):
         return {
             "provider": "deepseek",
-            "role": "financial_experts",
+            "role": "daytrade_judge_auditor",
             "topology": "external",
             "configured": False,
             "status": "invalid_configuration",
@@ -104,7 +104,7 @@ def _deepseek_expert_readiness() -> dict[str, object]:
 
     return {
         "provider": "deepseek",
-        "role": "financial_experts",
+        "role": "daytrade_judge_auditor",
         "topology": "external",
         "configured": settings.deepseek_experts_configured,
         "status": settings.deepseek_configuration_status,
@@ -115,6 +115,35 @@ def _deepseek_expert_readiness() -> dict[str, object]:
         "temperature": settings.superezio_deepseek_temperature,
         "judge_model": settings.superezio_daytrade_judge_model,
         "auditor_model": settings.superezio_daytrade_auditor_model,
+    }
+
+
+def _glm_expert_readiness() -> dict[str, object]:
+    """Return secret-safe configuration readiness for the GLM-5.3 expert committee."""
+    try:
+        from core.config.settings import Settings
+        from core.model_serving.providers import GLM_CODING_PLAN_BASE_URL, GLM_CODING_PLAN_MODEL
+
+        settings = Settings(_env_file=None)
+    except (ImportError, ValueError):
+        return {
+            "provider": "glm",
+            "role": "financial_experts",
+            "topology": "external",
+            "configured": False,
+            "status": "invalid_configuration",
+            "model": None,
+            "base_url": None,
+        }
+
+    return {
+        "provider": "glm",
+        "role": "financial_experts",
+        "topology": "external",
+        "configured": settings.glm_experts_configured,
+        "status": settings.glm_configuration_status,
+        "model": GLM_CODING_PLAN_MODEL,
+        "base_url": GLM_CODING_PLAN_BASE_URL,
     }
 
 
@@ -1060,8 +1089,8 @@ def health_check():
     health["checks"]["redis"] = redis_info
 
     # â”€â”€ Model providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    # The CEO remains on the local llama-server. Financial experts are a
-    # distinct external DeepSeek tier and require their own credential.
+    # Bob/orchestrator and the expert committee run on Z.ai GLM-5.3.
+    # Judge/auditor remain a distinct DeepSeek tier.
     ceo_runtime = local_models["agent"]
     ceo_url = str(ceo_runtime.get("url") or "")
     ceo_is_local = any(h in ceo_url for h in ("127.0.0.1", "localhost", "::1"))
@@ -1070,13 +1099,15 @@ def health_check():
         "provider": PRIMARY_PROVIDER_NAME,
         "role": "ceo",
         "topology": "local" if ceo_is_local else "external",
-        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro"),
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "glm-5.3"),
         "base_url": ceo_runtime["url"],
         "reachable": ceo_runtime["reachable"],
         "status": ceo_runtime["status"],
     }
-    experts_info = _deepseek_expert_readiness()
+    experts_info = _glm_expert_readiness()
+    deepseek_info = _deepseek_expert_readiness()
     gateway_has_providers = False
+    glm_runtime_seen = False
     deepseek_runtime_seen = False
     try:
         pipeline = getattr(app.state, "pipeline", None)
@@ -1091,28 +1122,38 @@ def health_check():
                 "base_url": p.base_url,
                 "priority": p.priority,
             }
-            if key == "deepseek":
-                deepseek_runtime_seen = True
-                parsed = urlsplit(p.base_url)
-                runtime_external = (
-                    not p.is_local
-                    and parsed.scheme == "https"
-                    and (parsed.hostname or "").lower() not in {"127.0.0.1", "localhost", "::1"}
-                )
+            parsed = urlsplit(p.base_url)
+            runtime_external = (
+                not p.is_local
+                and parsed.scheme == "https"
+                and (parsed.hostname or "").lower() not in {"127.0.0.1", "localhost", "::1"}
+            )
+            if key == "glm":
+                glm_runtime_seen = True
                 experts_info["runtime_topology"] = "external" if runtime_external else "local"
                 if experts_info["configured"] and not runtime_external:
                     experts_info["configured"] = False
                     experts_info["status"] = "misconfigured_runtime_topology"
+            if key == "deepseek":
+                deepseek_runtime_seen = True
+                deepseek_info["runtime_topology"] = "external" if runtime_external else "local"
+                if deepseek_info["configured"] and not runtime_external:
+                    deepseek_info["configured"] = False
+                    deepseek_info["status"] = "misconfigured_runtime_topology"
     # Health check é melhor esforço: introspecção de provedores falha →
     # degrada o payload com campo de erro, nunca derruba o endpoint.
     except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] provider summary unavailable: %s", AGENT_NAME, exc)
         health["checks"]["providers_introspection_error"] = str(exc)[:200]
 
-    if gateway_has_providers and not deepseek_runtime_seen:
+    if gateway_has_providers and not glm_runtime_seen:
         experts_info["configured"] = False
         experts_info["status"] = "runtime_provider_missing"
-    health["checks"]["provider_deepseek"] = dict(experts_info)
+    if gateway_has_providers and not deepseek_runtime_seen:
+        deepseek_info["configured"] = False
+        deepseek_info["status"] = "runtime_provider_missing"
+    health["checks"]["provider_glm"] = dict(experts_info)
+    health["checks"]["provider_deepseek"] = dict(deepseek_info)
 
     health["checks"]["providers_summary"] = {
         "primary": primary_info,
