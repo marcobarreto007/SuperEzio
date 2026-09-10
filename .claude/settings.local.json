@@ -189,6 +189,7 @@
   "skipPermissions": true,
   "enabledMcpjsonServers": [
     "context7",
-    "playwright"
+    "playwright",
+    "hugging-face"
   ]
 }

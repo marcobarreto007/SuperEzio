@@ -10,14 +10,17 @@ Fonte de verdade é o disco — este arquivo é um retrato datado, não uma conf
 
 ## 1. MCP Servers
 
-### Ativos nesta sessão (2)
+### Ativos (3)
 
 Habilitados via `.claude/settings.local.json` → `enabledMcpjsonServers`.
 
-| Server | Uso |
-|---|---|
-| `context7` | Docs atualizadas de libs/frameworks (`resolve-library-id`, `query-docs`) |
-| `playwright` | Automação de browser: navigate, snapshot, click, type, screenshot, network, console, tabs (~25 tools) |
+| Server | Uso | Origem |
+|---|---|---|
+| `context7` | Docs atualizadas de libs/frameworks (`resolve-library-id`, `query-docs`) | config do usuário |
+| `playwright` | Automação de browser: navigate, snapshot, click, type, screenshot, network, console, tabs (~25 tools) | config do usuário |
+| `hugging-face` | Busca de modelos/datasets/Spaces, doc search, Jobs | `.mcp.json` (raiz) — adicionado 2026-09-10 |
+
+`hugging-face` exige `HF_TOKEN` no ambiente (o `.mcp.json` referencia a variável, não o valor). Sem o token o server não autentica. Snippet oficial por cliente: https://huggingface.co/settings/mcp
 
 ### Catalogados, NÃO ativos (8)
 
@@ -68,7 +71,21 @@ Todos HTTP transport, dependentes de OAuth. Uso governado por `AGENTS.md` e `.f5
 
 `.claude/skills/deprecated/` — arquivadas na auditoria de 2026-08-26. O `SKILL.md` do contêiner não é skill utilizável.
 
-`arqueologist`, `f51-audit`, `f51-contract-watchdog`, `f51-dependency-scout`, `f51-executor`, `f51-loop-breaker`, `f51-metrics-dash`, `f51-orchestrator`, `f51-regression-hunter`, `f51-release`, `f51-test-finder`
+Auditadas caso a caso em 2026-09-10 para verificar se alguma merecia voltar. **Nenhuma voltou — todas têm cobertura ativa.** Deixado registrado para não reabrir a discussão sem fato novo:
+
+| Deprecada | Cobertura ativa | Veredito |
+|---|---|---|
+| `arqueologist` | `recon-researcher` (agente) + `f51-inventory` | coberto |
+| `f51-audit` | `f51-quality-gate` + verifiers (`security-`, `code-quality-reviewer`) | coberto |
+| `f51-contract-watchdog` | `f51-contracts` + `api-contract-verifier` | coberto |
+| `f51-dependency-scout` | `f51-dead-code` (deptry) + `security-reviewer` | coberto |
+| `f51-executor` | `product-implementer` (agente) | coberto |
+| `f51-loop-breaker` | regra do `CLAUDE.md` ("travou duas vezes: pare e pergunte") | virou regra |
+| `f51-metrics-dash` | `f51-observability` (Prometheus, métricas) | coberto |
+| `f51-orchestrator` | `captain` (agente) + comando `/swarm` | coberto |
+| `f51-regression-hunter` | `f51-tests` + comando `/fix` | coberto |
+| `f51-release` | comando `/ship` + `release-readiness-manager` | coberto |
+| `f51-test-finder` | `f51-tests` | coberto |
 
 ### 2.3 Comandos versionados
 
@@ -142,17 +159,55 @@ Encontradas na rev. 2 — pendentes de reconciliação:
 |---|---|---|
 | `AGENTS.md` §"Exército Versionado" | 22 agentes | 23 em disco — falta `revisor` na tabela |
 | `AGENTS.md` §"F51 Skills" | 32 skills | 20 `f51-*` ativas (11 arquivadas em `deprecated/`) |
-| `.claude/mcp-catalog.json` | 8 MCPs | Nenhum ativo; ativos são `context7` e `playwright` |
+| `AGENTS.md` §"Skills nucleares" | cita `audit` e `release` | ambas deprecadas — ver lista corrigida na §7 |
+| `.claude/mcp-catalog.json` | 8 MCPs como superfície | nenhum ativo; ativos são `context7`, `playwright`, `hugging-face` |
 
-Reconciliar via `savekeeper` ao editar `AGENTS.md`.
+Os três itens do `AGENTS.md` foram encaminhados ao `savekeeper` em 2026-09-10.
 
 ---
 
 ## 6. Totais
 
-- MCP ativos: **2** (catalogados: 8)
+- MCP ativos: **3** (catalogados-inativos: 8)
 - Skills do projeto: **21 ativas** + 11 deprecadas
 - Comandos: **3 do projeto** + 3 globais
 - Built-in Claude Code: **14**
 - Agentes: **23**
 - Hooks: **0**
+
+---
+
+## 7. Os melhores (curadoria)
+
+Escolha por **fase do trabalho**, não por prestígio. Critério: qual peça é a mais afiada para aquela etapa e por quê.
+
+### Por fase
+
+| Fase | Melhor peça | Por quê |
+|---|---|---|
+| Entender antes de mexer | `f51-inventory` + `f51-impact-map` | baseline real e superfície de risco — sem isso o resto é chute |
+| Planejar | agente `captain` | seleciona slice e exige verificação independente; não libera o próprio trabalho |
+| Escrever | agente `product-implementer` + `f51-tests` | patch mínimo em arquivo atribuído, com teste direcionado |
+| Provar | `f51-tests` + `/ship` | gate objetivo; `/ship` reprova se qualquer item falhar |
+| Blindar | `f51-secure-scan` + agente `security-reviewer` | sistema que toca ordem e dinheiro — o verifier de maior consequência |
+| Operar | `f51-runtime` + agente `runtime-verifier` | boot, portas, GPU, health |
+| Domínio de mercado | trio `market-data-puller` → `market-thesis-writer` → `market-thesis-auditor` | separação real entre obter, redigir e auditar — o desenho mais sólido do exército |
+| Persistir verdade | `savekeeper` | único autorizado a editar docs operacionais |
+
+### MCPs que valem
+
+| Server | Veredito |
+|---|---|
+| `context7` | **manter** — evita escrever contra API desatualizada |
+| `playwright` | **manter** — único jeito de validar o frontend de chat de verdade |
+| `hugging-face` | **adicionado 2026-09-10** — casa com `models/`, LoRA e nitro; exige `HF_TOKEN` |
+
+Os 8 de `.claude/mcp-catalog.json` seguem inativos. Nenhum dos restantes passa o corte: `google-drive` conflita com DISK ONLY; `gmail`/`google-calendar` são pessoais; `vercel`/`canva`/`notion`/`play-sheet-music` não tocam o domínio.
+
+### Skills nucleares (lista corrigida)
+
+O `AGENTS.md` citava `audit` e `release` como nucleares — ambas mortas. Núcleo ativo real:
+
+`inventory` · `impact-map` · `contracts` · `runtime` · `refactor` · `tests` · `quality-gate` · `money-gate` · `idempotency` · `observability`
+
+`idempotency` e `observability` entram no núcleo por serem invariantes do domínio (ordem duplicada e rastreabilidade), não por serem grandes.
