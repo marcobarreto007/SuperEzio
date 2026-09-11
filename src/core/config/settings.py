@@ -43,6 +43,13 @@ class Settings(BaseSettings):
         default=False,
         description="Bob sovereign mode — allows unrestricted ticket references.",
     )
+    superezio_arch_c1: bool = Field(
+        default=True,
+        description=(
+            "C1 shadow EvidencePack write. Does not change pipeline decisions. "
+            "Set SUPEREZIO_ARCH_C1=0 to roll back the pack file."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # CONNECTIVITY — HIGH

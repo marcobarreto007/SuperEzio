@@ -17,6 +17,7 @@ Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob
 - persistência: runtime/ (teses, reports, checkpoints) + data/ (logs) + .f51/ (estado operacional)
 - saída: frontend web (chat) + relatórios de tese + logs estruturados
 - fora do escopo deste repositório: GitHub (DISK ONLY), hospedagem de dados/bancos em nuvem, dinheiro real (corretora), MCPs não aprovados
+- arquitetura-alvo (autoridade do órgão, C1 em sombra): docs/architecture/TARGET_ARCHITECTURE.md
 
 ## Regras invioláveis
 1. Nunca editar arquivo fora deste diretório.

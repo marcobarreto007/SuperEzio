@@ -1,37 +1,34 @@
 {
-  "date_local": "2026-09-10",
-  "session": "deepseek-all-roles-and-flash-migration",
-  "status": "VERIFIED_LOCAL_WINDOWS",
-  "objective": "Unificação do SuperEzio no DeepSeek em todos os papéis (Bob/CEO, orquestrador, experts, judge, auditor), desacoplamento do GLM e atualização do Claude Code global para DeepSeek-V4.1-Flash em modo bypass.",
-  "predecessor": "superezio-client-delivery",
-  "commits": [
-    "26f292e4",
-    "3aa62fc8",
-    "8a851cde",
-    "4711e38a",
-    "c61ca68d",
-    "5bbe7303",
-    "2cd5e1c2"
-  ],
-  "verification": {
-    "pytest_contracts": "465 passed, 1 deselected in 13.13s",
-    "ruff": "All checks passed!",
-    "claude_code": "deepseek-flash[1m] validado ao vivo com bypassPermissions"
+  "date_local": "2026-09-11",
+  "session": "arch-c1-evidence-pack-shadow",
+  "status": "APPLIED_LOCAL",
+  "objective": "C1 da arquitetura-alvo: EvidencePack canônico em sombra (não muda decisão). Spec completa em docs/architecture/TARGET_ARCHITECTURE.md. C2–C6 não ligados.",
+  "predecessor": "deepseek-all-roles-and-flash-migration",
+  "invariants": {
+    "github": "DISK ONLY",
+    "live_execution": "FROZEN",
+    "c1_changes_decisions": false
   },
-  "pending": [],
+  "files": [
+    "src/core/evidence/pack.py",
+    "src/core/evidence/pack_builder.py",
+    "src/core/evidence/__init__.py",
+    "src/core/pipeline/graph.py",
+    "src/core/config/settings.py",
+    "tests/test_evidence_pack_c1.py",
+    "docs/architecture/TARGET_ARCHITECTURE.md",
+    ".env.example"
+  ],
+  "rollback": "SUPEREZIO_ARCH_C1=0 (para de gravar evidence_pack.json)",
+  "next_step": "C2 Snapshot congelado — consumidores leem snapshot.numbers; flag SUPEREZIO_ARCH_C2 default off",
+  "verification": {
+    "pytest_target": "tests/test_evidence_pack_c1.py tests/test_evidence_mode.py",
+    "pytest": "16 passed in 3.76s",
+    "ruff": "All checks passed!"
+  },
   "still_true": {
     "github": "DISK ONLY",
-    "live_execution": "FROZEN"
-  },
-  "inherited_unresolved_debt": {
-    "archive_known_password": "senha conhecida do operador ainda em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado, linha 12) e no historico git inteiro — dono: operador humano (rotacao nos portais + purge via filter-repo); reabrir quando autorizado",
-    "bootstrap_admin_password": "maquina nova agora EXIGE SUPEREZIO_ADMIN_PASSWORD no bootstrap — mudanca intencional aprovada pelo operador"
-  },
-  "limitations": [
-    "Live-money execution frozen; broker execution was not exercised",
-    "Clean-machine installation not exercised; Windows launcher and bootstrap contracts tested",
-    "Historical credential debt retained, excluded from client package",
-    "Local instance loopback only and reports auth_required false"
-  ],
-  "report": "docs/runbooks/RUNBOOK.md"
+    "live_execution": "FROZEN",
+    "mega_node": "auto_full_analysis still the production graph"
+  }
 }

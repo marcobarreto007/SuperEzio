@@ -14,6 +14,8 @@ from langgraph.graph import END, START, StateGraph
 
 from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
+from core.evidence.pack import save_evidence_pack
+from core.evidence.pack_builder import build_evidence_pack_from_state, is_arch_c1_enabled
 from core.math.math_hub import MathHub
 from core.model_serving.providers import DAYTRADE_AUDITOR_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME
 
@@ -53,6 +55,25 @@ def _is_real_evidence_response(text: str) -> bool:
     persisted (runtime-verifier 2026-08-23).
     """
     return text not in ("", "(streamed)")
+
+
+def _save_shadow_evidence_pack(
+    state: dict[str, Any],
+    run_id: str,
+    dest_dir: Any,
+) -> None:
+    """C1: write EvidencePack beside the run. Never changes routing or Bob."""
+    if not is_arch_c1_enabled() or dest_dir is None:
+        return
+    pack = build_evidence_pack_from_state(state, run_id=run_id)
+    path = save_evidence_pack(pack, dest_dir)
+    logger.info(
+        "[evidence.pack] C1 shadow pack=%s status=%s missing=%s digest=%s",
+        path,
+        pack.get("status"),
+        (pack.get("coverage") or {}).get("missing"),
+        (pack.get("integrity") or {}).get("canonical_json_sha256"),
+    )
 
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
@@ -1269,6 +1290,7 @@ class PipelineApp:
         evidence: EvidenceRun | None = None
         evidence_saved = False
         response_chunks: list[str] = []
+        pipeline_snapshot: dict[str, Any] = {}
         try:
             evidence = EvidenceRun(prompt=message, ticker=ticker, run_id=run_id)
             evidence.start()
@@ -1336,6 +1358,7 @@ class PipelineApp:
                 evidence.finish()
                 run_dir = save_evidence(evidence)
                 generate_html_report(evidence, run_dir)
+                _save_shadow_evidence_pack(pipeline_snapshot, run_id, run_dir)
                 evidence_saved = True
                 logger.info("[evidence] Saved: %s", run_dir)
             # Melhor esforço deliberado: falha ao salvar evidência não pode
@@ -1356,6 +1379,7 @@ class PipelineApp:
             initial["ticker"] = ticker
         if trade_order_context:
             initial["trade_order_context"] = trade_order_context
+        pipeline_snapshot.update(initial)
 
         yield {
             "type": "PIPELINE_STEP",
@@ -1451,6 +1475,10 @@ class PipelineApp:
                         }
                 elif mode == "updates":
                     # Evidence: capture node outputs from updates.
+                    if isinstance(payload, dict):
+                        for node_output in payload.values():
+                            if isinstance(node_output, dict):
+                                pipeline_snapshot.update(node_output)
                     if evidence is not None and isinstance(payload, dict):
                         try:
                             for node_name, node_output in payload.items():

@@ -1,5 +1,17 @@
 # F51 Task Board
 
+## Arquitetura-alvo — C1 EvidencePack (2026-09-11)
+
+- [x] Contrato EvidencePack + seal SHA-256 + builder a partir do PipelineState.
+- [x] Hook sombra em `PipelineApp.stream_events` (`evidence_pack.json` ao lado do run).
+- [x] Flag `SUPEREZIO_ARCH_C1` (default 1; `0` = rollback do write).
+- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C2–C6 **não** ligados.
+- [ ] C2 Snapshot congelado (`SUPEREZIO_ARCH_C2`).
+- [ ] C3 Bind observe→enforce (mata `CENSORSHIP_SKIPPED`).
+- [ ] C4 Órgãos com aresta no grafo.
+- [ ] C5 Dual-path / trinity / fan-out teatro.
+- [ ] C6 ThesisRecord + paper por `thesis_id`; apaga mega-nó.
+
 ## Entrega SuperEzio — trade e assistente de investimento (2026-09-05)
 
 - [x] Entrada e configuração cloud corrigidas (26f292e4, 3aa62fc8); contrato de runtime: 12 passed.

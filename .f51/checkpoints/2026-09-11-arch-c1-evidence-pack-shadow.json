@@ -1,0 +1,9 @@
+{
+  "date_local": "2026-09-11",
+  "session": "arch-c1-evidence-pack-shadow",
+  "status": "APPLIED_LOCAL",
+  "objective": "C1 da arquitetura-alvo: EvidencePack canônico em sombra (não muda decisão). Spec completa em docs/architecture/TARGET_ARCHITECTURE.md. C2–C6 não ligados.",
+  "predecessor": "deepseek-all-roles-and-flash-migration",
+  "rollback": "SUPEREZIO_ARCH_C1=0",
+  "next_step": "C2 Snapshot congelado"
+}

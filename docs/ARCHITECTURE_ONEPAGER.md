@@ -1,8 +1,7 @@
 # SuperEzio - Architecture Overview
 
-> Visão corrente (arquitetura 100% cloud model APIs + local data/state). A
-> duplicata histórica é `docs/architecture/SUPEREZIO_DOCS.md`, marcada
-> **HISTORICO / SUPERSEDED** (estado de 2026-06-16) — não usar como fonte atual.
+> Grafo **em produção** ainda é o legado abaixo. Alvo (órgão manda, Bob narra)
+> e corte C1 (EvidencePack em sombra): `docs/architecture/TARGET_ARCHITECTURE.md`.
 
 ## System Diagram
 
