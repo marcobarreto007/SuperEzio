@@ -1,30 +1,36 @@
 {
   "date_local": "2026-09-11",
-  "session": "arch-c1-evidence-pack-shadow",
+  "session": "arch-c2-frozen-snapshot",
   "status": "APPLIED_LOCAL",
-  "objective": "C1 da arquitetura-alvo: EvidencePack canônico em sombra (não muda decisão). Spec completa em docs/architecture/TARGET_ARCHITECTURE.md. C2–C6 não ligados.",
-  "predecessor": "deepseek-all-roles-and-flash-migration",
+  "objective": "C1 nits (hash estável, PARTIAL, merge errors) + C2 Snapshot congelado em sombra. Bob ainda não lê o snapshot. Spec: docs/architecture/TARGET_ARCHITECTURE.md.",
+  "predecessor": "arch-c1-evidence-pack-shadow",
   "invariants": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
-    "c1_changes_decisions": false
+    "c1_changes_decisions": false,
+    "c2_binds_bob": false
   },
   "files": [
+    "src/core/evidence/arch_flags.py",
     "src/core/evidence/pack.py",
     "src/core/evidence/pack_builder.py",
+    "src/core/evidence/snapshot.py",
     "src/core/evidence/__init__.py",
     "src/core/pipeline/graph.py",
+    "src/core/pipeline/contracts.py",
     "src/core/config/settings.py",
     "tests/test_evidence_pack_c1.py",
+    "tests/test_evidence_snapshot_c2.py",
     "docs/architecture/TARGET_ARCHITECTURE.md",
     ".env.example"
   ],
-  "rollback": "SUPEREZIO_ARCH_C1=0 (para de gravar evidence_pack.json)",
-  "next_step": "C2 Snapshot congelado — consumidores leem snapshot.numbers; flag SUPEREZIO_ARCH_C2 default off",
+  "rollback": "SUPEREZIO_ARCH_C1=0 e/ou SUPEREZIO_ARCH_C2=0",
+  "next_step": "C3 Bind observe→enforce — matar CENSORSHIP_SKIPPED; Bob só cita snapshot.numbers",
   "verification": {
-    "pytest_target": "tests/test_evidence_pack_c1.py tests/test_evidence_mode.py",
-    "pytest": "16 passed in 3.76s",
-    "ruff": "All checks passed!"
+    "pytest_target": "tests/test_evidence_pack_c1.py tests/test_evidence_snapshot_c2.py tests/test_evidence_mode.py tests/test_auto_full_analysis.py",
+    "pytest": "55 passed in 42.07s",
+    "ruff": "All checks passed!",
+    "full_suite_note": "pytest tests/ reached 815 passed then 5 Playwright failures (Chromium binary missing in this environment); maxfail=5 stopped the run. Failures are test_browser_smoke_final_answer and test_client_portfolio_browser, not C1/C2."
   },
   "still_true": {
     "github": "DISK ONLY",

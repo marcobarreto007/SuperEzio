@@ -2,9 +2,10 @@
 
 > Contrato de 2026-09-11. O runtime **ainda** corre o grafo legado
 > (`orchestrator_primary` → `auto_full_analysis` → `trinity` → `agent`).
-> O corte **C1** já está ligado em sombra: cada run grava `evidence_pack.json`
-> com checksum. C1 **não** muda decisão, grounding nem paper.
-> Rollback: `SUPEREZIO_ARCH_C1=0`.
+> Cortes **C1** e **C2** estão ligados em sombra: cada run grava
+> `evidence_pack.json` e `snapshot.json` com checksum. Nenhum dos dois
+> muda decisão, grounding nem paper. Bob **não** lê o snapshot (isso é C3).
+> Rollback: `SUPEREZIO_ARCH_C1=0` e/ou `SUPEREZIO_ARCH_C2=0`.
 
 ## Invariantes (não negociáveis)
 
@@ -62,9 +63,18 @@ Pacote C1 (`src/core/evidence/pack.py`, `pack_builder.py`):
 
 - `facts[key].status`: OK | STALE | MISSING | ERROR
 - `coverage.missing` para fatos **required** da rota
-- `integrity.canonical_json_sha256` sobre o pack sem o bloco integrity
+- `integrity.canonical_json_sha256` sobre o pack **sem** `integrity`, `created_at` e `facts.*.as_of`
 - ticker_analysis required: `price`, `ohlcv`
 - `macro_observations` é pedido mas **não** required em C1 (mede buraco; não muda o turno)
+- rota `general`/casual sem required → `status=COMPLETE` mesmo com optionals MISSING
+
+Pacote C2 (`src/core/evidence/snapshot.py`):
+
+- `frozen: true`; `numbers[name]` com `value`, `unit`, `formula_id`, `provenance[]`, `computed_by`
+- `pack_sha256` liga o snapshot ao EvidencePack
+- `as_of` gravado, excluído do hash
+- escrito em `runs/evidence/{run_id}/snapshot.json` e em `state.snapshot` no fim de `auto_full_analysis`
+- `format_snapshot_binding()` existe para C3; `observation_builder` **não** chama
 
 ## O que some (cortes C5–C6, não agora)
 
@@ -85,7 +95,7 @@ DataHub vivo, MathHub/indicadores, 12 modelos scipy de crise, F51, SDCA, neural 
 | Corte | Flag | Estado 2026-09-11 |
 |---|---|---|
 | C1 Evidence sombra | `SUPEREZIO_ARCH_C1` default **1** | **ligado** |
-| C2 Snapshot congelado | `SUPEREZIO_ARCH_C2` | não |
+| C2 Snapshot congelado | `SUPEREZIO_ARCH_C2` default **1** | **ligado (sombra; Bob não lê)** |
 | C3 Bind observe→enforce | `SUPEREZIO_ARCH_C3` | não |
 | C4 Órgãos com aresta | `SUPEREZIO_ARCH_C4` | não |
 | C5 Dual-path morto | `SUPEREZIO_ARCH_C5` | não |
@@ -106,4 +116,8 @@ Mega-nó só morre no C6. Cada corte é reversível por flag. Sem big-bang.
 
 ## C1 — o que o código faz agora
 
-`PipelineApp.stream_events` acumula o state dos updates do LangGraph e, ao finalizar o `EvidenceRun`, grava `runs/evidence/{run_id}/evidence_pack.json` (atomic replace). Bob não lê o arquivo. Decisão, tools e paper permanecem iguais.
+`PipelineApp.stream_events` acumula o state dos updates do LangGraph (errors concatenam, não last-write-wins) e, ao finalizar o `EvidenceRun`, grava `runs/evidence/{run_id}/evidence_pack.json` (atomic replace). Bob não lê o arquivo. Decisão, tools e paper permanecem iguais.
+
+## C2 — o que o código faz agora
+
+No fim de `auto_full_analysis` (depois de MathHub e F51), o runtime congela `state.snapshot` a partir do pack + `math_report.numbers`. No finalize, grava `snapshot.json` ao lado do pack. Consumidores do prompt **não** mudam. C3 é quem vai exigir que todo número na boca do Bob exista em `snapshot.numbers`.

@@ -1,7 +1,7 @@
 # SuperEzio - Architecture Overview
 
 > Grafo **em produção** ainda é o legado abaixo. Alvo (órgão manda, Bob narra)
-> e corte C1 (EvidencePack em sombra): `docs/architecture/TARGET_ARCHITECTURE.md`.
+> e cortes C1/C2 em sombra: `docs/architecture/TARGET_ARCHITECTURE.md`.
 
 ## System Diagram
 

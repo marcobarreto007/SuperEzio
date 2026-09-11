@@ -47,6 +47,19 @@ def test_canonical_seal_is_stable_for_identical_facts() -> None:
     assert len(first["integrity"]["canonical_json_sha256"]) == 64
 
 
+def test_seal_is_stable_across_created_at() -> None:
+    first = build_evidence_pack_from_state(
+        _ticker_state(), run_id="abc123def456", created_at=FROZEN_AT
+    )
+    second = build_evidence_pack_from_state(
+        _ticker_state(), run_id="abc123def456", created_at="2026-09-12T00:00:00+00:00"
+    )
+    assert first["created_at"] != second["created_at"]
+    assert (
+        first["integrity"]["canonical_json_sha256"] == second["integrity"]["canonical_json_sha256"]
+    )
+
+
 def test_seal_changes_when_a_number_changes() -> None:
     baseline = build_evidence_pack_from_state(
         _ticker_state(), run_id="abc123def456", created_at=FROZEN_AT
@@ -97,6 +110,7 @@ def test_casual_route_has_no_required_facts() -> None:
     )
     assert pack["coverage"]["required"] == 0
     assert pack["coverage"]["missing"] == []
+    assert pack["status"] == "COMPLETE"
 
 
 def test_market_scan_requires_candidates() -> None:
@@ -133,6 +147,41 @@ def test_c1_flag_rolls_back(monkeypatch) -> None:
     assert is_arch_c1_enabled() is False
     monkeypatch.setenv("SUPEREZIO_ARCH_C1", "1")
     assert is_arch_c1_enabled() is True
+
+
+def test_c1_flag_default_matches_settings() -> None:
+    from core.config.settings import Settings
+
+    assert Settings.model_fields["superezio_arch_c1"].default is True
+
+
+def test_shadow_pack_write_failure_does_not_raise(tmp_path: Path, monkeypatch) -> None:
+    from core.pipeline import graph as graph_mod
+
+    monkeypatch.setenv("SUPEREZIO_ARCH_C1", "1")
+    monkeypatch.setenv("SUPEREZIO_ARCH_C2", "0")
+
+    def boom(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("core.evidence.pack.atomic_write_text", boom)
+    graph_mod._save_shadow_evidence_pack(_ticker_state(), "abc123def456", tmp_path)
+
+
+def test_pipeline_snapshot_appends_errors() -> None:
+    from core.pipeline.graph import _absorb_pipeline_update
+
+    snapshot = {"errors": ["first"]}
+    _absorb_pipeline_update(snapshot, {"errors": ["second"], "ticker": "AAPL"})
+    assert snapshot["errors"] == ["first", "second"]
+    assert snapshot["ticker"] == "AAPL"
+
+
+def test_ohlcv_provider_is_unknown_without_source() -> None:
+    state = _ticker_state()
+    state["data"]["price"] = {"price": 190.5}
+    pack = build_evidence_pack_from_state(state, run_id="abc123def456", created_at=FROZEN_AT)
+    assert pack["facts"]["ohlcv"]["provider"] == "unknown"
 
 
 def test_seal_helper_is_pure() -> None:

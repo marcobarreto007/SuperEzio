@@ -50,6 +50,13 @@ class Settings(BaseSettings):
             "Set SUPEREZIO_ARCH_C1=0 to roll back the pack file."
         ),
     )
+    superezio_arch_c2: bool = Field(
+        default=True,
+        description=(
+            "C2 shadow Snapshot freeze (snapshot.json + state.snapshot). "
+            "Does not bind Bob. Set SUPEREZIO_ARCH_C2=0 to roll back."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # CONNECTIVITY — HIGH

@@ -86,6 +86,7 @@ class PipelineState(TypedDict, total=False):
     # Unified math/guardrail stage
     math_report: dict[str, Any]
     math_prompt: str
+    snapshot: dict[str, Any]
     sentiment_prompt: str
     guardrail_hub: dict[str, Any]
     decision_trace: dict[str, Any]

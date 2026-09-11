@@ -14,8 +14,10 @@ from langgraph.graph import END, START, StateGraph
 
 from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
+from core.evidence.arch_flags import is_arch_c1_enabled, is_arch_c2_enabled
 from core.evidence.pack import save_evidence_pack
-from core.evidence.pack_builder import build_evidence_pack_from_state, is_arch_c1_enabled
+from core.evidence.pack_builder import build_evidence_pack_from_state
+from core.evidence.snapshot import freeze_snapshot, save_snapshot
 from core.math.math_hub import MathHub
 from core.model_serving.providers import DAYTRADE_AUDITOR_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME
 
@@ -62,18 +64,60 @@ def _save_shadow_evidence_pack(
     run_id: str,
     dest_dir: Any,
 ) -> None:
-    """C1: write EvidencePack beside the run. Never changes routing or Bob."""
-    if not is_arch_c1_enabled() or dest_dir is None:
+    """C1/C2: write EvidencePack and Snapshot beside the run. Never raises."""
+    if dest_dir is None:
         return
-    pack = build_evidence_pack_from_state(state, run_id=run_id)
-    path = save_evidence_pack(pack, dest_dir)
-    logger.info(
-        "[evidence.pack] C1 shadow pack=%s status=%s missing=%s digest=%s",
-        path,
-        pack.get("status"),
-        (pack.get("coverage") or {}).get("missing"),
-        (pack.get("integrity") or {}).get("canonical_json_sha256"),
-    )
+    try:
+        need_pack = is_arch_c1_enabled() or is_arch_c2_enabled()
+        if not need_pack:
+            return
+        pack = build_evidence_pack_from_state(state, run_id=run_id)
+        if is_arch_c1_enabled():
+            path = save_evidence_pack(pack, dest_dir)
+            logger.info(
+                "[evidence.pack] C1 shadow pack=%s status=%s missing=%s digest=%s",
+                path,
+                pack.get("status"),
+                (pack.get("coverage") or {}).get("missing"),
+                (pack.get("integrity") or {}).get("canonical_json_sha256"),
+            )
+        if is_arch_c2_enabled():
+            snapshot = state.get("snapshot")
+            if not isinstance(snapshot, dict) or not snapshot.get("frozen"):
+                math_report = state.get("math_report")
+                math_report = math_report if isinstance(math_report, dict) else {}
+                snapshot = freeze_snapshot(pack=pack, math_report=math_report, run_id=run_id)
+            snap_path = save_snapshot(snapshot, dest_dir)
+            logger.info(
+                "[evidence.snapshot] C2 shadow snapshot=%s numbers=%s digest=%s",
+                snap_path,
+                len(snapshot.get("numbers") or {}),
+                (snapshot.get("integrity") or {}).get("canonical_json_sha256"),
+            )
+    except Exception as exc:  # noqa: BLE001 — shadow write must not abort the stream
+        logger.warning("[evidence.pack] shadow write failed: %s", exc)
+
+
+def _freeze_c2_snapshot(working_state: dict[str, Any], output: dict[str, Any], run_id: str) -> None:
+    """C2: freeze numbers into state at the end of auto_full_analysis. Observe only."""
+    if not is_arch_c2_enabled():
+        return
+    try:
+        pack = build_evidence_pack_from_state(
+            working_state, run_id=run_id, requested_by="pipeline.auto_full_analysis"
+        )
+        math_report = working_state.get("math_report")
+        math_report = math_report if isinstance(math_report, dict) else {}
+        snapshot = freeze_snapshot(pack=pack, math_report=math_report, run_id=run_id)
+        _merge_node_update(working_state, output, {"snapshot": snapshot})
+    except Exception as exc:  # noqa: BLE001 — C2 must not change the turn on failure
+        logger.warning("[evidence.snapshot] C2 freeze failed: %s", exc)
+
+
+def _absorb_pipeline_update(snapshot: dict[str, Any], node_output: dict[str, Any]) -> None:
+    """Merge a LangGraph node update into the evidence snapshot (errors append)."""
+    discarded: dict[str, Any] = {}
+    _merge_node_update(snapshot, discarded, node_output)
 
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
@@ -1132,6 +1176,7 @@ async def _auto_full_analysis(
             "has_guardrail_hub": bool(working_state.get("guardrail_hub")),
         }
     )
+    _freeze_c2_snapshot(working_state, output, run_id)
     return output
 
 
@@ -1478,7 +1523,7 @@ class PipelineApp:
                     if isinstance(payload, dict):
                         for node_output in payload.values():
                             if isinstance(node_output, dict):
-                                pipeline_snapshot.update(node_output)
+                                _absorb_pipeline_update(pipeline_snapshot, node_output)
                     if evidence is not None and isinstance(payload, dict):
                         try:
                             for node_name, node_output in payload.items():

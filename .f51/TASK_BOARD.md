@@ -1,12 +1,13 @@
 # F51 Task Board
 
-## Arquitetura-alvo — C1 EvidencePack (2026-09-11)
+## Arquitetura-alvo — C1 pack + C2 snapshot (2026-09-11)
 
 - [x] Contrato EvidencePack + seal SHA-256 + builder a partir do PipelineState.
 - [x] Hook sombra em `PipelineApp.stream_events` (`evidence_pack.json` ao lado do run).
 - [x] Flag `SUPEREZIO_ARCH_C1` (default 1; `0` = rollback do write).
-- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C2–C6 **não** ligados.
-- [ ] C2 Snapshot congelado (`SUPEREZIO_ARCH_C2`).
+- [x] Nits C1: hash ignora `created_at`/`as_of`; PARTIAL parentizado; errors concatenam; write-fail não aborta.
+- [x] C2 Snapshot congelado (`snapshot.json` + `state.snapshot`; Bob não lê). Flag `SUPEREZIO_ARCH_C2` default 1.
+- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C3–C6 **não** ligados.
 - [ ] C3 Bind observe→enforce (mata `CENSORSHIP_SKIPPED`).
 - [ ] C4 Órgãos com aresta no grafo.
 - [ ] C5 Dual-path / trinity / fan-out teatro.

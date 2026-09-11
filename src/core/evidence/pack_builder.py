@@ -7,14 +7,17 @@ can fail-closed without guessing.
 
 from __future__ import annotations
 
-import os
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from .arch_flags import is_arch_c1_enabled
 from .pack import SCHEMA_VERSION, canonical_json, seal_pack, sha256_hex
 
-_FALSE = {"0", "false", "no", "off"}
+__all__ = [
+    "build_evidence_pack_from_state",
+    "is_arch_c1_enabled",
+]
 
 # ticker_analysis needs a price and a series. Crisis macro is requested so
 # coverage.missing is honest; it is NOT required in C1 (that would mark
@@ -31,15 +34,6 @@ _ALWAYS_REQUEST: tuple[str, ...] = (
     "news",
     "sentiment",
 )
-
-
-def is_arch_c1_enabled() -> bool:
-    """C1 default ON (shadow). SUPEREZIO_ARCH_C1=0 rolls back the write."""
-    raw = os.getenv("SUPEREZIO_ARCH_C1")
-    if raw is None or not str(raw).strip():
-        return True
-    token = str(raw).strip().lower()
-    return token not in _FALSE
 
 
 def _now() -> str:
@@ -151,7 +145,7 @@ def _ohlcv_fact(state: dict[str, Any], as_of: str) -> dict[str, Any]:
             "series_sha256": digest,
         },
         unit="bars",
-        provider=str(_as_dict(data.get("price")).get("source") or data.get("source") or "datahub"),
+        provider=str(_as_dict(data.get("price")).get("source") or data.get("source") or "unknown"),
         status="OK",
         as_of=as_of,
         call_ref="state.data.ohlcv",
@@ -240,19 +234,16 @@ def build_evidence_pack_from_state(
     ]
     stale = [key for key, fact in facts.items() if fact.get("status") == "STALE"]
     present = sum(1 for key in required if facts.get(key, {}).get("status") == "OK")
+    optional_missing = any(fact.get("status") == "MISSING" for fact in facts.values())
     if required and missing:
         status: str = "INSUFFICIENT"
-    elif (
-        required
-        and present < len(required)
-        or any(fact.get("status") == "MISSING" for fact in facts.values())
-    ):
+    elif required and (present < len(required) or optional_missing):
         status = "PARTIAL"
     else:
         status = "COMPLETE"
 
     pack = {
-        "pack_id": uuid.uuid5(uuid.NAMESPACE_URL, f"{run_id}:{ticker}:{route}").hex,
+        "pack_id": uuid.uuid5(uuid.NAMESPACE_OID, f"{run_id}:{ticker}:{route}").hex,
         "run_id": run_id,
         "created_at": as_of,
         "ticker": ticker,
