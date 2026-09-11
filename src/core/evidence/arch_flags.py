@@ -41,3 +41,8 @@ def is_arch_c2_enabled() -> bool:
 def is_arch_c3_enabled() -> bool:
     """C3 default ON (bind Bob to snapshot). SUPEREZIO_ARCH_C3=0 rolls back."""
     return env_flag("SUPEREZIO_ARCH_C3", default=True)
+
+
+def is_arch_c4_enabled() -> bool:
+    """C4 default OFF (observe). SUPEREZIO_ARCH_C4=1 enforces the SDCA edge."""
+    return env_flag("SUPEREZIO_ARCH_C4", default=False)

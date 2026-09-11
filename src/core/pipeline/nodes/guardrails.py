@@ -2,6 +2,8 @@
 
 from langgraph.config import get_stream_writer
 
+from core.pipeline.organ_board import sdca_block_reason
+
 VAGUE_FINANCIAL_RESPONSE = (
     "[SuperEzio Trust OS] I cannot provide investment recommendations "
     "without a specific ticker and a clear research question.\n\n"
@@ -35,15 +37,32 @@ def _trinity_blocked_response(state: dict) -> str:
     )
 
 
+def _sdca_error_response(state: dict) -> str:
+    firewall = state.get("sdca_firewall") if isinstance(state.get("sdca_firewall"), dict) else {}
+    detail = firewall.get("error") or "SDCA firewall missing or failed for this ticker."
+    return (
+        "[F51 Cognitive Risk Firewall] BLOCKED\n\n"
+        f"{detail}\n\n"
+        "Action: no execution. Organ ERROR never becomes ALLOW."
+    )
+
+
+def render_blocked_answer(state: dict) -> str:
+    """Deterministic blocked text. Used by the respond_blocked graph node."""
+    if state.get("trinity_blocked"):
+        return _trinity_blocked_response(state)
+    reason = sdca_block_reason(state)
+    if reason == "sdca_blocked" or state.get("sdca_blocked"):
+        return _sdca_blocked_response(state)
+    if reason in {"sdca_error", "sdca_missing"}:
+        return _sdca_error_response(state)
+    return VAGUE_FINANCIAL_RESPONSE
+
+
 async def node_blocked(state: dict) -> dict:
     """Respond to blocked requests with a polite scope-request message."""
     writer = get_stream_writer()
-    if state.get("trinity_blocked"):
-        content = _trinity_blocked_response(state)
-    elif state.get("sdca_blocked"):
-        content = _sdca_blocked_response(state)
-    else:
-        content = VAGUE_FINANCIAL_RESPONSE
+    content = render_blocked_answer(state)
     writer(
         {
             "type": "PIPELINE_STEP",

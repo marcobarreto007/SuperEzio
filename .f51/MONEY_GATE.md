@@ -1,20 +1,21 @@
 # F51 Money Gate — Full Project Evaluation
 
 Updated: 2026-09-11
-Session: entrega-10-10-boot-depois-c3
+Session: arch-c4-sdca-observe
 Owner: Marco (operador) / savekeeper
 
 ---
 
 ## Estado operacional atual (2026-09-11)
 
-**GO** fatias 1–2 deste copiloto local: boot DeepSeek-only (`:8002` `/health` 200; GLM sem chave não mata o processo) + C3 bind (Bob cita só `snapshot.numbers`).
+**GO** fatias 1–3 deste copiloto local: boot DeepSeek-only (`:8002` `/health` 200; GLM sem chave não mata o processo) + C3 bind (Bob cita só `snapshot.numbers`) + C4 SDCA observe (`organ_board` loga `C4_WOULD_BLOCK`; flag default 0; turno idêntico ao legado).
 
-**DEFER:** tese em `runtime/theses`, journal/PnL visível, C4 arestas, C5 dual-path, C6 ThesisRecord, ZIP V1 completo, venda/sinais.
+**DEFER:** flip `SUPEREZIO_ARCH_C4=1` (só depois de logs sem falso bloqueio), tese em `runtime/theses`, journal/PnL visível, C5 dual-path, C6 ThesisRecord, ZIP V1 completo, venda/sinais.
 
-**NO-GO:** live, GitHub, dependência nova, chave no git.
+**NO-GO:** live, GitHub, dependência nova, chave no git, “melhorar o mega-nó por dentro”.
 
 Rollback C3: `SUPEREZIO_ARCH_C3=0` (volta ao freeze em sombra + skip legado).
+Rollback C4: `SUPEREZIO_ARCH_C4=0` (default; aresta volta a ser só log).
 
 ---
 

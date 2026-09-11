@@ -5,8 +5,10 @@
 > Cortes **C1** e **C2** estão ligados em sombra: cada run grava
 > `evidence_pack.json` e `snapshot.json` com checksum. **C3** está ligado:
 > Bob lê o bloco SNAPSHOT FROZEN e a resposta é bound a `snapshot.numbers`.
+> **C4** está em observe (`SUPEREZIO_ARCH_C4=0`): o board loga `C4_WOULD_BLOCK`
+> e o turno segue para Trinity. `=1` faz SDCA BLOCK/ERROR virar aresta.
 > C1/C2 não mudam paper nem live. Rollback: `SUPEREZIO_ARCH_C1=0`,
-> `SUPEREZIO_ARCH_C2=0` e/ou `SUPEREZIO_ARCH_C3=0` (C3=0 volta ao skip legado).
+> `SUPEREZIO_ARCH_C2=0`, `SUPEREZIO_ARCH_C3=0` e/ou `SUPEREZIO_ARCH_C4=0`.
 
 ## Invariantes (não negociáveis)
 
@@ -98,7 +100,7 @@ DataHub vivo, MathHub/indicadores, 12 modelos scipy de crise, F51, SDCA, neural 
 | C1 Evidence sombra | `SUPEREZIO_ARCH_C1` default **1** | **ligado** |
 | C2 Snapshot congelado | `SUPEREZIO_ARCH_C2` default **1** | **ligado (sombra)** |
 | C3 Bind observe→enforce | `SUPEREZIO_ARCH_C3` default **1** | **ligado** |
-| C4 Órgãos com aresta | `SUPEREZIO_ARCH_C4` | não |
+| C4 Órgãos com aresta | `SUPEREZIO_ARCH_C4` default **0** | **observe** (SDCA; `=1` enforce) |
 | C5 Dual-path morto | `SUPEREZIO_ARCH_C5` | não |
 | C6 Persist+Execute por thesis_id | `SUPEREZIO_ARCH_C6` | não |
 
@@ -125,4 +127,8 @@ No fim de `auto_full_analysis` (depois de MathHub e F51), o runtime congela `sta
 
 ## C3 — o que o código faz agora
 
-Observe: se `state.snapshot.frozen` e C3 ligado, `_inject_evidence` coloca o bloco `SNAPSHOT FROZEN` **antes** do `math_prompt`. Enforce: `bind_answer_to_snapshot` rejeita preço/decimal que não bate com `snapshot.numbers[].value` (tolerância float). Os 8 `CENSORSHIP_SKIPPED` só disparam com `SUPEREZIO_ARCH_C3=0`. Casual/general sem snapshot não inventa bind. C4 (aresta de órgão), C5 (Trinity) e C6 (ThesisRecord) continuam off.
+Observe: se `state.snapshot.frozen` e C3 ligado, `_inject_evidence` coloca o bloco `SNAPSHOT FROZEN` **antes** do `math_prompt`. Enforce: `bind_answer_to_snapshot` rejeita preço/decimal que não bate com `snapshot.numbers[].value` (tolerância float). Os 8 `CENSORSHIP_SKIPPED` só disparam com `SUPEREZIO_ARCH_C3=0`. Casual/general sem snapshot não inventa bind.
+
+## C4 — o que o código faz agora
+
+Depois de `auto_full_analysis`, `route_after_organ_board` lê o SDCA. Sem ticker não bloqueia. Com ticker, `BLOCK`, payload `error`, exceção no `errors[]` ou firewall ausente são `C4_WOULD_BLOCK`. `SUPEREZIO_ARCH_C4=0` (default) só loga e segue para Trinity. `=1` manda o turno a `respond_blocked` — Trinity e Bob não correm. F51 ainda não é aresta. C5–C6 off.

@@ -1,6 +1,11 @@
 """Evidence Mode helpers for auditable analysis artifacts."""
 
-from .arch_flags import is_arch_c1_enabled, is_arch_c2_enabled, is_arch_c3_enabled
+from .arch_flags import (
+    is_arch_c1_enabled,
+    is_arch_c2_enabled,
+    is_arch_c3_enabled,
+    is_arch_c4_enabled,
+)
 from .pack import save_evidence_pack, seal_pack, verify_pack_seal
 from .pack_builder import build_evidence_pack_from_state
 from .report import generate_html_report
@@ -23,6 +28,7 @@ __all__ = [
     "is_arch_c1_enabled",
     "is_arch_c2_enabled",
     "is_arch_c3_enabled",
+    "is_arch_c4_enabled",
     "save_evidence",
     "save_evidence_pack",
     "save_snapshot",

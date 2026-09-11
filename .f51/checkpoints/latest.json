@@ -1,52 +1,44 @@
 {
   "date_local": "2026-09-11",
-  "session": "arch-c3-bind-and-boot",
+  "session": "arch-c4-sdca-observe",
   "status": "APPLIED_LOCAL",
-  "objective": "Entrega 10/10 fatias 1–2: boot DeepSeek-only (GLM sem chave não mata o processo) + C3 bind Bob ao snapshot congelado.",
-  "predecessor": "arch-c2-frozen-snapshot",
+  "objective": "C4 SDCA observe: aresta depois do mega-nó; flag default 0 loga C4_WOULD_BLOCK e segue Trinity; =1 bloqueia BLOCK/ERROR/missing antes de Trinity/Bob.",
+  "predecessor": "arch-c3-bind-and-boot",
   "invariants": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
     "c1_changes_decisions": false,
     "c2_binds_bob": false,
-    "c3_binds_bob": true
+    "c3_binds_bob": true,
+    "c4_enforces": false
   },
   "files": [
+    "src/core/pipeline/organ_board.py",
+    "src/core/pipeline/graph.py",
+    "src/core/pipeline/nodes/guardrails.py",
     "src/core/evidence/arch_flags.py",
-    "src/core/evidence/snapshot.py",
     "src/core/evidence/__init__.py",
-    "src/core/pipeline/nodes/observation_builder.py",
-    "src/core/pipeline/nodes/agent.py",
     "src/core/config/settings.py",
-    "src/core/model_serving/providers.py",
-    "src/agent_server/main.py",
-    "launcher.ps1",
-    "launch.bat",
-    "frontend/js/init.js",
-    "tests/test_arch_c3_bind.py",
-    "tests/test_launcher_boot_copy.py",
+    "tests/test_arch_c4_organ_edge.py",
     "docs/architecture/TARGET_ARCHITECTURE.md",
     ".env.example",
     "CLAUDE.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    ".f51/TASK_BOARD.md",
+    ".f51/MONEY_GATE.md"
   ],
-  "rollback": "SUPEREZIO_ARCH_C3=0 (bind); GLM sem chave já não aborta o boot",
-  "next_step": "C4 órgãos com aresta — não nesta entrega",
+  "rollback": "SUPEREZIO_ARCH_C4=0 (observe; default). Do not flip =1 this session.",
+  "next_step": "Observar C4_WOULD_BLOCK em turnos com ticker; só então flip SUPEREZIO_ARCH_C4=1. C5–C6 off.",
   "verification": {
-    "ruff": "All checks passed!",
-    "pytest_target": "tests/test_arch_c3_bind.py tests/test_evidence_snapshot_c2.py tests/test_evidence_pack_c1.py tests/test_auto_full_analysis.py tests/contracts/test_contract_agent.py tests/test_structured_grounding_declared_tickers.py tests/test_health_provider_topology.py tests/test_launcher_boot_copy.py tests/contracts/test_contract_model_serving.py tests/test_ceo_fallback.py",
-    "pytest_c3_c2_c1_auto": "63 passed in 43.19s",
-    "pytest_c3_grounding_fatia1": "155 passed in 9.25s",
-    "reviewers": {
-      "revisor": "aprovado com ressalvas (double-bind idempotente, não bloqueia)",
-      "code-quality-reviewer": "ruff limpo; sem dependência nova; sem bloqueador",
-      "security-reviewer": "nenhum secret no SNAPSHOT FROZEN; DISK ONLY"
-    }
+    "ruff": "All checks passed! (7 files C4)",
+    "pytest_c4": "tests/test_arch_c4_organ_edge.py — 10 passed in 3.35s",
+    "pytest_c4_smoke_sdca_c3": "53 passed in 248.59s (C4 9/9 + smoke + SDCA + C3; 10º teste de render BLOCK depois)"
   },
   "still_true": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
     "mega_node": "auto_full_analysis still the production graph",
-    "c4_c5_c6": "off"
+    "c4_default": "observe (0)",
+    "c5_c6": "off"
   }
 }

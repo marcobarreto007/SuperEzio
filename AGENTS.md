@@ -2,7 +2,7 @@
 
 Porta curta para agentes. Regras completas em `CLAUDE.md`.
 Orquestração detalhada em `docs/AGENT_ORCHESTRATION.md`.
-Arquitetura-alvo (C1 pack + C2 snapshot em sombra; C3 bind ligado; C4–C6 ainda off): `docs/architecture/TARGET_ARCHITECTURE.md`.
+Arquitetura-alvo (C1 pack + C2 snapshot em sombra; C3 bind ligado; C4 SDCA observe; C5–C6 off): `docs/architecture/TARGET_ARCHITECTURE.md`.
 
 ## REGRA CRÍTICA: GITHUB BLOQUEADO
 

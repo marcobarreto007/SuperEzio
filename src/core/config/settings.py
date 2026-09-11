@@ -64,6 +64,13 @@ class Settings(BaseSettings):
             "Set SUPEREZIO_ARCH_C3=0 to roll back to C2 shadow skips."
         ),
     )
+    superezio_arch_c4: bool = Field(
+        default=False,
+        description=(
+            "C4 SDCA organ edge (BLOCK/ERROR stop before Trinity/Bob). "
+            "Default observe. Set SUPEREZIO_ARCH_C4=1 to enforce."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # CONNECTIVITY — HIGH

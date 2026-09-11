@@ -44,6 +44,7 @@ from .nodes.neural_decision import node_neural_decision
 from .nodes.rag import node_rag_forensics
 from .nodes.sdca_firewall import node_sdca_firewall
 from .nodes.trinity import node_trinity
+from .organ_board import route_after_organ_board
 
 logger = get_logger(__name__)
 
@@ -1241,8 +1242,15 @@ def build_graph(
             "agent": "auto_full_analysis",
         },
     )
-    # After full analysis, run Trinity deliberation before Bob sees the state.
-    builder.add_edge("auto_full_analysis", "trinity")
+    # C4: SDCA board sits after the mega-nó. Flag off = always trinity (observe).
+    builder.add_conditional_edges(
+        "auto_full_analysis",
+        route_after_organ_board,
+        {
+            "trinity": "trinity",
+            "respond_blocked": "respond_blocked",
+        },
+    )
     builder.add_conditional_edges(
         "trinity",
         route_after_trinity,

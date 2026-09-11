@@ -9,8 +9,9 @@
 - [x] C2 Snapshot congelado (`snapshot.json` + `state.snapshot`). Flag `SUPEREZIO_ARCH_C2` default 1.
 - [x] C3 Bind observe→enforce: injeta `SNAPSHOT FROZEN`, `bind_answer_to_snapshot`, `CENSORSHIP_SKIPPED` só com `SUPEREZIO_ARCH_C3=0`. Flag default 1.
 - [x] Boot DeepSeek-only: GLM sem chave não mata `:8002`; launcher só diz OPERACIONAL com `/health` 200.
-- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C4–C6 **não** ligados.
-- [ ] C4 Órgãos com aresta no grafo.
+- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C5–C6 **não** ligados.
+- [x] C4 SDCA observe (`organ_board.py`; flag default 0; `=1` enforce BLOCK/ERROR antes de Trinity).
+- [ ] C4 flip enforce (`SUPEREZIO_ARCH_C4=1`) depois de observar logs sem falso bloqueio.
 - [ ] C5 Dual-path / trinity / fan-out teatro.
 - [ ] C6 ThesisRecord + paper por `thesis_id`; apaga mega-nó.
 
