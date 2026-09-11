@@ -1090,8 +1090,8 @@ def health_check():
     health["checks"]["redis"] = redis_info
 
     # â”€â”€ Model providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    # Bob/orchestrator and the expert committee run on Z.ai GLM-5.3.
-    # Judge/auditor remain a distinct DeepSeek tier.
+    # Model providers: DeepSeek is the default for every role. GLM is optional.
+    # Judge/auditor remain a distinct DeepSeek trust boundary.
     ceo_runtime = local_models["agent"]
     ceo_url = str(ceo_runtime.get("url") or "")
     ceo_is_local = any(h in ceo_url for h in ("127.0.0.1", "localhost", "::1"))
@@ -1150,9 +1150,10 @@ def health_check():
         logger.warning("[%s] provider summary unavailable: %s", AGENT_NAME, exc)
         health["checks"]["providers_introspection_error"] = str(exc)[:200]
 
-    if gateway_has_providers and not glm_runtime_seen:
+    if gateway_has_providers and not glm_runtime_seen and experts_info.get("configured"):
         experts_info["configured"] = False
         experts_info["status"] = "runtime_provider_missing"
+    # else keep unconfigured_missing_api_key from _glm_expert_readiness()
     if gateway_has_providers and not deepseek_runtime_seen:
         deepseek_info["configured"] = False
         deepseek_info["status"] = "runtime_provider_missing"

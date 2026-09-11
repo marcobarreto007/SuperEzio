@@ -134,7 +134,7 @@ def test_c2_writes_snapshot_json(tmp_path: Path, monkeypatch) -> None:
     assert (tmp_path / SNAPSHOT_FILENAME).exists()
 
 
-def test_binding_helper_is_ready_and_not_wired_into_observations() -> None:
+def test_binding_helper_is_ready_and_wired_behind_c3() -> None:
     from pathlib import Path
 
     from core.pipeline.nodes import observation_builder
@@ -144,8 +144,8 @@ def test_binding_helper_is_ready_and_not_wired_into_observations() -> None:
     assert "SNAPSHOT FROZEN" in block
     assert "rsi=55.0" in block
     observation_src = Path(observation_builder.__file__).read_text(encoding="utf-8")
-    assert "format_snapshot_binding" not in observation_src
-    assert "SNAPSHOT FROZEN" not in observation_src
+    assert "format_snapshot_binding" in observation_src
+    assert "is_arch_c3_enabled" in observation_src
 
 
 def test_freeze_c2_puts_snapshot_on_state(monkeypatch) -> None:

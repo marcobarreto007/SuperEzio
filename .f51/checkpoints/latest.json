@@ -1,40 +1,52 @@
 {
   "date_local": "2026-09-11",
-  "session": "arch-c2-frozen-snapshot",
+  "session": "arch-c3-bind-and-boot",
   "status": "APPLIED_LOCAL",
-  "objective": "C1 nits (hash estável, PARTIAL, merge errors) + C2 Snapshot congelado em sombra. Bob ainda não lê o snapshot. Spec: docs/architecture/TARGET_ARCHITECTURE.md.",
-  "predecessor": "arch-c1-evidence-pack-shadow",
+  "objective": "Entrega 10/10 fatias 1–2: boot DeepSeek-only (GLM sem chave não mata o processo) + C3 bind Bob ao snapshot congelado.",
+  "predecessor": "arch-c2-frozen-snapshot",
   "invariants": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
     "c1_changes_decisions": false,
-    "c2_binds_bob": false
+    "c2_binds_bob": false,
+    "c3_binds_bob": true
   },
   "files": [
     "src/core/evidence/arch_flags.py",
-    "src/core/evidence/pack.py",
-    "src/core/evidence/pack_builder.py",
     "src/core/evidence/snapshot.py",
     "src/core/evidence/__init__.py",
-    "src/core/pipeline/graph.py",
-    "src/core/pipeline/contracts.py",
+    "src/core/pipeline/nodes/observation_builder.py",
+    "src/core/pipeline/nodes/agent.py",
     "src/core/config/settings.py",
-    "tests/test_evidence_pack_c1.py",
-    "tests/test_evidence_snapshot_c2.py",
+    "src/core/model_serving/providers.py",
+    "src/agent_server/main.py",
+    "launcher.ps1",
+    "launch.bat",
+    "frontend/js/init.js",
+    "tests/test_arch_c3_bind.py",
+    "tests/test_launcher_boot_copy.py",
     "docs/architecture/TARGET_ARCHITECTURE.md",
-    ".env.example"
+    ".env.example",
+    "CLAUDE.md",
+    "AGENTS.md"
   ],
-  "rollback": "SUPEREZIO_ARCH_C1=0 e/ou SUPEREZIO_ARCH_C2=0",
-  "next_step": "C3 Bind observe→enforce — matar CENSORSHIP_SKIPPED; Bob só cita snapshot.numbers",
+  "rollback": "SUPEREZIO_ARCH_C3=0 (bind); GLM sem chave já não aborta o boot",
+  "next_step": "C4 órgãos com aresta — não nesta entrega",
   "verification": {
-    "pytest_target": "tests/test_evidence_pack_c1.py tests/test_evidence_snapshot_c2.py tests/test_evidence_mode.py tests/test_auto_full_analysis.py",
-    "pytest": "55 passed in 42.07s",
     "ruff": "All checks passed!",
-    "full_suite_note": "pytest tests/ reached 815 passed then 5 Playwright failures (Chromium binary missing in this environment); maxfail=5 stopped the run. Failures are test_browser_smoke_final_answer and test_client_portfolio_browser, not C1/C2."
+    "pytest_target": "tests/test_arch_c3_bind.py tests/test_evidence_snapshot_c2.py tests/test_evidence_pack_c1.py tests/test_auto_full_analysis.py tests/contracts/test_contract_agent.py tests/test_structured_grounding_declared_tickers.py tests/test_health_provider_topology.py tests/test_launcher_boot_copy.py tests/contracts/test_contract_model_serving.py tests/test_ceo_fallback.py",
+    "pytest_c3_c2_c1_auto": "63 passed in 43.19s",
+    "pytest_c3_grounding_fatia1": "155 passed in 9.25s",
+    "reviewers": {
+      "revisor": "aprovado com ressalvas (double-bind idempotente, não bloqueia)",
+      "code-quality-reviewer": "ruff limpo; sem dependência nova; sem bloqueador",
+      "security-reviewer": "nenhum secret no SNAPSHOT FROZEN; DISK ONLY"
+    }
   },
   "still_true": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
-    "mega_node": "auto_full_analysis still the production graph"
+    "mega_node": "auto_full_analysis still the production graph",
+    "c4_c5_c6": "off"
   }
 }

@@ -3,23 +3,24 @@
 > Contrato de 2026-09-11. O runtime **ainda** corre o grafo legado
 > (`orchestrator_primary` → `auto_full_analysis` → `trinity` → `agent`).
 > Cortes **C1** e **C2** estão ligados em sombra: cada run grava
-> `evidence_pack.json` e `snapshot.json` com checksum. Nenhum dos dois
-> muda decisão, grounding nem paper. Bob **não** lê o snapshot (isso é C3).
-> Rollback: `SUPEREZIO_ARCH_C1=0` e/ou `SUPEREZIO_ARCH_C2=0`.
+> `evidence_pack.json` e `snapshot.json` com checksum. **C3** está ligado:
+> Bob lê o bloco SNAPSHOT FROZEN e a resposta é bound a `snapshot.numbers`.
+> C1/C2 não mudam paper nem live. Rollback: `SUPEREZIO_ARCH_C1=0`,
+> `SUPEREZIO_ARCH_C2=0` e/ou `SUPEREZIO_ARCH_C3=0` (C3=0 volta ao skip legado).
 
 ## Invariantes (não negociáveis)
 
 - DISK ONLY. Sem GitHub, sem banco na nuvem.
 - Live frozen por default. Paper só com flag explícita.
 - LLM não bypassa órgão determinístico. Órgão que importa é **aresta**, não parágrafo.
-- Nenhum número na boca do Bob sem provenance no Snapshot (a partir de C3).
+- Nenhum número na boca do Bob sem provenance no Snapshot (C3).
 - Evidência checksumada. Tese só grava texto BOUND.
 - Sem dependência nova para esta arquitetura (stdlib `hashlib` + pydantic já no lock).
 
 ## Por que o grafo atual impede 10/10
 
 1. `guardrail_hub` produz prosa; `graph.py` não tem `add_conditional_edges` sobre os 30 checks.
-2. `CENSORSHIP_SKIPPED` em `agent.py` quando “há dado” — grounding invertido.
+2. `CENSORSHIP_SKIPPED` em `agent.py` quando “há dado” — grounding invertido (morto no path com dados quando C3=1; só atrás de `SUPEREZIO_ARCH_C3=0`).
 3. `auto_full_analysis` é mega-nó: falha de dado vira string em `errors[]` e o turno segue.
 4. Orchestrator é passthrough com `intent_confidence=1.0`.
 5. Seis experts + Trinity = um DeepSeek. Consenso de correlação ~1.
@@ -74,7 +75,7 @@ Pacote C2 (`src/core/evidence/snapshot.py`):
 - `pack_sha256` liga o snapshot ao EvidencePack
 - `as_of` gravado, excluído do hash
 - escrito em `runs/evidence/{run_id}/snapshot.json` e em `state.snapshot` no fim de `auto_full_analysis`
-- `format_snapshot_binding()` existe para C3; `observation_builder` **não** chama
+- `format_snapshot_binding()` lista os números que o Bob pode citar; C3 injeta o bloco no prompt
 
 ## O que some (cortes C5–C6, não agora)
 
@@ -95,8 +96,8 @@ DataHub vivo, MathHub/indicadores, 12 modelos scipy de crise, F51, SDCA, neural 
 | Corte | Flag | Estado 2026-09-11 |
 |---|---|---|
 | C1 Evidence sombra | `SUPEREZIO_ARCH_C1` default **1** | **ligado** |
-| C2 Snapshot congelado | `SUPEREZIO_ARCH_C2` default **1** | **ligado (sombra; Bob não lê)** |
-| C3 Bind observe→enforce | `SUPEREZIO_ARCH_C3` | não |
+| C2 Snapshot congelado | `SUPEREZIO_ARCH_C2` default **1** | **ligado (sombra)** |
+| C3 Bind observe→enforce | `SUPEREZIO_ARCH_C3` default **1** | **ligado** |
 | C4 Órgãos com aresta | `SUPEREZIO_ARCH_C4` | não |
 | C5 Dual-path morto | `SUPEREZIO_ARCH_C5` | não |
 | C6 Persist+Execute por thesis_id | `SUPEREZIO_ARCH_C6` | não |
@@ -106,7 +107,7 @@ Mega-nó só morre no C6. Cada corte é reversível por flag. Sem big-bang.
 ## NÃO FAÇA
 
 - Melhorar o mega-nó por dentro e chamar isso de arquitetura nova.
-- Grounding por regex no texto.
+- Grounding por regex no texto **como fonte de verdade** (C3 extrai candidatos; o contrato é `snapshot.numbers`).
 - Deixar um `CENSORSHIP_SKIPPED` “só neste caso”.
 - Vender 6 prompts no mesmo modelo como comitê.
 - `except Exception` em órgão virando ALLOW.
@@ -120,4 +121,8 @@ Mega-nó só morre no C6. Cada corte é reversível por flag. Sem big-bang.
 
 ## C2 — o que o código faz agora
 
-No fim de `auto_full_analysis` (depois de MathHub e F51), o runtime congela `state.snapshot` a partir do pack + `math_report.numbers`. No finalize, grava `snapshot.json` ao lado do pack. Consumidores do prompt **não** mudam. C3 é quem vai exigir que todo número na boca do Bob exista em `snapshot.numbers`.
+No fim de `auto_full_analysis` (depois de MathHub e F51), o runtime congela `state.snapshot` a partir do pack + `math_report.numbers`. No finalize, grava `snapshot.json` ao lado do pack. C3 é quem exige que todo número na boca do Bob exista em `snapshot.numbers`.
+
+## C3 — o que o código faz agora
+
+Observe: se `state.snapshot.frozen` e C3 ligado, `_inject_evidence` coloca o bloco `SNAPSHOT FROZEN` **antes** do `math_prompt`. Enforce: `bind_answer_to_snapshot` rejeita preço/decimal que não bate com `snapshot.numbers[].value` (tolerância float). Os 8 `CENSORSHIP_SKIPPED` só disparam com `SUPEREZIO_ARCH_C3=0`. Casual/general sem snapshot não inventa bind. C4 (aresta de órgão), C5 (Trinity) e C6 (ThesisRecord) continuam off.

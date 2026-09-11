@@ -1,12 +1,24 @@
 # F51 Money Gate — Full Project Evaluation
 
-Updated: 2026-05-21T21:00:00-04:00
-Session: f51-money-gate-brutal-evaluation
-Owner: Mike (F51 Money Gate)
+Updated: 2026-09-11
+Session: entrega-10-10-boot-depois-c3
+Owner: Marco (operador) / savekeeper
 
 ---
 
-## Decision: **DEFER — com janela de 30 dias para provar ou congelar**
+## Estado operacional atual (2026-09-11)
+
+**GO** fatias 1–2 deste copiloto local: boot DeepSeek-only (`:8002` `/health` 200; GLM sem chave não mata o processo) + C3 bind (Bob cita só `snapshot.numbers`).
+
+**DEFER:** tese em `runtime/theses`, journal/PnL visível, C4 arestas, C5 dual-path, C6 ThesisRecord, ZIP V1 completo, venda/sinais.
+
+**NO-GO:** live, GitHub, dependência nova, chave no git.
+
+Rollback C3: `SUPEREZIO_ARCH_C3=0` (volta ao freeze em sombra + skip legado).
+
+---
+
+## Decision histórica (2026-05-21): **DEFER — com janela de 30 dias para provar ou congelar**
 
 O projeto tem motor, mas nao tem estrada. Nao ha receita, nem cliente, nem track record auditado.
 Ha engenharia solida, mas dinheiro nao paga por engenharia — paga por dor resolvida com evidencia.

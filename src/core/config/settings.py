@@ -57,6 +57,13 @@ class Settings(BaseSettings):
             "Does not bind Bob. Set SUPEREZIO_ARCH_C2=0 to roll back."
         ),
     )
+    superezio_arch_c3: bool = Field(
+        default=True,
+        description=(
+            "C3 bind Bob to the frozen snapshot (prompt block + number enforce). "
+            "Set SUPEREZIO_ARCH_C3=0 to roll back to C2 shadow skips."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # CONNECTIVITY — HIGH

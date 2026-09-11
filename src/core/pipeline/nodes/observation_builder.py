@@ -13,6 +13,9 @@ import json
 import logging
 import os
 
+from core.evidence.arch_flags import is_arch_c3_enabled
+from core.evidence.snapshot import format_snapshot_binding
+
 logger = logging.getLogger(__name__)
 
 # Configurable data_context truncation limit.
@@ -577,6 +580,9 @@ def _inject_evidence(state: dict, observations: list[str]):
         )
     if state.get("expert_summary"):
         observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
+    snapshot = state.get("snapshot")
+    if is_arch_c3_enabled() and isinstance(snapshot, dict) and snapshot.get("frozen"):
+        observations.append(format_snapshot_binding(snapshot))
     if state.get("math_prompt"):
         # math_prompt is NEVER truncated — it contains critical RSI, MACD, Sharpe,
         # VaR, and Kelly calculations that must always reach Bob.

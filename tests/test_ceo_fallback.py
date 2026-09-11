@@ -113,13 +113,17 @@ def test_glm53_coding_plan_rewrites_general_paas_url(monkeypatch) -> None:
     assert by_name["deepseek"].model == "deepseek-v4-flash"
 
 
-def test_glm53_missing_coding_plan_key_fails_closed(monkeypatch) -> None:
+def test_glm53_missing_coding_plan_key_degrades_to_deepseek(monkeypatch) -> None:
     monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
     monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
-    with pytest.raises(RuntimeError, match="GLM_CODING_PLAN_API_KEY"):
-        build_providers()
+    providers, _ = build_providers()
+    by_name = {p.name: p for p in providers}
+    assert "glm" not in by_name
+    assert by_name["agent"].model == "deepseek-v4-flash"
+    assert by_name["local_orchestrator"].model == "deepseek-v4-flash"
 
 
 def test_custom_agent_env_override(monkeypatch) -> None:

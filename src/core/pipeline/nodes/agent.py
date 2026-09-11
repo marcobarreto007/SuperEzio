@@ -13,11 +13,13 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
+from core.evidence.arch_flags import is_arch_c3_enabled
 from core.evidence.grounding import (
     collect_security_claims,
     mentioned_security_symbols,
     mismatched_price_symbols,
 )
+from core.evidence.snapshot import bind_answer_to_snapshot
 from core.paths import resolve_project_path
 
 from ...mission_context import render_mission_context_for_prompt
@@ -917,10 +919,39 @@ def _parse_declared_tickers(value: Any) -> set[str] | None:
     return {t for t in tickers if t}
 
 
+def _snapshot_payload(state: dict) -> dict[str, Any] | None:
+    snapshot = state.get("snapshot")
+    return snapshot if isinstance(snapshot, dict) else None
+
+
+def _bind_final_answer(state: dict, content: str) -> str:
+    if not is_arch_c3_enabled():
+        return content
+    return bind_answer_to_snapshot(content, _snapshot_payload(state))
+
+
+def _trust_unbound_answer(state: dict) -> bool:
+    """C2-era skip: trust Bob when the pipeline already collected data.
+
+    C3 never authorizes this skip — cited numbers must bind to the snapshot.
+    """
+    if is_arch_c3_enabled():
+        return False
+    return _pipeline_has_data(state)
+
+
 def _apply_grounding_guard(
     state: dict, content: str, declared_tickers: set[str] | None = None
 ) -> str:
-    if _pipeline_has_data(state):
+    if is_arch_c3_enabled():
+        bound = bind_answer_to_snapshot(content, _snapshot_payload(state))
+        snapshot = _snapshot_payload(state)
+        if snapshot and snapshot.get("frozen"):
+            return bound
+        if not state.get("data") and not state.get("scan") and not state.get("data_context"):
+            return bound
+        return _grounding_guard_answer(state, bound, declared_tickers)
+    if _trust_unbound_answer(state):
         logger.info("CENSORSHIP_SKIPPED: _apply_grounding_guard -- pipeline has data, trusting Bob")
         return content
     if not state.get("data") and not state.get("scan") and not state.get("data_context"):
@@ -2026,7 +2057,7 @@ def _loop_failsafe_answer(state: dict) -> str:
     if state.get("scan"):
         return _market_scan_answer(state)
     if state.get("cognitive_mode"):
-        if not _pipeline_has_data(state):
+        if not _trust_unbound_answer(state):
             return _contract_fallback_answer(state)
         logger.info("CENSORSHIP_SKIPPED: _loop_failsafe_answer -- pipeline has data, trusting Bob")
     if _is_portuguese_request(state.get("message", "")):
@@ -2045,7 +2076,7 @@ def _tool_blocked_answer(state: dict) -> str:
     tool = blocked.get("tool", "unknown")
     reason = blocked.get("reason", "already executed")
     if state.get("cognitive_mode") or "cognitive_contract" in str(reason):
-        if not _pipeline_has_data(state):
+        if not _trust_unbound_answer(state):
             return _contract_fallback_answer(state)
         logger.info("CENSORSHIP_SKIPPED: _tool_blocked_answer -- pipeline has data, trusting Bob")
     if _is_portuguese_request(state.get("message", "")):
@@ -2627,7 +2658,7 @@ def _no_data_market_answer(state: dict) -> str:
 
 
 def _contract_fallback_answer(state: dict) -> str:
-    if _pipeline_has_data(state):
+    if _trust_unbound_answer(state):
         logger.info(
             "CENSORSHIP_SKIPPED: _contract_fallback_answer -- pipeline has data, trusting Bob"
         )
@@ -3804,7 +3835,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             and iterations >= 2
             and not pending_tools
         ):
-            if _pipeline_has_data(state):
+            if _trust_unbound_answer(state):
                 logger.info(
                     "CENSORSHIP_SKIPPED: max planning loop -- pipeline has data, trusting Bob"
                 )
@@ -3847,7 +3878,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 elif state.get("scan"):
                     content = _market_scan_answer(state)
                 elif not str(content).strip():
-                    if not _pipeline_has_data(state):
+                    if not _trust_unbound_answer(state):
                         if is_complex_finance:
                             content = _complex_finance_fallback_answer(state.get("message", ""))
                         else:
@@ -3857,7 +3888,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                             "CENSORSHIP_SKIPPED: empty content -- pipeline has data, trusting Bob"
                         )
                 elif _should_force_contract_fallback(state, content):
-                    if not _pipeline_has_data(state):
+                    if not _trust_unbound_answer(state):
                         content = _contract_fallback_answer(state)
                     else:
                         logger.info(
@@ -3877,6 +3908,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     # Internal signal only — the demo of 2026-08-24 leaked
                     # "[Pipeline validation note: ...]" into the public answer.
                     logger.warning(f"Bob answer validation failed: {validation['reason']}")
+
+                content = _bind_final_answer(state, content)
 
                 # ── Inject portfolio snapshot BEFORE the CHUNK ──
                 pf = _get_portfolio_snapshot(state)
@@ -3941,7 +3974,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "current_datetime": state.get("current_datetime", ""),
                 }
             # Fallback
-            if _pipeline_has_data(state):
+            if _trust_unbound_answer(state):
                 logger.info(
                     "CENSORSHIP_SKIPPED: final else fallback -- pipeline has data, trusting Bob"
                 )
@@ -3952,6 +3985,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     if is_complex_finance
                     else _contract_fallback_answer(state)
                 )
+            content = _bind_final_answer(state, content)
             writer({"type": "CHUNK", "content": content})
             return {
                 "final": content,

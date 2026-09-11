@@ -106,6 +106,9 @@ def test_missing_glm_key_keeps_readiness_ok_without_exposing_a_secret(monkeypatc
 
 def test_configured_external_deepseek_and_local_ceo_make_readiness_truthful(monkeypatch) -> None:
     secret_value = "sk-deepseek-health-test"
+    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
     _configure_official_deepseek(monkeypatch, api_key=secret_value)
 
     provider = _deepseek_provider(api_key=secret_value)
@@ -124,6 +127,9 @@ def test_configured_external_deepseek_and_local_ceo_make_readiness_truthful(monk
     assert experts["configured"] is True
     assert experts["status"] == "configured"
     assert payload["checks"]["providers_summary"]["experts"]["provider"] == "deepseek"
+    optional = payload["checks"]["providers_summary"]["optional_providers"]["glm"]
+    assert optional["configured"] is False
+    assert optional["status"] == "unconfigured_missing_api_key"
     assert secret_value not in response.text
 
 

@@ -1,14 +1,15 @@
 # F51 Task Board
 
-## Arquitetura-alvo — C1 pack + C2 snapshot (2026-09-11)
+## Arquitetura-alvo — C1 pack + C2 snapshot + C3 bind (2026-09-11)
 
 - [x] Contrato EvidencePack + seal SHA-256 + builder a partir do PipelineState.
 - [x] Hook sombra em `PipelineApp.stream_events` (`evidence_pack.json` ao lado do run).
 - [x] Flag `SUPEREZIO_ARCH_C1` (default 1; `0` = rollback do write).
 - [x] Nits C1: hash ignora `created_at`/`as_of`; PARTIAL parentizado; errors concatenam; write-fail não aborta.
-- [x] C2 Snapshot congelado (`snapshot.json` + `state.snapshot`; Bob não lê). Flag `SUPEREZIO_ARCH_C2` default 1.
-- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C3–C6 **não** ligados.
-- [ ] C3 Bind observe→enforce (mata `CENSORSHIP_SKIPPED`).
+- [x] C2 Snapshot congelado (`snapshot.json` + `state.snapshot`). Flag `SUPEREZIO_ARCH_C2` default 1.
+- [x] C3 Bind observe→enforce: injeta `SNAPSHOT FROZEN`, `bind_answer_to_snapshot`, `CENSORSHIP_SKIPPED` só com `SUPEREZIO_ARCH_C3=0`. Flag default 1.
+- [x] Boot DeepSeek-only: GLM sem chave não mata `:8002`; launcher só diz OPERACIONAL com `/health` 200.
+- [x] Spec em `docs/architecture/TARGET_ARCHITECTURE.md`. C4–C6 **não** ligados.
 - [ ] C4 Órgãos com aresta no grafo.
 - [ ] C5 Dual-path / trinity / fan-out teatro.
 - [ ] C6 ThesisRecord + paper por `thesis_id`; apaga mega-nó.

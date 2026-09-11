@@ -1025,7 +1025,7 @@
     function analyzeChartWithBob() {
       var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
       var tf = (document.getElementById("tf-inp") || {}).value || "6M";
-      var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
+      var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido e alvos com base no mercado real. Um modelo, vários papéis — não trate os experts como comitê independente.";
       askBob(prompt);
       if (window.SZ && SZ.state) SZ.state.lastAutoAnalyzedTicker = ticker;
     }

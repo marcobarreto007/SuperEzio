@@ -1,11 +1,8 @@
-"""C2 Frozen Snapshot — numbers with provenance. Does not bind Bob.
-
-Same facts seal to the same digest. Timestamps (as_of) are stored but excluded
-from the hash so C3 can compare snapshot.numbers, not wall-clock.
-"""
+"""C2 Frozen Snapshot — numbers with provenance. C3 binds Bob to them."""
 
 from __future__ import annotations
 
+import re
 import uuid
 from pathlib import Path
 from typing import Any
@@ -185,7 +182,7 @@ def save_snapshot(snapshot: dict[str, Any], dest_dir: Path | str) -> Path:
 
 
 def format_snapshot_binding(snapshot: dict[str, Any]) -> str:
-    """Deterministic text for C3. C2 does not inject this into Bob."""
+    """Deterministic text listing frozen numbers Bob may cite."""
     lines = ["═══ SNAPSHOT FROZEN (cite only these numbers) ═══"]
     numbers = snapshot.get("numbers") if isinstance(snapshot.get("numbers"), dict) else {}
     for name in sorted(numbers):
@@ -198,3 +195,81 @@ def format_snapshot_binding(snapshot: dict[str, Any]) -> str:
             f"formula={item.get('formula_id')} provenance={provenance}"
         )
     return "\n".join(lines)
+
+
+def _allowed_number_values(snapshot: dict[str, Any]) -> list[float]:
+    numbers = snapshot.get("numbers") if isinstance(snapshot.get("numbers"), dict) else {}
+    allowed: list[float] = []
+    for item in numbers.values():
+        if not isinstance(item, dict):
+            continue
+        value = item.get("value")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        allowed.append(float(value))
+    return allowed
+
+
+def _near_allowed(
+    value: float, allowed: list[float], *, rel: float = 1e-6, abs_tol: float = 1e-6
+) -> bool:
+    for item in allowed:
+        scale = max(abs(item), abs(value), 1.0)
+        if abs(value - item) <= max(abs_tol, rel * scale):
+            return True
+    return False
+
+
+_MONEY_NUMBER = re.compile(r"(?:R\$|\$)\s*(\d+(?:[.,]\d+)?)")
+_DECIMAL_NUMBER = re.compile(r"(?<![\d.,])(\d+\.\d{2,})(?![\d])")
+
+
+def _candidate_numbers(content: str) -> list[str]:
+    found: list[str] = []
+    for match in _MONEY_NUMBER.finditer(content):
+        found.append(match.group(0).strip())
+    for match in _DECIMAL_NUMBER.finditer(content):
+        token = match.group(1)
+        if token not in found and not any(token in item for item in found):
+            found.append(token)
+    return found
+
+
+def _parse_number_token(token: str) -> float | None:
+    raw = token.replace("R$", "").replace("$", "").replace(" ", "").replace(",", ".")
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def bind_answer_to_snapshot(content: str, snapshot: dict[str, Any] | None) -> str:
+    """Replace answers that cite numbers absent from the frozen snapshot.
+
+    Extraction is not the source of truth — snapshot.numbers is. Casual turns
+    without a frozen snapshot pass through unchanged.
+    """
+    text = content if isinstance(content, str) else str(content or "")
+    if not text.strip():
+        return text
+    if not isinstance(snapshot, dict) or not snapshot.get("frozen"):
+        return text
+    allowed = _allowed_number_values(snapshot)
+    if not allowed:
+        return text
+    unbound: list[str] = []
+    for token in _candidate_numbers(text):
+        parsed = _parse_number_token(token)
+        if parsed is None:
+            continue
+        if not _near_allowed(parsed, allowed):
+            unbound.append(token)
+    if not unbound:
+        return text
+    unique = list(dict.fromkeys(unbound))
+    return (
+        "SNAPSHOT BIND REJECTED. Números fora do snapshot: "
+        + ", ".join(unique)
+        + ".\nUse somente:\n"
+        + format_snapshot_binding(snapshot)
+    )

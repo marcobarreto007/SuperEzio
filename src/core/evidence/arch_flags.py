@@ -33,6 +33,11 @@ def is_arch_c1_enabled() -> bool:
 def is_arch_c2_enabled() -> bool:
     """C2 default ON (shadow snapshot freeze). SUPEREZIO_ARCH_C2=0 rolls back.
 
-    Freeze + disk only. Does not inject into Bob's prompt (that is C3).
+    Freeze + disk only. Prompt bind is C3.
     """
     return env_flag("SUPEREZIO_ARCH_C2", default=True)
+
+
+def is_arch_c3_enabled() -> bool:
+    """C3 default ON (bind Bob to snapshot). SUPEREZIO_ARCH_C3=0 rolls back."""
+    return env_flag("SUPEREZIO_ARCH_C3", default=True)

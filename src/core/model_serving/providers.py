@@ -6,7 +6,7 @@ judge and auditor — defaults to the official DeepSeek HTTPS API
 SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL switch a role back to it, and
 the ``glm`` provider is only built when SUPEREZIO_GLM_CODING_PLAN_API_KEY (or
 one of its legacy aliases) is present. Asking for a glm model without the key
-still fails closed.
+degrades that role to DeepSeek so the process still boots.
 
 The ModelGateway keeps the automatic credit fallback GLM -> DeepSeek for Bob
 (SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default on) for when that path is armed.
@@ -41,7 +41,7 @@ DEEPSEEK_PROVIDER_NAME = "deepseek"
 # expert committee, judge and auditor — runs on the official DeepSeek HTTPS
 # API. GLM-5.3 stays reachable via SUPEREZIO_PRIMARY_MODEL /
 # SUPEREZIO_AGENT_MODEL and is only instantiated when its coding-plan key is
-# present; requesting a glm model without that key still fails closed.
+# present; requesting a glm model without that key degrades to DeepSeek.
 DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
 AGENT_MODEL_ID = DEEPSEEK_MODEL_ID
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
@@ -181,14 +181,43 @@ def _glm_coding_plan_key() -> str:
     )
 
 
-def _require_glm_coding_plan_key() -> str:
-    glm_key = _glm_coding_plan_key()
-    if not glm_key:
-        raise RuntimeError(
-            "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
-            "(Coding Plan key, not the general /api/paas/v4 key)"
+def _optional_glm_or_deepseek(
+    *,
+    requested_model: str,
+    env_url: str,
+    role_api_key_env: str,
+    experts_base_url: str,
+    experts_api_key: str,
+    glm_key: str,
+    role_label: str,
+) -> tuple[str, bool, str, str]:
+    """Resolve a role endpoint. GLM without a coding-plan key falls back to DeepSeek."""
+    model = requested_model.strip() or DEEPSEEK_MODEL_ID
+    if _is_glm_coding_model(model):
+        if glm_key:
+            return (
+                _normalize_zai_base_url(env_url or GLM_CODING_PLAN_BASE_URL),
+                False,
+                glm_key,
+                model,
+            )
+        logger.warning(
+            "%s requested GLM model %s without SUPEREZIO_GLM_CODING_PLAN_API_KEY; "
+            "booting DeepSeek %s instead",
+            role_label,
+            model,
+            DEEPSEEK_MODEL_ID,
         )
-    return glm_key
+        model = DEEPSEEK_MODEL_ID
+        env_url = ""
+    base_url = env_url or experts_base_url
+    is_local = _is_local_url(base_url)
+    api_key = (
+        os.getenv(role_api_key_env, "").strip()
+        or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+        or (LOCAL_API_KEY_PLACEHOLDER if is_local else experts_api_key)
+    )
+    return base_url, is_local, api_key, model
 
 
 def _deepseek_api_key() -> str:
@@ -275,7 +304,7 @@ def build_default_providers(
     providers: list[ModelProvider] = []
 
     # Optional GLM path: an absent key simply means the provider is not built.
-    # A role explicitly configured for a glm model still fails closed below.
+    # A role explicitly configured for a glm model degrades to DeepSeek below.
     glm_key = _glm_coding_plan_key()
     glm_experts_base_url = GLM_CODING_PLAN_BASE_URL
 
@@ -295,18 +324,15 @@ def build_default_providers(
 
     primary_env_url = os.getenv("SUPEREZIO_PRIMARY_BASE_URL", "").strip()
     primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
-    if _is_glm_coding_model(primary_model):
-        primary_base_url = _normalize_zai_base_url(primary_env_url or GLM_CODING_PLAN_BASE_URL)
-        primary_is_local = False
-        primary_api_key = _require_glm_coding_plan_key()
-    else:
-        primary_base_url = primary_env_url or experts_base_url
-        primary_is_local = _is_local_url(primary_base_url)
-        primary_api_key = (
-            os.getenv("SUPEREZIO_PRIMARY_API_KEY", "").strip()
-            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
-            or (LOCAL_API_KEY_PLACEHOLDER if primary_is_local else experts_api_key)
-        )
+    primary_base_url, primary_is_local, primary_api_key, primary_model = _optional_glm_or_deepseek(
+        requested_model=primary_model,
+        env_url=primary_env_url,
+        role_api_key_env="SUPEREZIO_PRIMARY_API_KEY",
+        experts_base_url=experts_base_url,
+        experts_api_key=experts_api_key,
+        glm_key=glm_key,
+        role_label="SUPEREZIO_PRIMARY_MODEL",
+    )
 
     providers.append(
         ModelProvider(
@@ -396,18 +422,15 @@ def build_default_providers(
     # Agent (CEO) — DeepSeek by default; GLM-5.3 needs the coding-plan key.
     agent_env_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "").strip()
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
-    if _is_glm_coding_model(agent_model):
-        agent_base_url = _normalize_zai_base_url(agent_env_url or GLM_CODING_PLAN_BASE_URL)
-        agent_is_local = False
-        agent_api_key = _require_glm_coding_plan_key()
-    else:
-        agent_base_url = agent_env_url or experts_base_url
-        agent_is_local = _is_local_url(agent_base_url)
-        agent_api_key = (
-            os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
-            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
-            or (LOCAL_API_KEY_PLACEHOLDER if agent_is_local else experts_api_key)
-        )
+    agent_base_url, agent_is_local, agent_api_key, agent_model = _optional_glm_or_deepseek(
+        requested_model=agent_model,
+        env_url=agent_env_url,
+        role_api_key_env="SUPEREZIO_AGENT_API_KEY",
+        experts_base_url=experts_base_url,
+        experts_api_key=experts_api_key,
+        glm_key=glm_key,
+        role_label="SUPEREZIO_AGENT_MODEL",
+    )
     providers.append(
         ModelProvider(
             name=AGENT_PROVIDER_NAME,

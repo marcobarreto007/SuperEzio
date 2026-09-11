@@ -193,23 +193,36 @@ def test_experts_are_pinned_to_glm53(monkeypatch):
         assert provider.timeout_s == 60
 
 
-def test_missing_glm_key_skips_provider_but_fails_closed_when_requested(monkeypatch):
-    """No coding-plan key: the glm provider is simply not built. A role pointed
-    explicitly at a glm model still fails closed, without echoing any secret."""
+def test_missing_glm_key_skips_provider_and_degrades_requested_roles(monkeypatch):
+    """No coding-plan key: glm provider is not built. Roles pointed at glm
+    fall back to DeepSeek so boot survives. DeepSeek key remains required."""
     monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
 
     from core.config.schema import UniversalConfig
-    from core.model_serving.providers import GLM_PROVIDER_NAME, build_default_providers
+    from core.model_serving.providers import (
+        AGENT_PROVIDER_NAME,
+        DEEPSEEK_MODEL_ID,
+        DEEPSEEK_OFFICIAL_BASE_URL,
+        GLM_PROVIDER_NAME,
+        PRIMARY_PROVIDER_NAME,
+        build_default_providers,
+    )
 
     providers, _ = build_default_providers(UniversalConfig())
     assert GLM_PROVIDER_NAME not in {p.name for p in providers}
 
     monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
-    with pytest.raises(RuntimeError, match="SUPEREZIO_GLM_CODING_PLAN_API_KEY is required") as exc:
-        build_default_providers(UniversalConfig())
-    assert "sk-" not in str(exc.value)
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
+    providers, _ = build_default_providers(UniversalConfig())
+    by_name = {p.name: p for p in providers}
+    assert GLM_PROVIDER_NAME not in by_name
+    assert by_name[AGENT_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    assert by_name[AGENT_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
+    assert by_name[PRIMARY_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
+    assert by_name[AGENT_PROVIDER_NAME].api_key == "sk-ds-test-only"
 
 
 def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):
