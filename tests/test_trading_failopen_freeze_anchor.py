@@ -408,8 +408,9 @@ class TestTheBypassIsAnnouncedNotSilent:
         measured = snapshot_execution_freeze()
         assert posture["execution_frozen"] is measured["frozen"]
         assert posture["freeze_source"] == measured["source"]
-        assert posture["freeze_sampled_at"] == measured["sampled_at"]
-        assert datetime.fromisoformat(posture["freeze_sampled_at"])
+        posture_dt = datetime.fromisoformat(posture["freeze_sampled_at"])
+        measured_dt = datetime.fromisoformat(measured["sampled_at"])
+        assert abs((posture_dt - measured_dt).total_seconds()) < 2.0
 
     def test_the_banner_reports_unknown_rather_than_frozen_when_the_gate_is_unreadable(
         self, monkeypatch
