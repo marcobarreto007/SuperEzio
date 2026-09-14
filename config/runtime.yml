@@ -47,10 +47,10 @@ models:
   # (LOCAL_CONTEXT_HARD_TOKEN_CAP cai para fallback quando isto nao existe).
   # Ver docs/architecture/LOCAL_CONTEXT_WINDOW.md.
   local_voice:
-    name: Ornith-1.5-35B-A3B Q3_K_XL (voz local, llama.cpp)
+    name: Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL (voz local / ferramentas, llama.cpp)
     provider_name: local_voice
     base_url: http://127.0.0.1:8080
-    model_id: Ornith-1.5-35B-A3B-Q3_K_XL
+    model_id: Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL
     backend: openai_compatible
     role: adjuvant
     is_local: true

@@ -6,7 +6,7 @@ que ela não é mais um número solto no código.
 **Cérebro vs. voz.** O cérebro do SuperEzio é **nuvem** — DeepSeek V4 Pro
 (`deepseek-v4-pro`) nos papéis que decidem (Bob/CEO e orquestrador) desde
 12/09/2026; era DeepSeek V4 Flash até 10/09. O
-modelo local (Ornith, nas 2 GPUs) é a **voz adjuvante** — não decide dinheiro.
+modelo local (Cyber-Tiel-Coder-35B-A3B-MTP / Ornith, nas 2 GPUs) é a **voz adjuvante** — não decide dinheiro.
 Tudo aqui é sobre essa voz.
 
 ---

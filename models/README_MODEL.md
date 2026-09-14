@@ -1,35 +1,28 @@
-# SuperEzio — Model Setup (Qwen local CEO)
+# SuperEzio & MIKE — Model Setup
 
-The local CEO model (Bob) is **Qwen3.8-27B-Q4_K_M** (GGUF, ~15.9 GB).
+## 1. Cérebro Local (MIKE & Ferramentas Locais / Código)
 
-## Current machine state (2026-08-21)
+O modelo local ativo nesta máquina (servido na porta `127.0.0.1:8080` via `llama-server`) é o **Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL**:
 
-- **GPU** (re-measured 2026-09-04): single **live** NVIDIA RTX 2070 8GB
-  (driver 610.60 / CUDA UMD 13.3). The RTX 3060 12GB is still in the
-  machine but `Get-PnpDevice` reports `Status=Error Problem=CM_PROB_FAILED_ADD`
-  and `nvidia-smi` enumerates only the 2070. Dual-GPU `-ts 8,6` is NO-GO
-  until Marco repairs the 3060 in Device Manager (same driver family as
-  the 2070). The runtime uses 1 live GPU.
-- **Model files**: **PRESENT** at `C:\Users\marco\models\qwen3.8-27b\`
-  (downloaded 2026-08-14/15) — `config.ps1` probes this path automatically:
+- **Arquivo principal**: `C:\Users\marco\models\cyber-tiel-coder-35b-a3b\Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL.gguf` (17.2 GB)
+- **Projetor multimodal (visão)**: `C:\Users\marco\models\cyber-tiel-coder-35b-a3b\mmproj-BF16.gguf` (0.9 GB)
+- **Finalidade**: Cérebro local dedicado ao MIKE (`:8083`), especializado em geração de código, tool calling e raciocínio técnico.
+- **Rollback documentado**: `C:\Users\marco\models\ornith-1.5-35b-a3b\Ornith-1.5-35B-A3B-Q3_K_XL.gguf` (17.8 GB).
+- **Script de inicialização**: `C:\Users\marco\f51-llamacpp\start-f51.ps1` (disparado no boot pelo Windows via `start-f51.cmd`).
 
-```text
-Qwen3.8-27B-Q4_K_M.gguf        15.9 GB   (2-GPU / offload profile)
-Qwen3.8-27B-UD-IQ2_XXS.gguf     8.4 GB   (single-GPU 12GB VRAM, Unsloth Dynamic v3)
-Qwen3.8-27B-UD-IQ3_XXS.gguf    11.1 GB   (single-GPU, tight KV headroom)
-mmproj-BF16.gguf                0.9 GB   (vision projector for image input)
-```
+## 2. SuperEzio (Decisão e Comitê)
 
-- **llama-server**: present at `C:\Users\marco\tools\llama.cpp\llama-server.exe`
-  (build 10435, 0.1.0-dev) — `config.ps1` probes this path automatically.
-- **LoRA**: the current runtime config (`config.ps1`) uses no LoRA adapter.
+- **Bob (CEO / Agente Central)**: `deepseek-v4-pro` (API oficial DeepSeek HTTPS).
+- **Orquestrador**: `deepseek-v4-pro`.
+- **Especialistas Financeiros (6 roles), Judge e Auditor**: `deepseek-v4-flash` (API oficial DeepSeek HTTPS).
+- **Fallback opcional**: `glm-5.3` (Z.ai Coding Plan).
 
-## Single-GPU recommendation (12GB VRAM)
+## 3. Modelos Locais Quantitativos / ML do SuperEzio (CPU / Scipy / Sklearn)
 
-Use `Qwen3.8-27B-UD-IQ2_XXS.gguf` (8.4GB): fits VRAM-only with ~3.4GB
-headroom for an 8-16K context. Unsloth recommends `presence_penalty >= 1.5`
-for quants below Q2_K_XL to avoid repetition loops. The Q4_K_M build needs
-either 2 working GPUs or CPU offload (48GB system RAM available).
+- **`TechnicalNeuralExpert`**: MLP tri-classe (UP, DOWN, SIDEWAYS) com calibração out-of-sample contra climatologia de retornos (`src/experts/technical_neural/`).
+- **12 Modelos de Crise**: LPPLS, Hawkes Process, Growth-at-Risk, Shiller CAPE, SRISK, Minsky-Keen, Markov Switching, BIS Credit Gap, etc. (`src/experts/crisis/models/`).
+- **Meta-Labeling & Triple Barrier**: Calibração probabilística pré-broker e dimensionamento de posição (`src/core/trading/meta_labeling.py`).
+- **TF-IDF RAG Forense**: Recuperação vetorial léxica via Scikit-learn (`src/core/rag/tfidf_rag.py`).
 
 ## How To Add Variants
 
