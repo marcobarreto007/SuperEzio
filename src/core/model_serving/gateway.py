@@ -431,6 +431,26 @@ class ModelGateway:
                                 return [fallback_p]
                             return [p, fallback_p]
 
+                    # Judge/Auditor fallback: when arbitration provider fails or is in cooldown,
+                    # fall back to DeepSeek so rate limits do not break the whole pipeline.
+                    if allow_fallback and p.name in {
+                        DAYTRADE_JUDGE_PROVIDER_NAME,
+                        DAYTRADE_AUDITOR_PROVIDER_NAME,
+                    }:
+                        deepseek_p = next(
+                            (
+                                other
+                                for other in self.providers
+                                if other.name == DEEPSEEK_PROVIDER_NAME
+                            ),
+                            None,
+                        )
+                        if deepseek_p and deepseek_p != p:
+                            fallback_p = self._role_degrade_provider(p, deepseek_p)
+                            if _skip_cooldown(p.name):
+                                return [fallback_p]
+                            return [p, fallback_p]
+
                     if (
                         p.name
                         in {
