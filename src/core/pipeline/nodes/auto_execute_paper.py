@@ -13,6 +13,7 @@ import time
 from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from langgraph.config import get_stream_writer
 
@@ -34,6 +35,15 @@ from core.trading.execution_policy import (
 )
 
 logger = get_logger(__name__)
+
+# Chaves das barreiras da triple barrier. Ficam FORA do schema do PaperTrade, entao
+# precisam ser separadas antes de reconstruir o dataclass (ver replay_dead_letter_entry).
+_BARRIER_KEYS: tuple[str, ...] = (
+    "stop_loss_price",
+    "take_profit_price",
+    "time_horizon_bars",
+    "asymmetry_ratio",
+)
 
 # Dedup guard: memory cache for fast-reject within same process
 _EXECUTED: deque[str] = deque(maxlen=64)
@@ -755,8 +765,11 @@ def _journal_trade(
                 expected_holding_period="swing",
                 **learning_context,
             )
-            journal_entry = trade.to_dict()
-            trade_id = journal.open_trade(trade)
+            # Barreiras persistidas na ABERTURA: e contra elas que o fechador
+            # (position_closer.py, estagio TRACK do heartbeat) decide o desfecho.
+            barriers = _entry_barriers(ticker, limit_price, action, trade.expected_holding_period)
+            journal_entry = {**trade.to_dict(), **barriers}
+            trade_id = journal.open_trade(trade, extra=barriers)
             logger.info(
                 "paper_trade_opened",
                 trade_id=trade_id,
@@ -845,7 +858,12 @@ def replay_dead_letter_entry(entry: dict) -> dict:
                     "file": dl_file,
                 }
         else:
-            payload = snapshot.get("journal_entry") or {}
+            payload = dict(snapshot.get("journal_entry") or {})
+            # As barreiras viajam FORA do schema do dataclass. Separa-las antes de
+            # reconstruir o PaperTrade evita TypeError de kwarg desconhecido, e faz o
+            # replay re-persistir o trade COM as barreiras originais -- sem isso um
+            # trade replayado nunca seria fechavel pelo fechador.
+            extra = {k: payload.pop(k) for k in _BARRIER_KEYS if k in payload}
             if payload:
                 trade = PaperTrade(**payload)
             else:
@@ -864,6 +882,7 @@ def replay_dead_letter_entry(entry: dict) -> dict:
                     risk_assessment="unknown",
                     expected_holding_period="swing",
                 )
+                extra = _entry_barriers(ticker, limit_price, action, "swing")
             if any(
                 open_trade.get("trade_id") == trade.trade_id for open_trade in journal.list_open()
             ):
@@ -872,12 +891,50 @@ def replay_dead_letter_entry(entry: dict) -> dict:
                     "reason": f"already_persisted:{trade.trade_id}",
                     "file": dl_file,
                 }
-            trade_id = journal.open_trade(trade)
+            trade_id = journal.open_trade(trade, extra=extra)
         _mark("done")
         return {"status": "done", "trade_id": trade_id, "file": dl_file}
     except Exception as exc:  # noqa: BLE001 — replay falho marca failed e devolve o erro
         _mark("failed")
         return {"status": "failed", "error": str(exc)[:200], "file": dl_file}
+
+
+def _entry_barriers(
+    ticker: str,
+    entry_price: float,
+    action: str,
+    expected_holding_period: str,
+) -> dict[str, Any]:
+    """Barreiras da triple barrier, persistidas na ABERTURA do trade paper.
+
+    Este e o ponto onde o trade nasce com stop, alvo e prazo definidos. Sem isto o
+    fechador nao tem contra o que avaliar e o trade fica aberto para sempre (ele
+    reporta `missing_barriers` em vez de inventar nivel).
+
+    Sem preco de entrada valido devolve `{}` -- honesto: nao se inventa barreira
+    sobre preco que nao existe, e o fechador vai pular a linha reportando o motivo.
+    """
+    if not entry_price or entry_price <= 0:
+        return {}
+    try:
+        from core.trading.holding_period import holding_period_bars
+        from core.trading.meta_labeling import build_barriers
+
+        side = "BUY" if str(action).lower() == "buy" else "SELL"
+        barriers = build_barriers(
+            entry_price=float(entry_price),
+            side=side,
+            time_horizon_bars=holding_period_bars(expected_holding_period),
+        )
+    except Exception as exc:  # noqa: BLE001 - barreira ausente nao pode derrubar a abertura
+        logger.warning("entry_barriers_failed", ticker=ticker, error=str(exc)[:200])
+        return {}
+    return {
+        "stop_loss_price": barriers.stop_loss_price,
+        "take_profit_price": barriers.take_profit_price,
+        "time_horizon_bars": barriers.time_horizon_bars,
+        "asymmetry_ratio": barriers.asymmetry_ratio,
+    }
 
 
 def _normalize_prediction_direction(value: object) -> str | None:

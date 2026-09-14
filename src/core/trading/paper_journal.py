@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import threading
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -298,9 +299,19 @@ class PaperJournal:
                 os.fsync(f.fileno())
             os.replace(tmp_path, self._path)
 
-    def open_trade(self, trade: PaperTrade) -> str:
-        """Abre um novo trade paper. Retorna o trade_id."""
-        self._append(trade.to_dict())
+    def open_trade(self, trade: PaperTrade, extra: Mapping[str, Any] | None = None) -> str:
+        """Abre um novo trade paper. Retorna o trade_id.
+
+        `extra` persiste chaves FORA do schema do dataclass -- e por onde as
+        barreiras da triple barrier (`stop_loss_price`, `take_profit_price`,
+        `time_horizon_bars`) viajam desde a abertura. Nao precisa migrar schema:
+        `add_trade` ja copia chaves desconhecidas para a linha, e `_append` nao
+        filtra campo nenhum.
+        """
+        row = trade.to_dict()
+        if extra:
+            row.update(extra)
+        self._append(row)
         logger.info(
             "Paper trade opened: %s %s %s @ %.2f",
             trade.trade_id,

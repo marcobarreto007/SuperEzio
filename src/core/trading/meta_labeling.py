@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -93,8 +93,16 @@ def build_barriers(
     side: str = "BUY",
     default_stop_pct: float = 0.05,
     default_asymmetry: float = TARGET_ASYMMETRY_RATIO,
+    time_horizon_bars: int | None = None,
 ) -> BarrierProfile:
-    """Calculate Upper, Lower, and Vertical barriers for the candidate trade."""
+    """Calculate Upper, Lower, and Vertical barriers for the candidate trade.
+
+    `time_horizon_bars` e a barreira VERTICAL. Fica explicita no parametro (e nao so
+    no default da dataclass) para que o horizonte derivado do produto -- o mapa
+    `expected_holding_period` -> barras de `holding_period.py` -- chegue aqui em vez
+    de o chamador ter que remendar o `BarrierProfile` depois. `None` preserva o
+    default historico de 14 barras.
+    """
     if entry_price <= 0:
         raise ValueError(f"entry_price must be positive, got {entry_price}")
 
@@ -118,7 +126,7 @@ def build_barriers(
 
     asymmetry = profit_dist / stop_dist if stop_dist > 0 else 0.0
 
-    return BarrierProfile(
+    profile = BarrierProfile(
         entry_price=entry_price,
         stop_loss_price=stop_loss_price,
         take_profit_price=take_profit_price,
@@ -126,6 +134,9 @@ def build_barriers(
         profit_distance=round(profit_dist, 4),
         asymmetry_ratio=round(asymmetry, 4),
     )
+    if time_horizon_bars is None:
+        return profile
+    return replace(profile, time_horizon_bars=int(time_horizon_bars))
 
 
 def extract_meta_features(

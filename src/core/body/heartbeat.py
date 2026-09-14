@@ -21,6 +21,7 @@ import os
 import time
 from collections.abc import Callable
 from enum import Enum
+from functools import partial
 from typing import Any
 
 from core.body.event_bus import BodyEventBus, EventSeverity
@@ -83,12 +84,36 @@ INTERVAL_FULL: int = 300  # 5 minutos
 INTERVAL_LIGHT: int = 60  # 60 segundos
 INTERVAL_DEEP: int = 3600  # 60 minutos
 
+# Fechador de posicao (corpo do estagio TRACK). O ciclo LIGHT bate a cada 60s e cada
+# trade aberto custa um fetch de candles; sem intervalo proprio isso viraria dezenas
+# de chamadas por minuto no provider de dados. Default = mesmo passo do ciclo FULL.
+INTERVAL_POSITION_CLOSER: int = 300
+# Teto de tempo do ciclo. Passou disso, o fechador e abandonado ate o proximo -- o
+# heartbeat nao pode ficar preso esperando provider de mercado.
+POSITION_CLOSER_TIMEOUT: float = 30.0
+
 
 # ---------------------------------------------------------------------------
 # Stage callback type
 # ---------------------------------------------------------------------------
 
 StageCallback = Callable[[HeartbeatStage, HeartbeatCycle], Any]
+
+
+def _position_closer_enabled() -> bool:
+    """Liga o fechador no estagio TRACK. Default: LIGADO, mas em dry-run.
+
+    O fechador roda em simulacao por padrao (`position_closer.dry_run_from_env`), entao
+    liga-lo nao fecha nada sozinho -- so LOGA o que fecharia. Para desligar de vez,
+    `SUPEREZIO_POSITION_CLOSER_ENABLED=0`.
+    """
+    return str(os.getenv("SUPEREZIO_POSITION_CLOSER_ENABLED", "1")).strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
 
 # ---------------------------------------------------------------------------
 # HeartbeatLoop
@@ -121,6 +146,8 @@ class HeartbeatLoop:
         self._last_full: float = 0.0
         self._last_light: float = 0.0
         self._last_deep: float = 0.0
+        # Ultimo ciclo do fechador de posicao (estagio TRACK). Ver _execute_track.
+        self._last_position_closer: float = 0.0
         self._beat_count: int = 0
         self._pain_log: list[dict[str, Any]] = []
         self._stage_callbacks = stage_callbacks or {}
@@ -288,6 +315,8 @@ class HeartbeatLoop:
             await self._execute_verify()
         elif stage == HeartbeatStage.SCAN:
             await self._execute_scan(cycle)
+        elif stage == HeartbeatStage.TRACK:
+            await self._execute_track()
 
         # Call custom callback if registered
         cb = self._stage_callbacks.get(stage)
@@ -422,6 +451,59 @@ class HeartbeatLoop:
                 logger.debug("Heartbeat SCAN (Mangala) timed out after 15s")
             except Exception:  # noqa: BLE001 - deliberado: scanner opcional; falha vira debug.
                 logger.debug("Heartbeat SCAN (Mangala) unavailable")
+
+    # ------------------------------------------------------------------
+    # Pipeline integration: TRACK -> fechador de posicao
+    # ------------------------------------------------------------------
+
+    async def _execute_track(self) -> None:
+        """TRACK stage: fecha posicoes paper que bateram stop, alvo ou prazo.
+
+        O fechador e o CORPO deste estagio: le `journal.list_open()`, busca candles e
+        avalia as barreiras persistidas na abertura. Antes disso TRACK nao tinha
+        executor -- so callback externo.
+
+        Duas travas de custo, porque isto e I/O de rede dentro do loop de batimento:
+          - intervalo proprio (INTERVAL_POSITION_CLOSER), senao o ciclo LIGHT de 60s
+            faria um fetch de candles por trade aberto a cada minuto;
+          - timeout, para o heartbeat nao ficar preso esperando provider de mercado.
+
+        Falha aqui vira debug, nunca derruba o ciclo: e um dos estagios de melhor
+        esforco, igual SCORE/VERIFY/SCAN.
+        """
+        if not _position_closer_enabled():
+            logger.debug("Heartbeat TRACK (position closer) desligado por env")
+            return
+
+        now = time.monotonic()
+        if now - self._last_position_closer < INTERVAL_POSITION_CLOSER:
+            logger.debug("Heartbeat TRACK (position closer) em intervalo de throttle")
+            return
+        self._last_position_closer = now
+
+        try:
+            from core.trading.position_closer import close_positions, dry_run_from_env
+
+            loop = asyncio.get_running_loop()
+            report = await asyncio.wait_for(
+                loop.run_in_executor(None, partial(close_positions, dry_run=dry_run_from_env())),
+                timeout=POSITION_CLOSER_TIMEOUT,
+            )
+            # Sumario no barramento: as decisoes por trade ja vao para o log do
+            # fechador, e publicar a lista inteira inflaria o evento sem leitor.
+            summary = {k: v for k, v in report.to_dict().items() if k != "decisions"}
+            await self._bus.publish(
+                event_type="event:pipeline.position.closer",
+                payload=summary,
+                source="f51-heartbeat",
+                severity=EventSeverity.INFO,
+            )
+        except TimeoutError:
+            logger.debug(
+                "Heartbeat TRACK (position closer) timed out after %ss", POSITION_CLOSER_TIMEOUT
+            )
+        except Exception:  # noqa: BLE001 - deliberado: estagio opcional; falha vira debug.
+            logger.debug("Heartbeat TRACK (position closer) unavailable")
 
     # ------------------------------------------------------------------
     # Pain registration

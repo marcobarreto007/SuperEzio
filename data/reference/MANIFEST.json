@@ -1,0 +1,273 @@
+{
+ "gerado_em": "2026-09-14T05:51:52+00:00",
+ "raiz": "data/reference/",
+ "moeda": "custo zero - nenhuma fonte paga, nenhum token usado",
+ "fontes": [
+  {
+   "fonte": "AYUSHKHAIRE/all-stock-market-data-daily-updates",
+   "expert_alvo": "technical_neural",
+   "url": "https://huggingface.co/datasets/AYUSHKHAIRE/all-stock-market-data-daily-updates",
+   "arquivo": "data/reference/technical_neural/<A-Z>/<TICKER>.csv",
+   "tamanho_bytes": 321199965,
+   "linhas": null,
+   "linhas_nota": "soma de barras VALIDAS de todos os tickers; linhas com timestamp mas OHLCV em branco foram descartadas na contagem",
+   "tickers_baixados": 794,
+   "tickers_disponiveis_no_repo": 18585,
+   "barras_por_ticker": {
+    "min": 4014,
+    "mediana": 4198,
+    "max": 4198,
+    "abaixo_de_161": 0
+   },
+   "cobertura": "2010-01-04 -> 2026-09-11",
+   "cobertura_por_ticker_fim": {
+    "mais_antigo": "2026-08-28",
+    "mais_recente": "2026-09-11"
+   },
+   "licenca": "CC0-1.0",
+   "verificado_em": "2026-09-14",
+   "barras_validas_por_ticker": {
+    "min": 1166,
+    "mediana": 4198,
+    "max": 4198,
+    "abaixo_de_161": 0,
+    "abaixo_de_1000": 0
+   },
+   "lotes": {
+    "curado_liquido": {
+     "n_tickers": 292,
+     "barras_min": 1166,
+     "barras_mediana": 4198,
+     "barras_max": 4198,
+     "abaixo_de_161": 0,
+     "abaixo_de_1000": 0,
+     "com_linhas_vazias": 1,
+     "linhas_vazias_total": 1,
+     "inicio_min": "2010-01-04",
+     "fim_max": "2026-09-11",
+     "bytes": 106977789
+    },
+    "por_tamanho_de_arquivo": {
+     "n_tickers": 502,
+     "barras_min": 2942,
+     "barras_mediana": 4198,
+     "barras_max": 4198,
+     "abaixo_de_161": 0,
+     "abaixo_de_1000": 0,
+     "com_linhas_vazias": 47,
+     "linhas_vazias_total": 189,
+     "inicio_min": "2010-01-04",
+     "fim_max": "2026-09-11",
+     "bytes": 214222176
+    }
+   },
+   "armadilhas_do_schema": [
+    "O card diz 'sem header'. FALSO: todo CSV tem header (open,volume,high,low,close,timestamp em alguma ordem).",
+    "A ORDEM DAS COLUNAS VARIA POR ARQUIVO: 87 ordens distintas nos 794 arquivos. Apenas 19 arquivos usam a ordem que o card documenta. Parsear por POSICAO FIXA corrompe os dados silenciosamente - e' obrigatorio mapear pelo header.",
+    "Existem linhas com timestamp preenchido e OHLCV VAZIO (48 arquivos, 190 linhas). Precisam ser filtradas.",
+    "Nao ha coluna de ticker: o simbolo vem do nome do arquivo. timestamp e' epoch em SEGUNDOS (UTC)."
+   ]
+  },
+  {
+   "fonte": "FRED (Federal Reserve Bank of St. Louis) - fredgraph.csv",
+   "expert_alvo": "crisis",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=<SERIE>",
+   "arquivo": "data/reference/crisis/FRED_*.csv",
+   "tamanho_bytes": 333941,
+   "linhas": 20005,
+   "cobertura": "1966-01-01 -> 2026-09-11 (agregado das 6 series)",
+   "licenca": "Misto - ver licenca por serie",
+   "verificado_em": "2026-09-14",
+   "series": [
+    {
+     "serie": "BAMLH0A0HYM2",
+     "descricao": "ICE BofA US High Yield Index Option-Adjusted Spread (spread high yield)",
+     "arquivo": "data/reference/crisis/FRED_BAMLH0A0HYM2.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2",
+     "tamanho_bytes": 12718,
+     "linhas": 795,
+     "cobertura": "2023-09-12 -> 2026-09-10",
+     "licenca": "Copyright ICE Data Indices - uso restrito",
+     "verificado_em": "2026-09-14"
+    },
+    {
+     "serie": "T10Y2Y",
+     "descricao": "10-Year Treasury Constant Maturity Minus 2-Year (curva de juros)",
+     "arquivo": "data/reference/crisis/FRED_T10Y2Y.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y2Y",
+     "tamanho_bytes": 209769,
+     "linhas": 13119,
+     "cobertura": "1976-06-01 -> 2026-09-11",
+     "licenca": "US Government - dominio publico",
+     "verificado_em": "2026-09-14"
+    },
+    {
+     "serie": "GFDEGDQ188S",
+     "descricao": "Federal Debt: Total Public Debt as Percent of GDP (divida/PIB)",
+     "arquivo": "data/reference/crisis/FRED_GFDEGDQ188S.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GFDEGDQ188S",
+     "tamanho_bytes": 4899,
+     "linhas": 241,
+     "cobertura": "1966-01-01 -> 2026-01-01",
+     "licenca": "US Government - dominio publico",
+     "verificado_em": "2026-09-14"
+    },
+    {
+     "serie": "STLFSI4",
+     "descricao": "St. Louis Fed Financial Stress Index (estresse financeiro)",
+     "arquivo": "data/reference/crisis/FRED_STLFSI4.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=STLFSI4",
+     "tamanho_bytes": 31835,
+     "linhas": 1706,
+     "cobertura": "1993-12-31 -> 2026-09-04",
+     "licenca": "Federal Reserve Bank of St. Louis",
+     "verificado_em": "2026-09-14"
+    },
+    {
+     "serie": "NFCI",
+     "descricao": "Chicago Fed National Financial Conditions Index (condicoes financeiras)",
+     "arquivo": "data/reference/crisis/FRED_NFCI.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=NFCI",
+     "tamanho_bytes": 51457,
+     "linhas": 2905,
+     "cobertura": "1971-01-08 -> 2026-09-04",
+     "licenca": "Federal Reserve Bank of Chicago",
+     "verificado_em": "2026-09-14"
+    },
+    {
+     "serie": "WALCL",
+     "descricao": "Federal Reserve Total Assets (balanco do Fed)",
+     "arquivo": "data/reference/crisis/FRED_WALCL.csv",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL",
+     "tamanho_bytes": 23263,
+     "linhas": 1239,
+     "cobertura": "2002-12-18 -> 2026-09-09",
+     "licenca": "Federal Reserve - dominio publico",
+     "verificado_em": "2026-09-14"
+    }
+   ],
+   "limitacao": "BAMLH0A0HYM2 so retorna 795 linhas (2023-09-12 -> 2026-09-10): a FRED restringe a serie a 3 anos por copyright da ICE. Pedido com cosd=1996-12-31 devolve o mesmo recorte. Verificado na pagina do serie: 'observation start:2023-09-12'."
+  },
+  {
+   "fonte": "OFR Financial Stress Index (Office of Financial Research, US Treasury)",
+   "expert_alvo": "crisis",
+   "url": "https://www.financialresearch.gov/financial-stress-index/data/fsi.csv",
+   "arquivo": "data/reference/crisis/OFR_fsi.csv",
+   "tamanho_bytes": 514605,
+   "linhas": 6755,
+   "cobertura": "2000-01-03 -> 2026-09-09",
+   "colunas": "Date, OFR FSI, Credit, Equity valuation, Safe assets, Funding, Volatility, United States, Other advanced economies, Emerging markets",
+   "licenca": "US Government - dominio publico",
+   "verificado_em": "2026-09-14"
+  },
+  {
+   "fonte": "JST Macrohistory Database R.6 (Banco de Francia / LSE)",
+   "expert_alvo": "crisis",
+   "url": "https://www.macrohistory.net/database/ -> JSTdatasetR6.xlsx",
+   "arquivo": "data/reference/crisis/JSTdatasetR6.xlsx",
+   "tamanho_bytes": 1408158,
+   "linhas": 2718,
+   "linhas_nota": "2718 linhas = 18 paises x anos 1870-2020 (painel), 59 colunas",
+   "cobertura": "1870 -> 2020, 18 paises",
+   "colunas_de_interesse": [
+    "crisisJST",
+    "crisisJST_old",
+    "debtgdp",
+    "tloans",
+    "bdebt"
+   ],
+   "crises_sistemicas_marcadas": 88,
+   "licenca": "CC BY-NC-SA 4.0 - NAO-COMERCIAL. Uso comercial proibido sem licenca separada.",
+   "verificado_em": "2026-09-14"
+  },
+  {
+   "fonte": "Robert Shiller - Online Data (CAPE)",
+   "expert_alvo": "crisis",
+   "url": "https://shillerdata.com/ -> ie_data.xls",
+   "arquivo": "data/reference/crisis/Shiller_ie_data.xls",
+   "tamanho_bytes": 1674752,
+   "linhas": 1870,
+   "linhas_nota": "aba 'Data', leitura com skiprows=7; 1870 linhas mensais 1871.01-2026.09",
+   "cobertura": "1871.01 -> 2026.09 (mensal)",
+   "colunas_de_interesse": [
+    "Date",
+    "CPI",
+    "Rate GS10",
+    "Price",
+    "Earnings",
+    "CAPE",
+    "TR CAPE"
+   ],
+   "licenca": "Uso livre com atribuicao a Robert Shiller (dados publicos academicos)",
+   "verificado_em": "2026-09-14"
+  },
+  {
+   "fonte": "BIS - Credit-to-GDP gaps (WS_CREDIT_GAP)",
+   "expert_alvo": "crisis",
+   "url": "https://data.bis.org/static/bulk/WS_CREDIT_GAP_csv_flat.zip",
+   "url_pagina": "https://data.bis.org/bulkdownload",
+   "arquivo": "data/reference/crisis/BIS_WS_CREDIT_GAP_csv_flat.zip",
+   "arquivo_extraido": "data/reference/crisis/WS_CREDIT_GAP_csv_flat.csv",
+   "tamanho_bytes": 252401,
+   "tamanho_extraido_bytes": 6506913,
+   "linhas": 24488,
+   "cobertura": "1947-Q4 -> 2025-Q4 (trimestral), 44 paises",
+   "colunas_de_interesse": [
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "BORROWERS_CTY",
+    "CG_DTYPE (A=razao efetiva, B=tendencia HP, C=gap)"
+   ],
+   "licenca": "BIS - dados livres para uso nao-comercial com atribuicao",
+   "verificado_em": "2026-09-14"
+  },
+  {
+   "fonte": "AlphaDojo/dojo_stock_kline",
+   "expert_alvo": "technical_neural",
+   "url": "https://huggingface.co/datasets/AlphaDojo/dojo_stock_kline",
+   "arquivo": "data/reference/alphadojo/data.parquet",
+   "tamanho_bytes": 302189021,
+   "linhas": 8595510,
+   "cobertura": "2025-01-02 -> 2026-09-11",
+   "n_simbolos": 24882,
+   "barras_por_simbolo": {
+    "max": 424,
+    "mediana": 412.0,
+    "com_ge_161": 21298,
+    "com_ge_1000": 0
+   },
+   "top5_por_barras": [
+    {
+     "symbol": "EBIT",
+     "barras": 424
+    },
+    {
+     "symbol": "EUSB",
+     "barras": 424
+    },
+    {
+     "symbol": "EUDV",
+     "barras": 424
+    },
+    {
+     "symbol": "ITDH",
+     "barras": 424
+    },
+    {
+     "symbol": "EWD",
+     "barras": 424
+    }
+   ],
+   "licenca": "Apache-2.0",
+   "verificado_em": "2026-09-14",
+   "limitacao": "Profundidade por simbolo e' rasa: MAXIMO de 424 barras (2025-01-02 -> 2026-09-11). Nenhum simbolo atinge 1000 barras. O card anuncia ~4.86M linhas, o arquivo real tem 8595510 linhas."
+  },
+  {
+   "fonte": "paperswithbacktest/Stocks-Daily-Price (+ espelho HexQuant)",
+   "expert_alvo": "technical_neural",
+   "status": "NAO BAIXADO - POR DECISAO",
+   "motivo": "O card exige assinatura paga para baixar. A API reporta gated=false, o que e' enganoso. Instrucao explicita de nao baixar. Custo zero e' trava.",
+   "verificado_em": "2026-09-14"
+  }
+ ]
+}
