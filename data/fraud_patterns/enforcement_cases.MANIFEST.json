@@ -1,0 +1,53 @@
+{
+  "dataset_name": "enforcement_cases",
+  "description": "Casos reais de enforcement regulatório (SEC, CSA, OSC, BCSC, CIRO, DOJ) para SDCA e FraudAnalyst",
+  "generated_at": "2026-09-14T09:10:02.176581+00:00",
+  "total_cases": 87,
+  "file_path": "data/fraud_patterns/enforcement_cases.jsonl",
+  "sha256": "f12084eb18dc96bc68ef938099dc8d777e5501dc991e343ce44ad2a0c06a5d64",
+  "integrity": {
+    "placeholder_urls_count": 0,
+    "all_urls_resolvable": true,
+    "synthetic_mock_count": 0
+  },
+  "distributions": {
+    "case_types": {
+      "securities_fraud": 54,
+      "insider_trading": 10,
+      "unregistered_offering": 3,
+      "pump_and_dump": 4,
+      "accounting_fraud": 8,
+      "ponzi_scheme": 2,
+      "market_manipulation": 4,
+      "crypto_fraud": 1,
+      "spoofing": 1
+    },
+    "sources": {
+      "SEC": 81,
+      "BCSC": 2,
+      "CSA": 1,
+      "CIRO": 1,
+      "AMF": 1,
+      "DOJ": 1
+    },
+    "markets": {
+      "US": 82,
+      "CA": 5
+    }
+  },
+  "primary_sources": [
+    {
+      "name": "SEC Litigation Releases Docket",
+      "api": "https://api.ai-analytics.org/api/v1/sec/litigation/recent",
+      "upstream": "https://www.sec.gov/enforcement-litigation/litigation-releases"
+    },
+    {
+      "name": "Canadian Securities Regulators (CSA, OSC, BCSC, CIRO, AMF)",
+      "references": "data/reference/knowledge/pennylab.jsonl"
+    },
+    {
+      "name": "US Department of Justice / Commodity Futures Trading Commission",
+      "references": "https://www.justice.gov/opa/pr"
+    }
+  ]
+}
