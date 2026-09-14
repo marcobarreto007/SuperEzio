@@ -91,8 +91,22 @@ def test_get_market_data_short_history_propagates_none_indicators():
     """FinancialEngine.get_market_data with short candle history returns None for indicators."""
     engine = FinancialEngine()
     short_candles = [
-        {"time": "2026-09-10", "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.5, "volume": 1000},
-        {"time": "2026-09-11", "open": 10.5, "high": 12.0, "low": 10.0, "close": 11.5, "volume": 1200},
+        {
+            "time": "2026-09-10",
+            "open": 10.0,
+            "high": 11.0,
+            "low": 9.0,
+            "close": 10.5,
+            "volume": 1000,
+        },
+        {
+            "time": "2026-09-11",
+            "open": 10.5,
+            "high": 12.0,
+            "low": 10.0,
+            "close": 11.5,
+            "volume": 1200,
+        },
     ]
 
     with patch("data.data_hub.hub.get_candles", return_value={"candles": short_candles}):

@@ -1089,14 +1089,18 @@ class TestRateLimitVsCircuit:
         gateway = _gateway(judge, deepseek)
 
         # In normal state with allow_fallback=True, both are available
-        providers = gateway._providers_for_request(DAYTRADE_JUDGE_PROVIDER_NAME, allow_fallback=True)
+        providers = gateway._providers_for_request(
+            DAYTRADE_JUDGE_PROVIDER_NAME, allow_fallback=True
+        )
         assert len(providers) == 2
         assert providers[0].name == DAYTRADE_JUDGE_PROVIDER_NAME
         assert providers[1].name == DEEPSEEK_PROVIDER_NAME
 
         # In cooldown, judge is skipped and deepseek is used
         gateway._provider_cooldown_until[DAYTRADE_JUDGE_PROVIDER_NAME] = time.monotonic() + 100
-        fallback_providers = gateway._providers_for_request(DAYTRADE_JUDGE_PROVIDER_NAME, allow_fallback=True)
+        fallback_providers = gateway._providers_for_request(
+            DAYTRADE_JUDGE_PROVIDER_NAME, allow_fallback=True
+        )
         assert len(fallback_providers) == 1
         assert fallback_providers[0].name == DEEPSEEK_PROVIDER_NAME
 
@@ -1107,7 +1111,9 @@ class TestRateLimitVsCircuit:
         deepseek = _provider(DEEPSEEK_PROVIDER_NAME, priority=-300, model="deepseek-v4-flash")
         gateway = _gateway(auditor, deepseek)
 
-        providers = gateway._providers_for_request(DAYTRADE_AUDITOR_PROVIDER_NAME, allow_fallback=True)
+        providers = gateway._providers_for_request(
+            DAYTRADE_AUDITOR_PROVIDER_NAME, allow_fallback=True
+        )
         assert len(providers) == 2
         assert providers[0].name == DAYTRADE_AUDITOR_PROVIDER_NAME
         assert providers[1].name == DEEPSEEK_PROVIDER_NAME

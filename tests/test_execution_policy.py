@@ -43,7 +43,12 @@ def test_judge_block_reason_veto_blocks():
     # Judge returns BLOCK verdict
     state_block = {
         "judge_results": [
-            {"role": "judge_agent_1", "ok": True, "verdict": "BLOCK", "parsed": {"reason": "risk too high"}}
+            {
+                "role": "judge_agent_1",
+                "ok": True,
+                "verdict": "BLOCK",
+                "parsed": {"reason": "risk too high"},
+            }
         ]
     }
     reason = judge_block_reason(state_block)
@@ -53,7 +58,11 @@ def test_judge_block_reason_veto_blocks():
     # Judge returns VETO
     state_veto = {
         "judge_results": [
-            {"role": "judge_agent_1", "ok": True, "parsed": {"verdict": "VETO", "recommendation": "conflicting analysts"}}
+            {
+                "role": "judge_agent_1",
+                "ok": True,
+                "parsed": {"verdict": "VETO", "recommendation": "conflicting analysts"},
+            }
         ]
     }
     reason = judge_block_reason(state_veto)
@@ -62,9 +71,7 @@ def test_judge_block_reason_veto_blocks():
 
     # Judge returns ALLOW / SUPPORT -> no block
     state_allow = {
-        "judge_results": [
-            {"role": "judge_agent_1", "ok": True, "parsed": {"verdict": "ALLOW"}}
-        ]
+        "judge_results": [{"role": "judge_agent_1", "ok": True, "parsed": {"verdict": "ALLOW"}}]
     }
     assert judge_block_reason(state_allow) is None
 

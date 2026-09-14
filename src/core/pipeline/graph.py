@@ -887,9 +887,7 @@ async def _auto_full_analysis(
         if judge_agents > 0 or auditor_enabled:
             from core.pipeline.nodes.experts import build_judge_context
 
-            judge_context = (
-                build_judge_context(expert_results) if expert_results else data_context
-            )
+            judge_context = build_judge_context(expert_results) if expert_results else data_context
 
         if judge_agents > 0:
 

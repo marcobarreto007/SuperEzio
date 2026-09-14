@@ -155,7 +155,9 @@ def _compute_bollinger(closes: list, period: int = 20) -> tuple[float | None, fl
     return round(mean + 2 * std, 2), round(mean - 2 * std, 2)
 
 
-def _compute_stoch(highs: list, lows: list, closes: list, period: int = 14) -> tuple[float | None, float | None]:
+def _compute_stoch(
+    highs: list, lows: list, closes: list, period: int = 14
+) -> tuple[float | None, float | None]:
     if len(closes) < period or len(highs) < period or len(lows) < period:
         return None, None
     h = max(highs[-period:])
