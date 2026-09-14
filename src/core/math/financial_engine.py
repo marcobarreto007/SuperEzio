@@ -125,29 +125,29 @@ class FinancialEngine:
 # ── Indicator helpers (pure functions, no pandas dependency) ────────────
 
 
-def _compute_rsi(closes: list, period: int = 14) -> float:
+def _compute_rsi(closes: list, period: int = 14) -> float | None:
     value = canonical_rsi(closes, period)
-    return round(value, 1) if value is not None else 50.0
+    return round(value, 1) if value is not None else None
 
 
-def _compute_ema(values: list, span: int) -> float:
+def _compute_ema(values: list, span: int) -> float | None:
     value = canonical_ema(values, span)
-    return round(value, 2) if value is not None else 0.0
+    return round(value, 2) if value is not None else None
 
 
-def _compute_macd(closes: list) -> tuple[float, float]:
+def _compute_macd(closes: list) -> tuple[float | None, float | None]:
     values = canonical_macd(closes)
     line = values["macd"]
     signal = values["signal"]
     return (
-        round(line, 4) if line is not None else 0.0,
-        round(signal, 4) if signal is not None else 0.0,
+        round(line, 4) if line is not None else None,
+        round(signal, 4) if signal is not None else None,
     )
 
 
-def _compute_bollinger(closes: list, period: int = 20) -> tuple[float, float]:
+def _compute_bollinger(closes: list, period: int = 20) -> tuple[float | None, float | None]:
     if len(closes) < period:
-        return 0.0, 0.0
+        return None, None
     window = closes[-period:]
     mean = sum(window) / period
     variance = sum((x - mean) ** 2 for x in window) / period
@@ -155,12 +155,12 @@ def _compute_bollinger(closes: list, period: int = 20) -> tuple[float, float]:
     return round(mean + 2 * std, 2), round(mean - 2 * std, 2)
 
 
-def _compute_stoch(highs: list, lows: list, closes: list, period: int = 14) -> tuple[float, float]:
-    if len(closes) < period:
-        return 50.0, 50.0
+def _compute_stoch(highs: list, lows: list, closes: list, period: int = 14) -> tuple[float | None, float | None]:
+    if len(closes) < period or len(highs) < period or len(lows) < period:
+        return None, None
     h = max(highs[-period:])
     lo = min(lows[-period:])
     if h == lo:
-        return 50.0, 50.0
+        return None, None
     k = 100.0 * (closes[-1] - lo) / (h - lo)
     return round(k, 1), round(k, 1)
