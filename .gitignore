@@ -138,6 +138,8 @@ data/runs/
 data/vectors/
 data/.fuse_hidden*
 data/paper_journal.jsonl
+data/recommendation_ledger.jsonl
+*.lock
 
 # Large binary/dataset files (excedem limite GitHub 100MB)
 *.parquet

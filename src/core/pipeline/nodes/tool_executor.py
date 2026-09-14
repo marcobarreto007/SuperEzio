@@ -498,6 +498,30 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     except (TypeError, ValueError):
         take_profit_price = None
 
+    # ── Caderneta de recomendacoes ────────────────────────────────────────────
+    # Gravada AQUI, e nao no `auto_execute_paper`, de proposito: aquele no so e
+    # alcancado quando o contrato libera `submit_paper_order`, que vem desligado
+    # por default (SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=0) — entao a caderneta
+    # nunca recebia uma linha e o aprendizado seguia faminto. Este no SEMPRE
+    # roda, e este e o unico ponto onde a recomendacao existe completa (entrada
+    # + stop derivado + alvo + tamanho), **aprovada ou bloqueada** — o que o
+    # dono quer registrar e o que o SISTEMA recomendou, nao o que passou.
+    # Melhor esforco: falha aqui nao derruba a execucao (a caderneta e trilho
+    # de aprendizado, nao portao).
+    try:
+        from core.pipeline.nodes.auto_execute_paper import _record_recommendation
+
+        _record_recommendation(
+            state,
+            symbol,
+            action,
+            requested_qty,
+            limit_price,
+            str(state.get("run_id") or ""),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("recommendation_ledger_hook_failed", ticker=symbol, error=str(exc)[:200])
+
     # requested_qty (nao o qty ja capado pelo sizer, que so roda depois): o
     # orcamento de risco e por TRADE, entao o gate mede a ordem como ela foi
     # pedida. Medir o capado deixaria passar risco que o operador nao pediu.

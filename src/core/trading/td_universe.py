@@ -271,3 +271,100 @@ def td_universe_summary() -> dict[str, Any]:
     if state.get("state") == "fresh":
         summary["tradable_symbol_total"] = state.get("symbol_total", 0)
     return summary
+
+
+# ── Universo negociável EFETIVO (config/td_universe_effective.json) ─────────
+# Produzido por scripts/build_effective_universe.py, conferido por
+# scripts/verify_effective_universe.py. Responde o que a lista crua dos 108 não
+# responde: quais são exposições distintas, quais passam na regra de fricção de
+# 0,5% a $1.000, e quais têm histórico suficiente para os experts.
+#
+# Mesmo contrato do tradable_universe_state(): degrada EXPLÍCITO, nunca em
+# silêncio para "tudo liberado". `None` significa "não sei", não "nada serve".
+
+_EFFECTIVE_UNIVERSE_PATH = (
+    Path(__file__).resolve().parents[3] / "config" / "td_universe_effective.json"
+)
+_EFFECTIVE_UNIVERSE_TTL_DAYS = 7
+
+
+@lru_cache(maxsize=1)
+def _load_effective_universe() -> dict[str, Any] | None:
+    """Lê o universo efetivo; None se ausente, ilegível ou schema errado."""
+    if not _EFFECTIVE_UNIVERSE_PATH.exists():
+        return None
+    try:
+        with open(_EFFECTIVE_UNIVERSE_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("symbols"), dict):
+        return None
+    return data
+
+
+def effective_universe_state() -> dict[str, Any]:
+    """Estado do universo efetivo: fresh / stale / missing / invalid."""
+    if not _EFFECTIVE_UNIVERSE_PATH.exists():
+        return {"state": "missing"}
+    data = _load_effective_universe()
+    if data is None:
+        return {"state": "invalid"}
+    age_days = _manifest_age_days(data)
+    if age_days is None:
+        return {"state": "invalid"}
+    ttl_days = data.get("ttl_days") or _EFFECTIVE_UNIVERSE_TTL_DAYS
+    try:
+        ttl_days = int(ttl_days)
+    except (TypeError, ValueError):
+        ttl_days = _EFFECTIVE_UNIVERSE_TTL_DAYS
+    symbols = data["symbols"]
+    eligible = [s for s, v in symbols.items() if isinstance(v, dict) and v.get("eligible")]
+    return {
+        "state": "fresh" if age_days <= ttl_days else "stale",
+        "generated_at": data.get("generated_at"),
+        "age_days": round(age_days, 2),
+        "ttl_days": ttl_days,
+        "symbol_total": len(symbols),
+        "eligible_total": len(eligible),
+        "distinct_exposures": (data.get("headline") or {}).get("distinct_exposure_count"),
+    }
+
+
+def effective_symbols() -> frozenset[str] | None:
+    """Símbolos ELEGÍVEIS; None quando o universo não está fresh.
+
+    None é "não sei", não "nada é elegível" — o consumidor decide se degrada
+    para a lista crua ou recusa. **Não trate None como permissão.**
+    """
+    if effective_universe_state().get("state") != "fresh":
+        return None
+    data = _load_effective_universe() or {}
+    return frozenset(
+        s
+        for s, v in (data.get("symbols") or {}).items()
+        if isinstance(v, dict) and v.get("eligible")
+    )
+
+
+def effective_cluster(symbol: str) -> str | None:
+    """Cluster de exposição do símbolo, ou None se desconhecido.
+
+    Dois papéis do mesmo cluster NÃO diversificam entre si — é o que impede
+    recomendar VFV e VOO como se fossem duas posições.
+    """
+    data = _load_effective_universe() or {}
+    row = (data.get("symbols") or {}).get(str(symbol or "").upper())
+    return row.get("correlation_cluster") if isinstance(row, dict) else None
+
+
+def effective_row(symbol: str) -> dict[str, Any] | None:
+    """A linha do símbolo no universo efetivo, ou None se ele não está lá.
+
+    **None significa "fora do universo", não "reprovado".** Quem chama tem que
+    distinguir os dois: candidato de fora (ação avulsa, penny) não é afetado
+    pelo universo e segue para os gates dele.
+    """
+    data = _load_effective_universe() or {}
+    row = (data.get("symbols") or {}).get(str(symbol or "").upper())
+    return row if isinstance(row, dict) else None

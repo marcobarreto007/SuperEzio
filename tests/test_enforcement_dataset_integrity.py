@@ -27,9 +27,7 @@ def test_manifest_matches_enforcement_dataset():
 
     raw_data = CASES_FILE.read_bytes()
     expected_sha256 = hashlib.sha256(raw_data).hexdigest()
-    assert (
-        manifest["sha256"] == expected_sha256
-    ), "SHA256 do arquivo deve coincidir com o manifesto"
+    assert manifest["sha256"] == expected_sha256, "SHA256 do arquivo deve coincidir com o manifesto"
 
     lines = [json.loads(line) for line in raw_data.decode("utf-8").splitlines() if line.strip()]
     assert len(lines) == manifest["total_cases"], "Contagem de casos deve coincidir com o manifesto"
@@ -44,9 +42,9 @@ def test_zero_placeholders_and_valid_canonical_urls():
         url = case.get("source_url", "")
         case_id = case.get("case_id", "")
         assert url.startswith("http"), f"URL deve ser válida para o caso {case_id}"
-        assert (
-            "xxx" not in url.lower()
-        ), f"Proibido placeholder 'xxx' na URL do caso {case_id}: {url}"
+        assert "xxx" not in url.lower(), (
+            f"Proibido placeholder 'xxx' na URL do caso {case_id}: {url}"
+        )
         assert case.get("date"), f"Data não pode ser nula no caso {case_id}"
         assert case.get("summary"), f"Resumo não pode ser vazio no caso {case_id}"
         assert case.get("case_type"), f"case_type obrigatório no caso {case_id}"

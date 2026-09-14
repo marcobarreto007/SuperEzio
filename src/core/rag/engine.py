@@ -54,6 +54,11 @@ class ForensicRAG:
         paper_trades_dir = str(resolve_project_path("data/paper_trades_rag"))
         if Path(paper_trades_dir).exists():
             self._extra_dirs.append(paper_trades_dir)
+        # Base de conhecimento curada por expert (crisis / pennylab / universe).
+        # Cada item carrega fonte_url e verificado_em — ver data/reference/knowledge/.
+        knowledge_dir = str(resolve_project_path("data/reference/knowledge"))
+        if Path(knowledge_dir).exists():
+            self._extra_dirs.append(knowledge_dir)
         self._loaded = False
 
     # ── Document ingestion ─────────────────────────────────────────────
@@ -132,6 +137,24 @@ class ForensicRAG:
                 except json.JSONDecodeError:
                     continue
                 if not isinstance(row, dict):
+                    continue
+                # Duas formas convivem aqui:
+                #  (a) caso de enforcement: case_id / case_type / summary / known_red_flags
+                #  (b) conhecimento curado:  id / titulo / texto / fonte_url / verificado_em
+                # Sem esta distincao a base de conhecimento entraria como "[CASE] : " vazio.
+                if row.get("titulo") or row.get("texto"):
+                    docs.append(
+                        {
+                            "id": row.get("id", row.get("titulo", "")),
+                            "text": (
+                                f"[{str(row.get('area', 'conhecimento')).upper()}] "
+                                f"{row.get('titulo', '')}. {row.get('texto', '')} "
+                                f"Fonte: {row.get('fonte_nome', '')} ({row.get('fonte_url', '')}), "
+                                f"verificado em {row.get('verificado_em', '')}."
+                            ),
+                            "source": str(row.get("area", os.path.basename(path))),
+                        }
+                    )
                     continue
                 text = (
                     f"[CASE] {row.get('case_type', '')}: {row.get('summary', '')} "

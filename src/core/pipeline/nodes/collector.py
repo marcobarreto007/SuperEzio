@@ -1614,6 +1614,38 @@ async def _run_scan(
                 rejection_summary.get("excluded_previous_recommendation", 0) + 1
             )
             continue
+        # ── Universo efetivo (config/td_universe_effective.json) ──
+        # Só se aplica a quem ESTÁ na lista dos 108: membro do universo que não
+        # passa nos portões dele (fricção > 0,5% a $1.000, ou histórico curto)
+        # não deve ser recomendado. Candidato de FORA do universo não é tocado —
+        # ação avulsa e penny seguem para os gates deles.
+        # Universo não-fresh ⇒ NÃO filtra: decidir com dado velho é pior que
+        # não decidir, e o `effective_row` já devolve None nesse caso.
+        try:
+            from core.trading.td_universe import effective_row
+
+            eff = effective_row(ticker_key)
+        except ImportError:
+            # Import opcional: sem o módulo o scan segue, mas NÃO em silêncio —
+            # o contador abaixo é o que denuncia o no-op numa auditoria.
+            eff = None
+            rejection_summary["effective_universe_unavailable"] = (
+                rejection_summary.get("effective_universe_unavailable", 0) + 1
+            )
+        if eff is not None and not eff.get("eligible", True):
+            rj = dict(item)
+            rj["rejected_reason"] = "not_eligible_at_1000"
+            rj["effective_cluster"] = eff.get("correlation_cluster")
+            rj["effective_reason"] = eff.get("reason_if_excluded") or eff.get("exclusion_reason")
+            rejected.append(rj)
+            rejection_summary["not_eligible_at_1000"] = (
+                rejection_summary.get("not_eligible_at_1000", 0) + 1
+            )
+            continue
+        if eff is not None:
+            # Anota o cluster para quem PASSA: dois papéis do mesmo cluster
+            # não diversificam entre si, e o comitê precisa ver isso.
+            item["effective_cluster"] = eff.get("correlation_cluster")
         ok, reason = _apply_candidate_gate(
             item,
             allow_penny_otc=allow_penny_otc,
