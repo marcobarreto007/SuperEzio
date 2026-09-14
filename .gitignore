@@ -199,6 +199,7 @@ llama.cpp-source/
 
 # Launcher process identity (machine state)
 runtime/api-process.json
+bridge/runtime/bridge-process.json
 
 # Desktop build intermediates
 runtime/desktop-build/
