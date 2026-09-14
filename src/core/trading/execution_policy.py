@@ -37,6 +37,27 @@ def expert_consensus_block_reason(state: Mapping[str, Any]) -> str | None:
     return None
 
 
+def judge_block_reason(state: Mapping[str, Any]) -> str | None:
+    """Fail closed when the arbitration judge explicitly vetos/blocks the trade."""
+    judge_results = state.get("judge_results") or []
+    if not judge_results:
+        return None
+    for j in judge_results:
+        if not isinstance(j, Mapping):
+            continue
+        parsed = j.get("parsed") if isinstance(j.get("parsed"), Mapping) else {}
+        verdict = str(parsed.get("verdict") or j.get("verdict") or "").strip().upper()
+        if verdict in {"BLOCK", "VETO", "REJECT", "NEGATIVE"}:
+            reason = str(
+                parsed.get("reason")
+                or parsed.get("recommendation")
+                or j.get("error")
+                or "judge_veto"
+            )
+            return f"arbitration judge vetoed order: {reason}"
+    return None
+
+
 def evaluate_neural_execution_gate(state: Mapping[str, Any], action: str) -> dict[str, Any]:
     """Validate that an autonomous order is backed by a usable neural forecast.
 

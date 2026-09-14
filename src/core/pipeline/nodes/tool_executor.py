@@ -440,11 +440,16 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         adaptive_sizing_config,
         evaluate_neural_execution_gate,
         expert_consensus_block_reason,
+        judge_block_reason,
     )
 
     consensus_block = expert_consensus_block_reason(state)
     if consensus_block:
         return {"submit_paper_order_error": f"weighted_expert_consensus:{consensus_block}"}
+
+    judge_block = judge_block_reason(state)
+    if judge_block:
+        return {"submit_paper_order_error": f"arbitration_judge:{judge_block}"}
 
     neural_gate = evaluate_neural_execution_gate(
         state, str(args.get("action", args.get("side", "buy")))

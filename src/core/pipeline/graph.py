@@ -884,6 +884,13 @@ async def _auto_full_analysis(
                 red_team_results.extend(batch)
             _merge_node_update(working_state, output, {"red_team_results": red_team_results})
 
+        if judge_agents > 0 or auditor_enabled:
+            from core.pipeline.nodes.experts import build_judge_context
+
+            judge_context = (
+                build_judge_context(expert_results) if expert_results else data_context
+            )
+
         if judge_agents > 0:
 
             async def _run_judge(idx: int) -> list[dict[str, Any]]:
@@ -895,7 +902,7 @@ async def _auto_full_analysis(
                                 "role": f"judge_agent_{idx}",
                                 "replica_id": 1,
                                 "ticker": ticker,
-                                "data_context": data_context,
+                                "data_context": judge_context,
                                 "provider_name": "daytrade_judge",
                             },
                             gateway=gateway,
@@ -926,7 +933,7 @@ async def _auto_full_analysis(
                         "role": "auditor_agent",
                         "replica_id": 1,
                         "ticker": ticker,
-                        "data_context": data_context,
+                        "data_context": judge_context,
                         "provider_name": "daytrade_auditor",
                     },
                     gateway=gateway,

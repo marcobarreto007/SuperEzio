@@ -35,3 +35,38 @@ def test_consensus_requires_negative_decision_and_coverage():
         )
         is None
     )
+
+
+def test_judge_block_reason_veto_blocks():
+    from core.trading.execution_policy import judge_block_reason
+
+    # Judge returns BLOCK verdict
+    state_block = {
+        "judge_results": [
+            {"role": "judge_agent_1", "ok": True, "verdict": "BLOCK", "parsed": {"reason": "risk too high"}}
+        ]
+    }
+    reason = judge_block_reason(state_block)
+    assert reason is not None
+    assert "risk too high" in reason
+
+    # Judge returns VETO
+    state_veto = {
+        "judge_results": [
+            {"role": "judge_agent_1", "ok": True, "parsed": {"verdict": "VETO", "recommendation": "conflicting analysts"}}
+        ]
+    }
+    reason = judge_block_reason(state_veto)
+    assert reason is not None
+    assert "conflicting analysts" in reason
+
+    # Judge returns ALLOW / SUPPORT -> no block
+    state_allow = {
+        "judge_results": [
+            {"role": "judge_agent_1", "ok": True, "parsed": {"verdict": "ALLOW"}}
+        ]
+    }
+    assert judge_block_reason(state_allow) is None
+
+    # Empty judge results -> no block (arbitration was disabled)
+    assert judge_block_reason({}) is None
