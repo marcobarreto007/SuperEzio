@@ -77,8 +77,9 @@ class TestPaperJournal:
         captured = {}
 
         class FakeJournal:
-            def open_trade(self, trade):
+            def open_trade(self, trade, extra=None):
                 captured["trade"] = trade
+                captured["extra"] = extra or {}
                 return trade.trade_id
 
         monkeypatch.setattr(journal_module, "PaperJournal", FakeJournal)
@@ -132,6 +133,12 @@ class TestPaperJournal:
             "crisis": 0.7,
             "fundamental": 0.9,
         }
+        # Barreiras persistidas na abertura: sem elas o fechador nao tem contra o que
+        # avaliar e a linha fica aberta para sempre (position_closer.py reportaria
+        # missing_barriers). Entrada 100, stop 5%, assimetria 2,5:1, swing = 5 barras.
+        assert captured["extra"]["stop_loss_price"] == pytest.approx(95.0)
+        assert captured["extra"]["take_profit_price"] == pytest.approx(112.5)
+        assert captured["extra"]["time_horizon_bars"] == 5
         assert captured["trade"].expert_predictions["crisis"]["direction"] == "DOWN"
         assert captured["trade"].expert_predictions["fundamental"]["direction"] == "UP"
 

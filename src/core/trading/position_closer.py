@@ -116,7 +116,6 @@ class CloserReport:
     dry_run: bool
     evaluated: int
     decisions: list[CloseDecision] = field(default_factory=list)
-    throttle_skipped: bool = False
 
     def _count(self, status: str) -> int:
         return sum(1 for d in self.decisions if d.status == status)
@@ -140,7 +139,6 @@ class CloserReport:
             "closed": self.closed,
             "would_close": self.would_close,
             "skipped": self.skipped,
-            "throttle_skipped": self.throttle_skipped,
             "decisions": [d.to_dict() for d in self.decisions],
         }
 

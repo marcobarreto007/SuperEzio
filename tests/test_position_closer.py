@@ -225,7 +225,6 @@ def test_running_twice_closes_only_once(journal):
 def test_already_closed_by_another_process_is_refused(journal, monkeypatch):
     """Corrida entre processos: a revalidacao antes de fechar recusa o segundo."""
     _open_trade(journal, stop=95.0, target=105.0, horizon=5)
-    hub = _FakeHub({"XEQT": _bars((100.0, 101.0, 94.0, 95.0))})
 
     import core.trading.position_closer as closer_module
 
