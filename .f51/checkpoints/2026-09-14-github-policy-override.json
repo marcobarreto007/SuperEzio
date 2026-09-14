@@ -1,0 +1,90 @@
+{
+  "date_local": "2026-09-14",
+  "session": "github-policy-override-and-learning-loop-investigation",
+  "status": "APPLIED_LOCAL",
+  "objective": "Regra 1 nova: USAR QUALQUER FONTE — pesquisar, clonar e copiar de qualquer origem, com precedencia sobre qualquer restricao de fonte (revoga a antiga regra 6 / DISK ONLY). Registra tambem a investigacao de causa raiz do dia: por que os motores de aprendizado nunca sao abastecidos, por que o sistema neural nunca ativa, e por que o paper_journal nao contem trades reais.",
+  "predecessor": "order-total-risk-and-derived-daily-loss",
+
+  "rule_change_2026_09_14": {
+    "claude_md": "Nova regra 1: USAR QUALQUER FONTE — PESQUISAR, CLONAR E COPIAR, com precedencia sobre qualquer restricao de fonte. Antigas regras 1-5 renumeradas para 2-6. Antiga regra 6 (DISK ONLY) revogada. Protocolo de sobrevivencia segue como regra 7.",
+    "agents_md": "Secao 'REGRA CRITICA: GITHUB BLOQUEADO' substituida por 'REGRA 1: USAR QUALQUER FONTE'. Atualizadas tambem as secoes de Politica de MCPs e de Autonomia.",
+    "github_policy_json": "status active/hard_block -> overridden_by_operator; current_mode disk_only -> any_source_allowed; historico do periodo DISK ONLY preservado nas chaves historical_*.",
+    "not_revoked": "A regra 3 do CLAUDE.md (nunca ler nem commitar .env, chave ou credencial) permanece INTACTA. Fonte externa e livre; credencial propria continua proibida.",
+    "still_forbidden": ["git push", "pull request", "git remote add/set-url origin"],
+    "pending": "O deny list de ~/.claude/settings.json ainda bloqueia Bash(gh *), Bash(git fetch *) e Bash(git pull *). A regra 1 nao remove esse bloqueio — ele precisa de remocao separada."
+  },
+
+  "policy_override": {
+    "policy": "F51_NO_GITHUB_DISK_ONLY",
+    "policy_file": ".f51/GITHUB_POLICY.json",
+    "prior_status": "active / hard_block",
+    "action": "OPERATOR_OVERRIDE",
+    "operator": "Marco Barreto",
+    "operator_required_by_policy": true,
+    "authorized_at_local": "2026-09-14",
+    "authorization_note": "The operator explicitly selected the option to write this checkpoint to release GitHub for this project. This is the 'explicit new Marco checkpoint' and the 'message that clearly says to replace this policy' required by override_policy in .f51/GITHUB_POLICY.json.",
+    "scope": "Clonar e consultar repositorios publicos de referencia (labeler de barreira tripla / meta-labeling, metricas financeiras, fechador de posicao) para estudo e reuso de padroes neste projeto.",
+    "NOT_authorized": [
+      "git push",
+      "abrir pull request",
+      "git remote add origin / git remote set-url origin",
+      "usar GitHub Actions como gate de entrega"
+    ],
+    "harness_layer_note": "O deny list de C:\\Users\\marco\\.claude\\settings.json ainda bloqueia Bash(gh *), Bash(git fetch *) e Bash(git pull *). O override da politica NAO remove esse bloqueio — ele precisa de remocao separada no settings.json, com autorizacao do operador.",
+    "rollback": "Restaurar github: DISK ONLY nos invariants, devolver status=active e current_mode=disk_only em .f51/GITHUB_POLICY.json, e remover o bloco override."
+  },
+
+  "invariants": {
+    "github": "ANY_SOURCE_ALLOWED_2026-09-14",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "c1_c4": "active",
+    "zero_commission_mandate": "ENFORCED",
+    "meta_labeling_gate": "ENFORCED",
+    "equity_truth": "DERIVED_OR_FAIL_CLOSED",
+    "total_order_risk": "ENFORCED",
+    "derived_daily_loss": "ENFORCED",
+    "micro_capital_bankroll": "1000 CAD"
+  },
+
+  "findings": {
+    "paper_journal_not_trades": "534 registros em data/paper_journal.jsonl NAO sao sinais: 453 sao fixtures de tests/contracts/test_mangala_tracker.py (8 assinaturas repetidas, preco redondo) e 81 sao artefatos de ordem bloqueada com entry_price=0. Zero linhas com prefixo bob-. O proprio repo classifica: scripts/quarantine_paper_journal.py:27-41.",
+    "pipeline_worked_in_june": "data/paper_journal_backup_20260628.jsonl tem 21 trades bob-, 14 fechados, 6 wins / 7 losses. O journal atual tem zero. O sistema funcionava e parou.",
+    "lying_indicator": "config/mission_context.json:120-137 declara trades: 23, closed: 13, wins: 6, losses: 7 — numeros de junho, nunca atualizados.",
+    "missing_closer": "NAO EXISTE fechador de posicao: nem monitor de stop/alvo, nem de expiracao, nem agendador, em src/ ou scripts/. Um trade so fecha quando Bob emite uma venda. Este e o elo vermelho: sem ele o journal nunca acumula desfecho, com ou sem gate aberto.",
+    "two_independent_cuts": [
+      "expert_predictions esta {} em 534/534 — sem ele feedback_loop.py:206 nunca roda e expert_stats ficaria vazio MESMO com trades fechados.",
+      "prediction_probability_at_entry e impreenchivel hoje: exige calibration_status in {calibrated, validated_oos}, que exige o modelo neural, que nao tem artefato em disco."
+    ],
+    "engines_are_ghosts": "Os motores de aprendizado rodam, processam zero e reportam sucesso. _update_xp_from_closed_trades devolve status:updated com journal de 0 bytes. adaptive_agent.get_adaptive_config devolve learning_status:durable_outcomes_available baseado so em DEFAULT_OUTCOME_DB.exists() (adaptive_agent.py:111) — existencia de arquivo, nao de dado. data/calibration_log.jsonl nunca foi criado.",
+    "neural_never_ran": "TechnicalNeuralExpert e um MLP sklearn real (treina, calibra, valida OOS, falha fechado). Zero artefatos de modelo em disco. Em producao: 8 eventos NEURAL_DECISION, 8x insufficient_data/TOO_FEW_LABELLED_SAMPLES. Causa: o pipeline pede timeframe=6M (~126-135 barras) e o expert exige >=161. Avaliacao real de 2026-08-20 (output/evals/investment_quality_20260820.json): 0/24 qualificados, veredito INVESTMENT_SKILL_NOT_PROVEN.",
+    "experts_have_no_knowledge": "4 experts (crisis, pennylab, technical_neural, neural_decision), ~48 arquivos .py, ZERO base de conhecimento (json/csv/yaml/md). Um unico RAG (pennylab/rag_hooks.py) e ele empresta o singleton global fraud_patterns (fraud_rag.py:204). Nao existe isolamento por tenant. O crisis TEM formulas de primeira linha (LPPLS, Hawkes, Growth-at-Risk, SRISK, Shiller CAPE, Minsky-Keen) mas nao tem regras nem casos proprios.",
+    "meta_labeling_is_not_a_labeler": "meta_labeling.py e um gate heuristico com pesos escritos a mao (sigmoid de soma ponderada), nao um rotulador treinado. Nao existe labeler de barreira tripla no repo."
+  },
+
+  "files": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".f51/GITHUB_POLICY.json",
+    ".f51/checkpoints/2026-09-14-github-policy-override.json",
+    ".f51/checkpoints/latest.json"
+  ],
+
+  "rollback": "Restaurar a antiga regra 6 (DISK ONLY) no CLAUDE.md e AGENTS.md, devolver status=active e current_mode=disk_only em .f51/GITHUB_POLICY.json, e restaurar github: DISK ONLY nos invariants.",
+
+  "next_step": "Ordem de conserto por dependencia: (1) fechador automatico de posicao sobre list_open() — unico item genuinamente novo e o mais importante; (2) gravar expert_predictions e risk_at_entry na abertura + horizonte numerico para 'swing'; (3) labeler de barreira tripla — candidato: mlfinlab (clone de referencia agora autorizado pela regra 1); (4) formato de expert-tenant com base de conhecimento propria + exemplos + procedencia por item.",
+
+  "verification": {
+    "override_written_by": "operador autorizou explicitamente via checkpoint",
+    "rule_1_in_claude_md": "USAR QUALQUER FONTE presente na regra 1",
+    "rule_1_in_agents_md": "secao REGRA CRITICA: GITHUB BLOQUEADO substituida",
+    "policy_json": "status overridden_by_operator, historico preservado em historical_*"
+  },
+
+  "still_true": {
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "no_push_no_pr": "Fonte externa liberada para pesquisa e clone; push e PR seguem proibidos",
+    "credential_rule": "Regra 3 INTACTA — nunca ler nem commitar .env, chave ou credencial"
+  }
+}

@@ -4,10 +4,15 @@ Porta curta para agentes. Regras completas em `CLAUDE.md`.
 Orquestração detalhada em `docs/AGENT_ORCHESTRATION.md`.
 Arquitetura-alvo (C1 pack + C2 snapshot em sombra; C3 bind ligado; C4 SDCA observe; C5–C6 off): `docs/architecture/TARGET_ARCHITECTURE.md`.
 
-## REGRA CRÍTICA: GITHUB BLOQUEADO
+## REGRA 1: USAR QUALQUER FONTE (PESQUISAR, CLONAR, COPIAR)
 
-Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
-- NUNCA `git push`, `git pull`, `git fetch`, `gh`
+**Precedência sobre qualquer restrição de fonte.** Pode buscar em qualquer lugar (GitHub,
+Hugging Face, papers, repos públicos, bibliotecas) e clonar/copiar o que funciona melhor,
+em vez de reinventar. Revoga a antiga política DISK ONLY de `.f51/GITHUB_POLICY.json` —
+override do operador registrado em `.f51/checkpoints/latest.json` (2026-09-14).
+
+Ainda proibido: `git push`, abrir pull request, `git remote add/set-url origin`, e
+credencial própria em texto claro.
 - Commits locais OBRIGATÓRIOS após cada mudança mínima
 
 ## Exército Versionado (23 agentes)
@@ -116,11 +121,11 @@ python scripts/browser_smoke.py
 MCPs ativos: `context7`, `playwright` e `hugging-face` (`.claude/settings.local.json`,
 `enabledMcpjsonServers`; `hugging-face` via `.mcp.json`).
 Os 8 MCPs catalogados em `.claude/mcp-catalog.json` NÃO estão ativos.
-Playwright (biblioteca pytest) OBRIGATÓRIO com pytest. GitHub BLOQUEADO.
+Playwright (biblioteca pytest) OBRIGATÓRIO com pytest. Fontes externas LIBERADAS (regra 1) — inclusive GitHub, para pesquisa e clone.
 
 ## Autonomia e Bypass de Permissões (Claude Code)
 
 - O arquivo de configuração global (`~/.claude/settings.json`) está configurado no modo **Bypass Global** (`bypassPermissions`):
   - `autoRun = true`, `autoEdit = true`, `autoWrite = true`, `skipPermissions = true`.
 - Esta configuração permite a livre execução de comandos locais e ferramentas para simular e coordenar subagentes em lote, sem quebras por confirmação interativa.
-- A política de segurança permanece ativa no nível de bloqueio estrito de GitHub (`git push/pull/fetch/gh`) e comandos destrutivos do sistema (`rm -rf /` etc.).
+- A política de segurança permanece ativa no bloqueio de comandos destrutivos do sistema (`rm -rf /` etc.) e de credencial própria em texto claro. Fonte externa (pesquisa, clone, cópia) é livre por força da regra 1; `git push` e pull request seguem proibidos.

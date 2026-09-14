@@ -1,17 +1,40 @@
 {
   "policy_name": "F51_NO_GITHUB_DISK_ONLY",
   "version": "1.0",
-  "status": "active",
+  "prior_status": "active",
+  "prior_mode": "disk_only",
+  "status": "overridden_by_operator",
+  "current_mode": "any_source_allowed",
   "severity": "hard_block",
   "date_local": "2026-05-18T19:15:09-04:00",
-  "current_mode": "disk_only",
-  "core_rule": "Never use GitHub for this project. Work only on the local disk unless Marco explicitly replaces this policy in a checkpoint.",
+  "core_rule": "SUPERSEDED 2026-09-14. A regra 1 do CLAUDE.md governa: USAR QUALQUER FONTE — pesquisar, clonar e copiar de qualquer origem (GitHub, Hugging Face, papers, repos publicos, bibliotecas). Este arquivo passa a ser registro historico do periodo DISK ONLY (2026-05-18 a 2026-09-14).",
+
+  "override": {
+    "date_local": "2026-09-14",
+    "operator": "Marco Barreto",
+    "artifact": ".f51/checkpoints/2026-09-14-github-policy-override.json",
+    "new_rule": "CLAUDE.md regra 1 — USAR QUALQUER FONTE (pesquisar, clonar, copiar), com precedencia sobre qualquer restricao de fonte.",
+    "scope": "Pesquisar, clonar e copiar de qualquer fonte externa (GitHub, Hugging Face, papers, repos publicos, bibliotecas).",
+    "not_revoked": "Regra 3 do CLAUDE.md (nunca ler nem commitar .env, chave ou credencial) permanece INTACTA. Fonte externa e livre; credencial propria continua proibida.",
+    "harness_note": "O deny list de ~/.claude/settings.json ainda bloqueia Bash(gh *), Bash(git fetch *) e Bash(git pull *). Precisa de remocao separada, com autorizacao do operador."
+  },
+
+  "still_forbidden": [
+    "git push",
+    "abrir pull request",
+    "git remote add origin / git remote set-url origin",
+    "usar GitHub Actions como gate de entrega",
+    "credencial propria em texto claro"
+  ],
+
   "allowed": [
     "Read and write local files on disk",
     "Run local tests and local runtime checks",
-    "Create local git commits when Marco asks to save work"
+    "Create local git commits when Marco asks to save work",
+    "Pesquisar, clonar e copiar de qualquer fonte externa (regra 1, desde 2026-09-14)"
   ],
-  "forbidden": [
+
+  "historical_forbidden_2026_05_18_to_2026_09_14": [
     "Do not push to GitHub",
     "Do not pull from GitHub",
     "Do not fetch from GitHub",
@@ -21,7 +44,8 @@
     "Do not use GitHub web, API, connector, or MCP for this project",
     "Do not recreate or reconnect a GitHub remote without an explicit new Marco checkpoint"
   ],
-  "forbidden_commands": [
+
+  "historical_forbidden_commands_2026_05_18_to_2026_09_14": [
     "git push",
     "git pull",
     "git fetch",
@@ -33,11 +57,15 @@
     "git remote add origin",
     "git remote set-url origin"
   ],
-  "agent_instruction": "Before any delivery action, read this file. If an action touches GitHub, stop and report that GitHub is forbidden by F51_NO_GITHUB_DISK_ONLY.",
+
+  "agent_instruction": "Antes de qualquer acao de entrega, leia este arquivo. A regra 1 do CLAUDE.md governa: qualquer fonte externa e permitida para pesquisa, clone e copia. O que segue proibido esta em still_forbidden. Este arquivo e registro historico, nao bloqueio ativo.",
+
   "override_policy": {
     "automatic_override_allowed": false,
     "operator_required": "Marco Barreto",
     "minimum_override_artifact": ".f51/checkpoints/latest.json",
-    "override_note": "A normal chat message is not enough unless it clearly says to replace this no-GitHub policy and records a new checkpoint."
-  }
+    "override_note": "EXERCIDO em 2026-09-14 pelo operador. Registro em .f51/checkpoints/2026-09-14-github-policy-override.json."
+  },
+
+  "rollback": "Restaurar status=active, current_mode=disk_only, core_rule original, e remover o bloco override. O texto original de core_rule, allowed, forbidden e forbidden_commands esta preservado neste arquivo (historical_*) e no checkpoint predecessor."
 }

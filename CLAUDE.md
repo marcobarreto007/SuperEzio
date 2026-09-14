@@ -20,12 +20,40 @@ Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob
 - arquitetura-alvo (autoridade do órgão, C1 pack + C2 snapshot + C3 bind; C4 SDCA observe; C5–C6 off): docs/architecture/TARGET_ARCHITECTURE.md
 
 ## Regras invioláveis
-1. Nunca editar arquivo fora deste diretório.
-2. Nunca ler nem commitar .env, chave ou credencial.
-3. Mudança de comportamento sempre vem com teste.
-4. Migração de banco é sempre reversível.
-5. Dependência nova só depois de me perguntar.
-6. Nunca usar GitHub neste projeto (DISK ONLY — fonte mandataria: .f51/GITHUB_POLICY.json).
+1. USAR QUALQUER FONTE — PESQUISAR, CLONAR, COPIAR E IMPLEMENTAR. Esta regra tem
+   **precedência sobre qualquer restrição de fonte**. Pode buscar em qualquer lugar
+   (GitHub, Hugging Face, papers, repos públicos, bibliotecas) e clonar/copiar o que
+   funciona melhor, em vez de reinventar. Revoga a antiga regra 6 (DISK ONLY) — override
+   do operador registrado em `.f51/checkpoints/latest.json` (2026-09-14).
+
+   **AUTORIZAÇÃO PERMANENTE (2026-09-14, palavra do operador): implementar, clonar,
+   instalar e adotar qualquer coisa externa SEM pedir OK a cada vez.** Instalar
+   dependência (revoga a antiga regra 5), clonar referência, copiar implementação e
+   adotar biblioteca de terceiro passam a ser decisão técnica do agente, não portão de
+   aprovação.
+
+   **A autorização cobre TUDO, com UMA exceção: GASTAR DINHEIRO.** Não há orçamento —
+   nada de serviço pago, assinatura ou API cobrada. **O limite de gratuidade (free tier)
+   É LIBERADO** — use sem perguntar.
+
+   A linha prática é **cartão**: free tier que **não pede cartão** = use à vontade. Free
+   tier que **exige cartão** pode virar cobrança silenciosa quando o limite estoura —
+   nesse caso, **pare e reporte** antes de cadastrar. O default é sempre a alternativa
+   gratuita; se só existir a paga, pare e reporte.
+   Publicar, instalar, clonar, adotar, refatorar, apagar rascunho: decisão técnica do
+   agente, sem pedir OK.
+
+   As duas linhas abaixo **não são portão de permissão** — são proteção do próprio
+   trabalho, e valem como cuidado:
+   - **Credencial em lugar seguro**: token em arquivo fora de repo, nunca inline em
+     comando, nunca no chat (incidente do token HF exposto em 2026-09-14).
+   - **Não destruir trabalho sem poder voltar**: antes de apagar ou sobrescrever, olhe o
+     alvo e garanta o backup. Não é medo de apagar — é não perder o que já foi feito.
+2. Nunca editar arquivo fora deste diretório.
+3. Nunca ler nem commitar .env, chave ou credencial.
+4. Mudança de comportamento sempre vem com teste.
+5. Migração de banco é sempre reversível.
+6. Dependência nova só depois de me perguntar.
 7. PROTOCOLO GLOBAL TOTAL DE SOBREVIVÊNCIA ($1.000 CAD & TAXA ZERO — EZIO & MIKE):
     - Capital Base: $1.000 CAD. Preservação de capital é a prioridade absoluta.
     - Taxa Zero Obrigatória: Proibido operar ativos com comissão no TD Direct Investing (exclusividade dos 108 ETFs Commission-Free de config/td_direct_commission_free_etfs.json) ou confirmação explícita da cota de 100 free trades no TD Easy Trade. Custo de fricção (comissão + spread) NUNCA pode exceder 0.5% da ordem.
