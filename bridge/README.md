@@ -115,6 +115,11 @@ O Ezio é a autoridade: se o corpo da resposta traz `state`, vale o dele
    registrado — dá para reenviar quando a rota existir.
 5. **Degradação não derruba o bridge**: corpo que não parseia, rota que devolve
    erro e MIKE fora do ar viram evento/contador, não exceção.
+6. **Mandato de Sobrevivência ($1.000 CAD & Taxa Zero — MIKE ↔ Ezio)**: Nenhuma
+   ordem ou intenção de trade é aceita se gerar corretagem $> 0$ (exclusividade
+   dos 108 ETFs Commission-Free do TD ou cota TD Easy Trade auditada), se o
+   risco exceder $1.5\%$ ($15 CAD), se a razão R:R for $< 2.5:1$, ou se o tipo
+   de ordem for a mercado (MARKET). Fail-closed total.
 
 ## Testes
 

@@ -151,34 +151,57 @@ def heuristic_uncertainty(
     u = 0.15
     text_lower = text.lower()
 
-    # Features de dificuldade textual
+    # Features de dificuldade e risco textual corporativo/mercado
     if len(text) > 800:
-        u += 0.20
+        u += 0.15
     if len(text) > 1600:
-        u += 0.20
-    for kw in ["prove", "show that", "for all", "suppose"]:
-        if kw in text_lower:
-            u += 0.10
-            break
-    for kw in ["triangle", "circle", "angle", "perpendicular"]:
-        if kw in text_lower:
-            u += 0.10
-            break
-    for kw in ["number of", "count", "ways", "choose"]:
-        if kw in text_lower:
-            u += 0.10
-            break
-    if "mod" in text_lower or "congruen" in text_lower:
-        u += 0.10
+        u += 0.15
 
-    # Features numéricas
+    # Gatilhos críticos de risco/diluição de microcaps (Canadá/EUA)
+    dilution_keywords = [
+        "private placement",
+        "dilution",
+        "share offering",
+        "warrants",
+        "reverse split",
+        "consolidation",
+        "debt financing",
+    ]
+    for kw in dilution_keywords:
+        if kw in text_lower:
+            u += 0.25
+            break
+
+    # Gatilhos regulatórios e de insolvência
+    regulatory_keywords = [
+        "going concern",
+        "cease trade",
+        "restatement",
+        "investigation",
+        "sec inquiry",
+        "default",
+        "delisting",
+        "bankruptcy",
+    ]
+    for kw in regulatory_keywords:
+        if kw in text_lower:
+            u += 0.35
+            break
+
+    # Incerteza de projeção futura vs fatos consolidados
+    for kw in ["restructuring", "guidance lowered", "material weakness"]:
+        if kw in text_lower:
+            u += 0.20
+            break
+
+    # Features numéricas de qualidade de dados
     if numeric_features:
         if numeric_features.get("missing_data_ratio", 0) > 0.3:
-            u += 0.15
+            u += 0.20
         if numeric_features.get("volatility", 0) > 0.5:
-            u += 0.15
+            u += 0.20
         if numeric_features.get("data_points", 100) < 20:
-            u += 0.10
+            u += 0.15
 
     return clamp(u, 0.05, 0.95)
 

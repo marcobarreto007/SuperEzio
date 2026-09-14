@@ -441,6 +441,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         evaluate_neural_execution_gate,
         expert_consensus_block_reason,
         judge_block_reason,
+        micro_capital_survival_block_reason,
     )
 
     consensus_block = expert_consensus_block_reason(state)
@@ -481,6 +482,16 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     # honoring it let the model shrink the calculated risk and slip under
     # the approval_gate auto-approval threshold (risk <= $500) without a human.
     stop_loss_price = float(limit_price * (1 - sizing_config["default_stop_pct"]))
+
+    survival_block = micro_capital_survival_block_reason(
+        state,
+        symbol,
+        limit_price=limit_price,
+        stop_loss_price=stop_loss_price,
+        order_type=str(args.get("order_type", "LIMIT")),
+    )
+    if survival_block:
+        return {"submit_paper_order_error": f"micro_capital_survival:{survival_block}"}
 
     # ── Approval gate FIRST (before position sizing) ──
     # The gate must evaluate the REQUESTED risk, not the capped risk,

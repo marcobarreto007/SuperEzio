@@ -91,6 +91,16 @@ Agentes referenciam skills como capacidade atômica. Skills não são agentes �
 - Explorer mata agente ruim
 - Checkpoint obrigatório em `.f51/checkpoints/latest.json`
 
+## PROTOCOLO GLOBAL TOTAL: SOBREVIVÊNCIA ($1.000 CAD & TAXA ZERO — EZIO & MIKE)
+
+Regra inviolável de soberania financeira (parceria Ezio ↔ MIKE):
+- **Banca de Sobrevivência**: $1.000 CAD base. Preservação de capital antes de qualquer retorno.
+- **Mandato de Taxa Zero**: Operações de trading estritamente limitadas aos 108 ETFs sem comissão do TD (`config/td_direct_commission_free_etfs.json`) ou cota auditada de 100 free trades do TD Easy Trade. Nenhuma ordem com corretagem $> 0$ é permitida. Fricção total $\le 0.5\%$.
+- **Risco Máximo por Trade**: $1.0\%$ a $1.5\%$ do equity ($10 a $15 CAD). Stop Loss obrigatório antes do envio.
+- **Assimetria Obrigatória (R:R)**: Razão Retorno/Risco mínima de $2.5:1$ a $3:1$. Proibido arriscar $15 para buscar $15.
+- **Execução Sem Slippage**: Apenas ordens limitadas (LIMIT). Ordens a mercado (MARKET) são terminantemente bloqueadas.
+- **Pacto MIKE ↔ Ezio**: Qualquer proposta gerada pelo Ezio ou comandada via MIKE (`:8009`) fora destes parâmetros é rejeitada por fail-closed.
+
 ## Gates
 
 ```powershell

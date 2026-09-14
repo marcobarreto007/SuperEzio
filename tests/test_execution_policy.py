@@ -77,3 +77,77 @@ def test_judge_block_reason_veto_blocks():
 
     # Empty judge results -> no block (arbitration was disabled)
     assert judge_block_reason({}) is None
+
+
+def test_micro_capital_survival_allows_commission_free_etf():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    # SPY is in TD 108 commission-free ETF list -> allowed
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=500.0,
+        stop_loss_price=495.0,
+        order_type="LIMIT",
+    )
+    assert reason is None
+
+
+def test_micro_capital_survival_blocks_non_free_stock():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    # Non-free ticker without confirmed free trade quota -> BLOCKED
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SOME_RANDOM_STOCK",
+        limit_price=10.0,
+        stop_loss_price=9.5,
+        order_type="LIMIT",
+    )
+    assert reason is not None
+    assert "zero_commission_violation" in reason
+
+
+def test_micro_capital_survival_allows_non_free_stock_with_td_easy_trade_quota():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    # Non-free ticker with confirmed TD Easy Trade 100 free trades quota -> ALLOWED
+    state = {"td_easy_trade_free_quota": True}
+    reason = micro_capital_survival_block_reason(
+        state,
+        "SOME_RANDOM_STOCK",
+        limit_price=10.0,
+        stop_loss_price=9.5,
+        order_type="LIMIT",
+    )
+    assert reason is None
+
+
+def test_micro_capital_survival_blocks_market_order():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    # Market orders are strictly forbidden under micro-capital protocol
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=500.0,
+        stop_loss_price=495.0,
+        order_type="MARKET",
+    )
+    assert reason is not None
+    assert "market_orders_forbidden" in reason
+
+
+def test_micro_capital_survival_blocks_excessive_risk_spread():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    # Risk per share alone ($25) exceeds entire $15 max trade risk budget -> BLOCKED
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=500.0,
+        stop_loss_price=475.0,  # $25 risk per share
+        order_type="LIMIT",
+    )
+    assert reason is not None
+    assert "risk_per_share_too_wide" in reason

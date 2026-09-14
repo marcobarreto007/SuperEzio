@@ -26,6 +26,13 @@ Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob
 4. Migração de banco é sempre reversível.
 5. Dependência nova só depois de me perguntar.
 6. Nunca usar GitHub neste projeto (DISK ONLY — fonte mandataria: .f51/GITHUB_POLICY.json).
+7. PROTOCOLO GLOBAL TOTAL DE SOBREVIVÊNCIA ($1.000 CAD & TAXA ZERO — EZIO & MIKE):
+    - Capital Base: $1.000 CAD. Preservação de capital é a prioridade absoluta.
+    - Taxa Zero Obrigatória: Proibido operar ativos com comissão no TD Direct Investing (exclusividade dos 108 ETFs Commission-Free de config/td_direct_commission_free_etfs.json) ou confirmação explícita da cota de 100 free trades no TD Easy Trade. Custo de fricção (comissão + spread) NUNCA pode exceder 0.5% da ordem.
+    - Risco Máximo por Trade: 1.0% a 1.5% do equity ($10 a $15 CAD). Stop loss mandatório.
+    - Assimetria Positiva Mínima: Alvo projetado (Take Profit) deve ser de no mínimo 2.5:1 a 3:1 em relação ao Stop Loss. Trades 1:1 são proibidos.
+    - Proibição de Ordem a Mercado: Apenas Limit Orders no midpoint ou bid/ask favorável. Market orders são rejeitadas.
+    - Pacto Bilateral MIKE ↔ Ezio: O bridge :8009 e os nós de execução recusam (fail-closed) ordens fora deste protocolo.
 
 ## Definição de pronto
 Uma tarefa está pronta quando, e só quando:

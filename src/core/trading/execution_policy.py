@@ -58,6 +58,52 @@ def judge_block_reason(state: Mapping[str, Any]) -> str | None:
     return None
 
 
+def micro_capital_survival_block_reason(
+    state: Mapping[str, Any],
+    symbol: str,
+    *,
+    limit_price: float | None = None,
+    stop_loss_price: float | None = None,
+    order_type: str = "LIMIT",
+) -> str | None:
+    """Enforce the strict $1,000 CAD micro-capital survival rules (Ezio & MIKE global mandate).
+
+    1. ZERO COMMISSION: Only commission-free instruments (TD 108 ETFs or confirmed zero-commission quota).
+    2. STRICT RISK LIMIT: Max risk <= 1.5% of equity ($15 on $1,000 CAD).
+    3. NO MARKET ORDERS: Only LIMIT orders permitted to avoid catastrophic slippage.
+    """
+    clean_type = str(order_type or "LIMIT").strip().upper()
+    if clean_type in {"MKT", "MARKET"}:
+        return "market_orders_forbidden_under_micro_capital_protocol: limit orders only"
+
+    clean_sym = str(symbol or "").strip().upper()
+    if not clean_sym:
+        return "missing_symbol_for_survival_validation"
+
+    # Commission check: TD commission-free universe (108 ETFs) or confirmed free quota
+    from core.trading.td_universe import is_commission_free
+
+    has_free_quota = bool(
+        state.get("td_easy_trade_free_quota") or state.get("commission_free_confirmed")
+    )
+    if not is_commission_free(clean_sym) and not has_free_quota:
+        return (
+            f"zero_commission_violation: {clean_sym} is not in the TD commission-free universe; "
+            "micro-capital survival protocol requires zero commission"
+        )
+
+    # Risk per share check against max risk amount (1.5% of equity = $15 on $1000)
+    if limit_price is not None and stop_loss_price is not None:
+        risk_per_share = abs(limit_price - stop_loss_price)
+        if risk_per_share > 15.0:
+            return (
+                f"risk_per_share_too_wide: risk per share ${risk_per_share:.2f} exceeds "
+                "micro-capital trade risk budget of $15.00 CAD"
+            )
+
+    return None
+
+
 def evaluate_neural_execution_gate(state: Mapping[str, Any], action: str) -> dict[str, Any]:
     """Validate that an autonomous order is backed by a usable neural forecast.
 
