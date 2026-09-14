@@ -34,14 +34,14 @@ async def test_cockpit_survival_protocol_contract():
 async def test_cockpit_td_opportunities_contract():
     """Garante que as oportunidades do painel sao ETFs do Canada com clusters."""
     data = await get_cockpit_mangala_opportunities()
-    assert data["status"] == "ok"
-    assert data["currency"] == "CAD"
-    assert len(data["opportunities"]) >= 5
-    first = data["opportunities"][0]
-    assert first["ticker"].endswith(".TO")
-    assert "cluster" in first
-    assert "meta_labeling_p" in first
-    assert first["meta_labeling_p"] >= 0.55
+    assert data["status"] in {"research_only", "unavailable"}
+    assert data["scanned_at"] is None
+    for item in data["opportunities"]:
+        assert item["ticker"].endswith(".TO")
+        assert item["price"] is None
+        assert item["meta_labeling_p"] is None
+        assert item["provenance"]["historical_close"]["as_of"]
+        assert item["execution_ready"] is False
 
 
 def test_cockpit_trade_history_integrates_recommendations():

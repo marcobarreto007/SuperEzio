@@ -582,17 +582,17 @@
     var scanData = window.SZ.__mangalaOpportunities;
     if (scanData && scanData.opportunities && scanData.opportunities.length > 0) {
       html += '<div class="mangala-scan-header" style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700;letter-spacing:0.5px;color:var(--text-secondary,#888);margin-top:8px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06);">';
-      html += '  <span>TOP OPORTUNIDADES TD (TSX)</span>';
-      html += '  <span style="color:#00e5ff;">' + esc(String(scanData.eligible_count || scanData.opportunities.length)) + ' elegíveis</span>';
+      html += '  <span>CANDIDATOS TD PARA PESQUISA</span>';
+      html += '  <span style="color:#00e5ff;">' + esc(String(scanData.count)) + ' exibidos</span>';
       html += '</div>';
       html += '<div class="mangala-scan-list" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">';
       scanData.opportunities.forEach(function (opp) {
-        var sig = opp.signal || "ELEGIVEL";
+        var sig = opp.signal || "PESQUISA";
         var sigCls = sig === "ELEGIVEL" ? "color:#00e676;" : "color:#00e5ff;";
         var pVal = opp.meta_labeling_p != null ? ("P:" + (opp.meta_labeling_p * 100).toFixed(0) + "%") : "";
         var cluster = opp.cluster || "TD ETF";
-        var friction = opp.friction ? ("fric:" + opp.friction) : "0 taxa";
-        var cleanTicker = (opp.ticker || "").replace(/\.TO$/i, "");
+        var friction = opp.friction || "custos a confirmar";
+        var cleanTicker = (opp.ticker || "").replace(/[^A-Za-z0-9.\-]/g, "");
 
         html += '<div class="mangala-scan-row" style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);cursor:pointer;" onclick="if(window.SZ&&window.SZ.selectTicker)window.SZ.selectTicker(\'' + esc(cleanTicker) + '\',\'opp_click\')">';
         html += '  <div style="display:flex;flex-direction:column;">';
@@ -603,7 +603,8 @@
         html += '    <span style="font-size:9px;color:var(--text-secondary,#777);">' + esc(cluster) + '</span>';
         html += '  </div>';
         html += '  <div style="display:flex;flex-direction:column;align-items:flex-end;">';
-        html += '    <span style="font:700 11px var(--font-mono);color:#fff;">$' + esc(safeVal(opp.price, 2)) + '</span>';
+        html += '    <span style="font:700 11px var(--font-mono);color:#fff;">Fech. ajustado $' + esc(safeVal(opp.historical_close, 2)) + ' CAD</span>';
+        html += '    <span style="font-size:9px;color:#aaa;">' + esc(opp.price_as_of || "data ausente") + ' · Yahoo Finance · histórico</span>';
         html += '    <div style="display:flex;gap:4px;font:600 8px var(--font-mono);color:#00e5ff;">';
         if (pVal) html += '<span>' + esc(pVal) + '</span>';
         html += '<span style="color:#888;">' + esc(friction) + '</span>';
@@ -623,10 +624,13 @@
         }
       });
       html += '</div>';
+      html += '<div class="research-note">' + esc(scanData.message || "Confirme cotação e custos antes de montar uma ordem.") + '</div>';
+    } else if (scanData) {
+      html += '<div class="empty-state">' + esc(scanData.message || "Referências TD indisponíveis. Atualize os dados de pesquisa.") + '</div>';
     }
 
     $("mangala-body").innerHTML = html + tradeFormHTML("mangala");
-    setTrustBar("mangala-trust-bar", 1.0, "is-good");
+    setTrustBar("mangala-trust-bar", 0, "");
   }
 
   /* ── Read state and render all cards ── */

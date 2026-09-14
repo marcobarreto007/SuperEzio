@@ -105,7 +105,6 @@ def _get_sentiment_monitor(request: Request):
 
 
 def _sentiment_db_path():
-    from pathlib import Path
 
     configured = os.getenv("SUPEREZIO_SENTIMENT_DB", "").strip()
     if configured:
@@ -2339,157 +2338,21 @@ async def get_cockpit_mangala() -> dict[str, Any]:
         }
 
 
-def _load_effective_universe_headline() -> tuple[str | None, int, int, int]:
-    """Helper sincrono para carregar o resumo do universo TD sem bloquear o loop assincrono."""
-    effective_path = Path("config/td_universe_effective.json")
-    if not effective_path.exists():
-        return None, 108, 82, 84
-    try:
-        with open(effective_path, "r", encoding="utf-8") as f:
-            u_data = json.load(f)
-        headline = u_data.get("headline", {})
-        return (
-            u_data.get("generated_at"),
-            int(headline.get("symbols_in_source_list", 108)),
-            int(headline.get("eligible_count", 82)),
-            int(headline.get("distinct_exposure_count", 84)),
-        )
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
-        logger.debug("Falha ao ler headline do universo efetivo TD: %s", exc)
-        return None, 108, 82, 84
-
-
 @router.get("/cockpit/mangala/opportunities")
 async def get_cockpit_mangala_opportunities() -> dict[str, Any]:
-    """Return the top opportunities from the TD Canadian ETF Effective Universe."""
-    try:
-        scanned_at, total_syms, eligible, distinct_exp = _load_effective_universe_headline()
+    """Return dated TD research inputs; never fabricated live opportunities."""
+    from core.trading.td_research_candidates import load_research_candidates
 
-        opps = [
-            {
-                "ticker": "VFV.TO",
-                "price": 142.50,
-                "volume": 850000,
-                "name": "Vanguard S&P 500 Index ETF",
-                "score": 92,
-                "signal": "ELEGIVEL",
-                "cluster": "S&P 500 (US Large)",
-                "friction": "0.04%",
-                "commission": "0 CAD",
-                "meta_labeling_p": 0.68,
-                "whale_status": "FORTE",
-                "pump_risk": "CLEAN",
-                "flip_plan": {
-                    "entry": 142.50,
-                    "target_5pct": 149.60,
-                    "stop_3pct": 139.50,
-                    "max_hold_days": 10,
-                    "rr_ratio": 2.8,
-                },
-            },
-            {
-                "ticker": "XEQT.TO",
-                "price": 34.20,
-                "volume": 1200000,
-                "name": "iShares Core Equity ETF Portfolio",
-                "score": 88,
-                "signal": "ELEGIVEL",
-                "cluster": "All-Equity Global",
-                "friction": "0.06%",
-                "commission": "0 CAD",
-                "meta_labeling_p": 0.64,
-                "whale_status": "FORTE",
-                "pump_risk": "CLEAN",
-                "flip_plan": {
-                    "entry": 34.20,
-                    "target_5pct": 35.90,
-                    "stop_3pct": 33.50,
-                    "max_hold_days": 15,
-                    "rr_ratio": 2.6,
-                },
-            },
-            {
-                "ticker": "ZEB.TO",
-                "price": 43.15,
-                "volume": 650000,
-                "name": "BMO Equal Weight Banks Index ETF",
-                "score": 85,
-                "signal": "ELEGIVEL",
-                "cluster": "TSX Canadian Banks",
-                "friction": "0.05%",
-                "commission": "0 CAD",
-                "meta_labeling_p": 0.61,
-                "whale_status": "MODERADO",
-                "pump_risk": "CLEAN",
-                "flip_plan": {
-                    "entry": 43.15,
-                    "target_5pct": 45.30,
-                    "stop_3pct": 42.25,
-                    "max_hold_days": 10,
-                    "rr_ratio": 2.5,
-                },
-            },
-            {
-                "ticker": "XIU.TO",
-                "price": 39.80,
-                "volume": 2100000,
-                "name": "iShares S&P/TSX 60 Index ETF",
-                "score": 84,
-                "signal": "ELEGIVEL",
-                "cluster": "TSX 60 Large Cap",
-                "friction": "0.03%",
-                "commission": "0 CAD",
-                "meta_labeling_p": 0.59,
-                "whale_status": "FORTE",
-                "pump_risk": "CLEAN",
-                "flip_plan": {
-                    "entry": 39.80,
-                    "target_5pct": 41.80,
-                    "stop_3pct": 39.00,
-                    "max_hold_days": 12,
-                    "rr_ratio": 2.5,
-                },
-            },
-            {
-                "ticker": "ZAG.TO",
-                "price": 13.90,
-                "volume": 450000,
-                "name": "BMO Aggregate Bond Index ETF",
-                "score": 79,
-                "signal": "HEDGE",
-                "cluster": "Canadian Aggregate Bonds",
-                "friction": "0.05%",
-                "commission": "0 CAD",
-                "meta_labeling_p": 0.57,
-                "whale_status": "ESTAVEL",
-                "pump_risk": "CLEAN",
-                "flip_plan": {
-                    "entry": 13.90,
-                    "target_5pct": 14.40,
-                    "stop_3pct": 13.70,
-                    "max_hold_days": 20,
-                    "rr_ratio": 2.5,
-                },
-            },
-        ]
-        return {
-            "status": "ok",
-            "scanned_at": scanned_at,
-            "count": len(opps),
-            "total_universe": total_syms,
-            "eligible_count": eligible,
-            "distinct_exposures": distinct_exp,
-            "currency": "CAD",
-            "opportunities": opps,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("TD opportunities unavailable: %s", exc)
+    try:
+        return await asyncio.to_thread(load_research_candidates)
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        logger.warning("TD research candidates unavailable: %s", exc)
         return {
             "status": "unavailable",
             "scanned_at": None,
             "count": 0,
             "opportunities": [],
-            "error": str(exc)[:200],
+            "message": "Referências TD indisponíveis ou vencidas. Atualize os dados de pesquisa.",
         }
 
 
@@ -3341,7 +3204,6 @@ async def get_trade_status(order_id: str) -> dict[str, Any]:
 @router.get("/training/orders")
 async def get_training_orders() -> dict[str, Any]:
     """Retorna ordens de treinamento para o Bob aparecerem no UI."""
-    from pathlib import Path
 
     training_file = (
         Path(__file__).resolve().parent.parent.parent
