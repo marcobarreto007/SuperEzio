@@ -50,6 +50,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.trading.holding_period import holding_period_bars
+
+# `_parse_utc_datetime` e privado do paper_journal, mas e a UNICA definicao que aceita
+# o formato exato que o journal grava (Z e offset). `feedback_loop.py:31` ja mantem uma
+# copia; uma terceira seria mais um lugar para divergir. Importar e o menor dos males.
 from core.trading.paper_journal import PaperJournal, _parse_utc_datetime
 from core.trading.triple_barrier import (
     BARRIER_EXIT_REASONS,
