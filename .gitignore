@@ -209,3 +209,7 @@ runtime/desktop-smoke/
 
 runtime/desktop-packaged-smoke/
 runtime/desktop-*/
+
+# Dados baixados (~611 MB) — re-baixaveis em minutos. So o manifesto fica versionado.
+data/reference/*
+!data/reference/MANIFEST.json
