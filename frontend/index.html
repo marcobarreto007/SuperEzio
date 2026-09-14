@@ -270,23 +270,18 @@
           </div>
         </article>
 
-        <!-- Mangala Tracker Card -->
+        <!-- Survival Protocol & Meta-Labeling Card ($1.000 CAD) -->
         <article class="expert-card" id="expert-card-mangala">
           <div class="expert-card__hd">
-            <span class="expert-card__badge expert-card__badge--mangala">MNG</span>
-            <span class="expert-card__name">Mangala Tracker</span>
-            <!-- Placeholder only. It used to assert an idle paper operation
-                 ("IDLE · PAPER") in the served HTML, before any measurement
-                 existed to support it. cockpit.js#renderMangalaCard fills this
-                 from the compound-tracker snapshot; "--" is the codebase's
-                 "no claim yet" value (matching #guardrails-summary). -->
-            <span class="expert-card__verdict" id="mangala-verdict">--</span>
+            <span class="expert-card__badge expert-card__badge--mangala">SOB</span>
+            <span class="expert-card__name">Sobrevivência &amp; Meta-Labeling</span>
+            <span class="expert-card__verdict" id="mangala-verdict">$1.000,00 CAD</span>
           </div>
           <div class="expert-card__bd" id="mangala-body">
-            <div class="empty-state">No paper operation running.</div>
+            <div class="empty-state">Carregando protocolo de sobrevivência ($1.000 CAD)...</div>
           </div>
           <div class="expert-card__trust">
-            <span class="trust-label">compounding</span>
+            <span class="trust-label">capital &amp; risco</span>
             <div class="trust-bar" id="mangala-trust-bar"><span></span></div>
           </div>
         </article>
@@ -309,12 +304,8 @@
     <span class="bot-bar__item" id="statusbar-genie">CEO: CHECKING</span>
     <span class="bot-bar__item" id="statusbar-deep">DATA: UNKNOWN</span>
     <span class="bot-bar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
-    <!-- Placeholder only. status-bar.js rewrites this item as
-         "MODO: <mode> · GUARDRAILS: <n>/<total>" from the operational snapshot.
-         It read the literal "MODE: PAPER", which asserted a paper mode in the
-         served HTML before any data existed — the one item in this bar that
-         claimed something up front. It now claims nothing. -->
     <span class="bot-bar__item" id="statusbar-guardrails">MODO: SEM DADO · GUARDRAILS: SEM DADO</span>
+    <span class="bot-bar__item is-ok" id="statusbar-models" title="Topologia de IA: DeepSeek V4 Pro (CEO) + Flash (Experts) + Cyber-Tiel-Coder (Local :8080)">IA: DEEPSEEK V4 + LOCAL (:8080)</span>
     <span class="bot-bar__item" id="statusbar-latency">PIPELINE: IDLE</span>
     <span class="bot-bar__item" id="statusbar-cost">Cost: $0.00</span>
   </footer>

@@ -134,8 +134,60 @@ def _en_profile_head(amount: str, risk: str) -> str:
     )
 
 
-def _product_suggestion_pt(amount: str, risk: str) -> list[str]:
+def _product_suggestion_pt(amount: str, risk: str, message: str = "") -> list[str]:
+    is_cad = bool(
+        re.search(r"\bcad\b", message or "", re.IGNORECASE)
+        or (amount and "cad" in amount.lower())
+    )
     high = risk == "high"
+
+    if is_cad:
+        intro = (
+            "Com capital pequeno e perfil de alto risco, classes que cabem sob taxa zero TD:"
+            if high
+            else "Com capital sob o Protocolo de Sobrevivencia, classes elegiveis sob taxa zero TD:"
+        )
+        if high:
+            classes = [
+                "1) ETF de indice global de crescimento (ex.: VFV.TO ou XEQT.TO);",
+                "2) ETF setorial canadense (ex.: ZEB.TO bancos);",
+                "3) Acoes liquidas do TSX 60, somente com gate ticker-a-ticker.",
+                "Ancora de protecao para o capital: HISA ou renda fixa (ZAG.TO).",
+            ]
+        else:
+            classes = [
+                "1) Core Global: VFV.TO (S&P 500 em CAD) ou XEQT.TO (100% acoes globais);",
+                "2) Renda e Estabilidade: ZEB.TO (bancos canadenses) ou XIU.TO (TSX 60);",
+                "3) Preservacao e Reserva: ZAG.TO (renda fixa) ou HISA / CASH.TO.",
+            ]
+        why_block = (
+            "Por que: Taxa zero preserva a banca (evita arrasto de corretagem); risco maximo "
+            "de 1.0% a 1.5% com R:R minimo 2.5:1 e Meta-Labeling P >= 0.55 com ordens LIMIT."
+        )
+        honesty = "Sem preco nem yield ao vivo neste run: operamos apenas com precos verificados."
+        next_step = (
+            "Proximo passo: escolha um candidato do universo TD (ex.: VFV.TO, XEQT.TO, ZEB.TO) "
+            "para rodarmos os gates e niveis de Stop Loss sob o protocolo de Sobrevivencia."
+        )
+        closing = (
+            "Decisao final e sua. Confira custos e limites atuais "
+            "(ex.: espaco TFSA) no documento vigente."
+        )
+        return [
+            _pt_profile_head(amount, risk),
+            "",
+            intro,
+            *classes,
+            "",
+            why_block,
+            "",
+            honesty,
+            "",
+            next_step,
+            "",
+            closing,
+        ]
+
     if high:
         classes = [
             "1) ETF de indice global de crescimento;",
@@ -171,14 +223,66 @@ def _product_suggestion_pt(amount: str, risk: str) -> list[str]:
         "",
         "Proximo passo, escolha uma opcao:",
         "(a) me passe um candidato (ex.: um ticker) que eu rodo os gates de dados;",
-        '(b) autorize o scan dizendo "pode escanear mini caps com catalisador".',
+        "(b) consulte as oportunidades verificadas no cockpit.",
         "",
         closing,
     ]
 
 
-def _product_suggestion_en(amount: str, risk: str) -> list[str]:
+def _product_suggestion_en(amount: str, risk: str, message: str = "") -> list[str]:
+    is_cad = bool(
+        re.search(r"\bcad\b", message or "", re.IGNORECASE)
+        or (amount and "cad" in amount.lower())
+    )
     high = risk == "high"
+
+    if is_cad:
+        intro = (
+            "With a small pile and high-risk profile, classes that fit under TD commission-free:"
+            if high
+            else "With capital under Survival Protocol, eligible classes under TD commission-free:"
+        )
+        if high:
+            classes = [
+                "1) Global growth index ETF (e.g. VFV.TO or XEQT.TO);",
+                "2) Canadian sector ETF (e.g. ZEB.TO banks);",
+                "3) Liquid TSX 60 stocks, only with per-ticker data gate.",
+                "Capital protection anchor: HISA or fixed income (ZAG.TO).",
+            ]
+        else:
+            classes = [
+                "1) Core Global: VFV.TO (S&P 500 in CAD) or XEQT.TO (100% global equities);",
+                "2) Income and Stability: ZEB.TO (Canadian banks) or XIU.TO (TSX 60);",
+                "3) Capital Preservation: ZAG.TO (aggregate bonds) or HISA / CASH.TO.",
+            ]
+        why_block = (
+            "Why: Zero commission protects the pile (no fee drag); max risk "
+            "of 1.0% to 1.5% with min R:R 2.5:1 and Meta-Labeling P >= 0.55 using LIMIT orders."
+        )
+        honesty = "No live price or yield on this run: we operate only with verified prices."
+        next_step = (
+            "Next step: pick a candidate from the TD universe (e.g. VFV.TO, XEQT.TO, ZEB.TO) "
+            "to run gates and Stop Loss levels under the Survival protocol."
+        )
+        closing = (
+            "Final decision is yours. Check current costs and limits "
+            "(e.g. TFSA room) in the current document."
+        )
+        return [
+            _en_profile_head(amount, risk),
+            "",
+            intro,
+            *classes,
+            "",
+            why_block,
+            "",
+            honesty,
+            "",
+            next_step,
+            "",
+            closing,
+        ]
+
     if high:
         classes = [
             "1) global growth index ETF;",
@@ -212,7 +316,7 @@ def _product_suggestion_en(amount: str, risk: str) -> list[str]:
         "",
         "Next step, pick one option:",
         "(a) pass me a candidate (e.g. a ticker) and I run the data gates;",
-        '(b) authorize the scan by saying "scan mini caps with a catalyst".',
+        "(b) check verified opportunities in the cockpit.",
         "",
         closing,
     ]
@@ -236,6 +340,8 @@ def render_product_strategy_suggestion(
     amount = _extract_amount(message)
     risk = _classify_risk(message)
     lines = (
-        _product_suggestion_pt(amount, risk) if portuguese else _product_suggestion_en(amount, risk)
+        _product_suggestion_pt(amount, risk, message)
+        if portuguese
+        else _product_suggestion_en(amount, risk, message)
     )
     return "\n".join(lines)

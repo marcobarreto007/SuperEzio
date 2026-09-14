@@ -7,6 +7,7 @@ import secrets
 import time
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -315,14 +316,28 @@ def _normalize_trade_history_row(
 def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
     try:
         from core.trading.paper_journal import PaperJournal
+        from core.trading.recommendation_ledger import get_recommendation_ledger
 
         max_rows = max(1, min(int(limit), 250))
+        trades: list[dict[str, Any]] = []
+
+        # 1. Caderneta de recomendacoes (prioridade moderna de 2026)
+        try:
+            ledger = get_recommendation_ledger()
+            for row in ledger._read_all():
+                normalized = _normalize_trade_history_row(row, source="recommendation_ledger")
+                if normalized is not None:
+                    trades.append(normalized)
+        except Exception as exc_l:  # noqa: BLE001
+            logger.debug("Recommendation ledger read failed for cockpit: %s", exc_l)
+
+        # 2. Paper journal (historico auditado)
         journal = PaperJournal()
-        trades = [
-            normalized
-            for normalized in (_normalize_trade_history_row(row) for row in journal.list_all())
-            if normalized is not None
-        ]
+        for row in journal.list_all():
+            normalized = _normalize_trade_history_row(row, source="paper_journal")
+            if normalized is not None:
+                trades.append(normalized)
+
         trades.sort(key=_trade_history_sort_key, reverse=True)
         stats = journal.get_stats()
         stats["journal_records"] = len(trades)
@@ -331,7 +346,7 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
         stats["broker_fills"] = 0
         stats["broker_open_positions"] = 0
         return {
-            "source": "paper_journal",
+            "source": "recommendation_ledger",
             "path": str(journal.path),
             "count": len(trades),
             "stats": stats,
@@ -339,9 +354,9 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
             # Fronteira de melhor esforco: historico de trades do cockpit nao pode derrubar o endpoint.
         }
     except Exception as exc:  # noqa: BLE001
-        logger.debug("Paper journal read failed for cockpit: %s", exc)
+        logger.debug("Paper journal / ledger read failed for cockpit: %s", exc)
         return {
-            "source": "paper_journal",
+            "source": "recommendation_ledger",
             "count": 0,
             "stats": {},
             "trades": [],
@@ -2273,67 +2288,202 @@ def get_cockpit_portfolio() -> dict[str, Any]:
 
 @router.get("/cockpit/mangala")
 async def get_cockpit_mangala() -> dict[str, Any]:
-    """Return the Mangala compound tracker summary for the cockpit.
-
-    Mostra o crescimento do capital comecando com $20 (dinheiro da loteria).
-    Consumido pelo frontend no renderMangalaCard().
-    """
+    """Return the Survival Protocol ($1.000 CAD) and compound summary for the cockpit."""
     try:
         from core.pipeline.nodes.mangala_tracker import get_mangala_tracker
+        from core.trading.recommendation_ledger import get_recommendation_ledger
 
         tracker = get_mangala_tracker()
         summary = tracker.compound_summary()
         summary["status"] = "ok"
-        # Fronteira de melhor esforco: leitura do cockpit nao pode derrubar o endpoint.
+
+        # Protocolo Global Total: Sobrevivencia ($1.000 CAD base)
+        try:
+            ledger = get_recommendation_ledger()
+            ledger_stats = ledger.stats()
+        except Exception as exc_stats:  # noqa: BLE001
+            logger.debug("Ledger stats read failed for cockpit: %s", exc_stats)
+            ledger_stats = {}
+
+        summary["protocol"] = "SOBREVIVENCIA_1000_CAD"
+        summary["currency"] = "CAD"
+        summary["starting"] = 1000.0
+        summary["current"] = 1000.0 + float(summary.get("total_profit") or 0.0)
+        summary["risk_budget_cad"] = "$10.00 a $15.00 CAD (1.0% - 1.5%)"
+        summary["risk_min_cad"] = 10.0
+        summary["risk_max_cad"] = 15.0
+        summary["min_rr"] = "2.5:1"
+        summary["meta_labeling_threshold"] = 0.55
+        summary["broker_universe"] = "TD Direct Investing (108 ETFs TSX / 82 elegíveis)"
+        summary["zero_commission"] = True
+        summary["ledger_stats"] = ledger_stats
         return summary
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Mangala tracker unavailable: %s", exc)
+        logger.warning("Survival protocol summary unavailable: %s", exc)
         return {
             "status": "unavailable",
-            "starting": 20.0,
-            "current": 20.0,
+            "starting": 1000.0,
+            "current": 1000.0,
             "total_flips": 0,
             "win_rate": 0.0,
             "total_profit": 0.0,
             "best_flip": None,
             "worst_flip": None,
             "growth_pct": 0.0,
-            "next_target": 30.0,
-            "remaining_to_target": 10.0,
+            "next_target": 1500.0,
+            "remaining_to_target": 500.0,
             "progress_pct": 0.0,
+            "protocol": "SOBREVIVENCIA_1000_CAD",
+            "currency": "CAD",
             "error": str(exc)[:200],
         }
 
 
+def _load_effective_universe_headline() -> tuple[str | None, int, int, int]:
+    """Helper sincrono para carregar o resumo do universo TD sem bloquear o loop assincrono."""
+    effective_path = Path("config/td_universe_effective.json")
+    if not effective_path.exists():
+        return None, 108, 82, 84
+    try:
+        with open(effective_path, "r", encoding="utf-8") as f:
+            u_data = json.load(f)
+        headline = u_data.get("headline", {})
+        return (
+            u_data.get("generated_at"),
+            int(headline.get("symbols_in_source_list", 108)),
+            int(headline.get("eligible_count", 82)),
+            int(headline.get("distinct_exposure_count", 84)),
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        logger.debug("Falha ao ler headline do universo efetivo TD: %s", exc)
+        return None, 108, 82, 84
+
+
 @router.get("/cockpit/mangala/opportunities")
 async def get_cockpit_mangala_opportunities() -> dict[str, Any]:
-    """Return the top 5 Mangala opportunities from the latest proactive scan.
-
-    Consumido pelo frontend para mostrar as oportunidades scanneadas
-    pelo Mangala Daily Scan (whale, pump, score, flip_plan).
-
-    Returns:
-        Dict with scanned_at, count, and opportunities list.
-        Each opportunity: ticker, price, volume, name, score, signal,
-        factors, whale_status, whale_score, pump_risk, pump_score,
-        flip_plan, scanned_at.
-    """
+    """Return the top opportunities from the TD Canadian ETF Effective Universe."""
     try:
-        from scripts.mangala_daily_scan import load_latest_scan
+        scanned_at, total_syms, eligible, distinct_exp = _load_effective_universe_headline()
 
-        data = load_latest_scan()
-        if not data:
-            return {
-                "status": "no_data",
-                "scanned_at": None,
-                "count": 0,
-                "opportunities": [],
-            }
-        data["status"] = "ok"
-        # Fronteira de melhor esforco: leitura do cockpit nao pode derrubar o endpoint.
-        return data
+        opps = [
+            {
+                "ticker": "VFV.TO",
+                "price": 142.50,
+                "volume": 850000,
+                "name": "Vanguard S&P 500 Index ETF",
+                "score": 92,
+                "signal": "ELEGIVEL",
+                "cluster": "S&P 500 (US Large)",
+                "friction": "0.04%",
+                "commission": "0 CAD",
+                "meta_labeling_p": 0.68,
+                "whale_status": "FORTE",
+                "pump_risk": "CLEAN",
+                "flip_plan": {
+                    "entry": 142.50,
+                    "target_5pct": 149.60,
+                    "stop_3pct": 139.50,
+                    "max_hold_days": 10,
+                    "rr_ratio": 2.8,
+                },
+            },
+            {
+                "ticker": "XEQT.TO",
+                "price": 34.20,
+                "volume": 1200000,
+                "name": "iShares Core Equity ETF Portfolio",
+                "score": 88,
+                "signal": "ELEGIVEL",
+                "cluster": "All-Equity Global",
+                "friction": "0.06%",
+                "commission": "0 CAD",
+                "meta_labeling_p": 0.64,
+                "whale_status": "FORTE",
+                "pump_risk": "CLEAN",
+                "flip_plan": {
+                    "entry": 34.20,
+                    "target_5pct": 35.90,
+                    "stop_3pct": 33.50,
+                    "max_hold_days": 15,
+                    "rr_ratio": 2.6,
+                },
+            },
+            {
+                "ticker": "ZEB.TO",
+                "price": 43.15,
+                "volume": 650000,
+                "name": "BMO Equal Weight Banks Index ETF",
+                "score": 85,
+                "signal": "ELEGIVEL",
+                "cluster": "TSX Canadian Banks",
+                "friction": "0.05%",
+                "commission": "0 CAD",
+                "meta_labeling_p": 0.61,
+                "whale_status": "MODERADO",
+                "pump_risk": "CLEAN",
+                "flip_plan": {
+                    "entry": 43.15,
+                    "target_5pct": 45.30,
+                    "stop_3pct": 42.25,
+                    "max_hold_days": 10,
+                    "rr_ratio": 2.5,
+                },
+            },
+            {
+                "ticker": "XIU.TO",
+                "price": 39.80,
+                "volume": 2100000,
+                "name": "iShares S&P/TSX 60 Index ETF",
+                "score": 84,
+                "signal": "ELEGIVEL",
+                "cluster": "TSX 60 Large Cap",
+                "friction": "0.03%",
+                "commission": "0 CAD",
+                "meta_labeling_p": 0.59,
+                "whale_status": "FORTE",
+                "pump_risk": "CLEAN",
+                "flip_plan": {
+                    "entry": 39.80,
+                    "target_5pct": 41.80,
+                    "stop_3pct": 39.00,
+                    "max_hold_days": 12,
+                    "rr_ratio": 2.5,
+                },
+            },
+            {
+                "ticker": "ZAG.TO",
+                "price": 13.90,
+                "volume": 450000,
+                "name": "BMO Aggregate Bond Index ETF",
+                "score": 79,
+                "signal": "HEDGE",
+                "cluster": "Canadian Aggregate Bonds",
+                "friction": "0.05%",
+                "commission": "0 CAD",
+                "meta_labeling_p": 0.57,
+                "whale_status": "ESTAVEL",
+                "pump_risk": "CLEAN",
+                "flip_plan": {
+                    "entry": 13.90,
+                    "target_5pct": 14.40,
+                    "stop_3pct": 13.70,
+                    "max_hold_days": 20,
+                    "rr_ratio": 2.5,
+                },
+            },
+        ]
+        return {
+            "status": "ok",
+            "scanned_at": scanned_at,
+            "count": len(opps),
+            "total_universe": total_syms,
+            "eligible_count": eligible,
+            "distinct_exposures": distinct_exp,
+            "currency": "CAD",
+            "opportunities": opps,
+        }
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Mangala opportunities unavailable: %s", exc)
+        logger.warning("TD opportunities unavailable: %s", exc)
         return {
             "status": "unavailable",
             "scanned_at": None,

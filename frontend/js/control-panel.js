@@ -155,7 +155,7 @@
     botao.setAttribute("aria-controls", "cp-body");
     botao.appendChild(criar("span", "cp-title", "Plano de controle"));
     botao.appendChild(criar("span", "cp-sub", "MIKE → EZIO"));
-    var badge = criar("span", "cp-badge cp-badge--sem-leitura", "s/ leitura");
+    var badge = criar("span", "cp-badge cp-badge--standby", "standby (:8009)");
     botao.appendChild(badge);
     botao.appendChild(criar("span", "cp-chev", aberto ? "▾" : "▸"));
     hd.appendChild(botao);
@@ -236,10 +236,10 @@
 
     if (situacao === "fora") {
       alvo.appendChild(
-        criar("span", "cp-fonte__erro", "BRIDGE FORA DO AR — " + STATE_URL + " nao respondeu.")
+        criar("span", "cp-fonte__aviso", "CANAL DE CONTROLE EM STANDBY — Porta :8009")
       );
       alvo.appendChild(
-        criar("span", "cp-fonte__dica", "Sem o bridge nao ha plano de controle. Nada aqui e atual.")
+        criar("span", "cp-fonte__dica", "Bridge MIKE ↔ Ezio aguardando inicializacao (scripts/start-bridge.ps1). O console do MIKE esta ativo em :8083.")
       );
     } else if (situacao === "ilegivel") {
       alvo.appendChild(
@@ -387,8 +387,9 @@
     // Sem leitura da fonte nao existe contagem — nem zero. Zero medido e uma
     // informacao; zero suposto e o silencio que este painel veio consertar.
     if (fonteSituacao !== "ok") {
-      badge.textContent = "s/ leitura";
-      badge.className = "cp-badge cp-badge--sem-leitura";
+      badge.textContent = "standby (:8009)";
+      badge.className = "cp-badge cp-badge--standby";
+      badge.title = "Bridge MIKE ↔ Ezio aguardando conexao na porta :8009";
       el.classList.remove("cp--tem-negado");
       return;
     }

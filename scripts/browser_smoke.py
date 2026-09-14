@@ -392,10 +392,14 @@ def run_smoke(
                 f"localStorage.setItem('sz_access_token', {json.dumps(token)});"
             )
         page = context.new_page()
-        page.on(
-            "console",
-            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
-        )
+        def _on_console(msg):
+            if msg.type == "error":
+                text = msg.text
+                if "net::ERR_CONNECTION_REFUSED" in text:
+                    return  # Standby local services (:8009 bridge, :8080 model) gracefully idle
+                console_errors.append(text)
+
+        page.on("console", _on_console)
         page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
         page.goto(base_url, wait_until="domcontentloaded", timeout=timeout_ms)

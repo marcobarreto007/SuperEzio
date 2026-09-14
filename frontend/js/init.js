@@ -655,6 +655,7 @@
   function renderTradeHistoryRow(trade, selected) {
     var ticker = orderTicker(trade);
     if (!ticker) return "";
+    var isCaderneta = trade.source === "recommendation_ledger" || String(trade.trade_id || "").indexOf("rec-") === 0;
     var status = String(trade.status || trade.outcome || "OPEN").toUpperCase();
     var pnl = trade.pnl_amount == null || !isFinite(Number(trade.pnl_amount))
       ? ""
@@ -664,13 +665,14 @@
       ? ""
       : "@ $" + Number(trade.entry_price).toFixed(2);
     var dirColor = dir === "SHORT" ? "color:#ff5252;" : "color:#00e676;";
+    var badgeTag = isCaderneta ? '<span style="font:700 8px var(--font-mono);background:rgba(0,229,255,0.15);color:#00e5ff;padding:1px 4px;border-radius:2px;margin-left:4px;">CADERNETA</span>' : '';
     return [
       '<button class="trade-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
         ' data-order-kind="history"',
         ' data-order-id="' + esc(trade.trade_id || trade.order_id || "") + '"',
         ' data-order-ticker="' + esc(ticker) + '" style="display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:140px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);cursor:pointer;text-align:left;">',
         '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">',
-          '<strong style="font:800 12px var(--font-mono);color:var(--text-primary);">' + esc(ticker) + '</strong>',
+          '<div style="display:flex;align-items:center;"><strong style="font:800 12px var(--font-mono);color:var(--text-primary);">' + esc(ticker) + '</strong>' + badgeTag + '</div>',
           '<span style="font:700 9px var(--font-mono);' + dirColor + '">' + esc(dir) + '</span>',
         '</div>',
         '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;font:600 9px var(--font-mono);color:var(--text-secondary);">',
@@ -746,15 +748,13 @@
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
-	        var historyTitle = offlineMode
-	          ? "<span>Teses Gravadas no Journal</span>"
-	          : "<span>Local audit history</span>";
+	        var historyTitle = "<span>Caderneta de Recomendações &amp; Teses</span>";
 	        historyHost.innerHTML = [
 	          '<div class="trade-history-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' + historyTitle + '<strong style="color:#00e5ff;">' + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
 	          '<div class="trade-history-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">' + historyRows.join("") + "</div>",
 	        ].join("");
 	      } else if (offlineMode) {
-	        historyHost.innerHTML = '<div class="cockpit-empty">Paper journal ativo. Utilize o botão + Trade ou o scanner para simular. Paper journal records are audit evidence, not broker positions (open hypotheses: ' + esc(String(tradeStats.open_hypotheses || 0)) + ').</div>';
+	        historyHost.innerHTML = '<div class="cockpit-empty">Caderneta de recomendações ativa. Utilize o botão Sugestão ou o scanner TD para simular ordens LIMIT (sem slippage).</div>';
 	      } else {
 	        historyHost.innerHTML = '<div class="cockpit-empty">No trade history recorded.</div>';
 	      }

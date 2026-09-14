@@ -1561,6 +1561,31 @@ _PRODUCT_SUGGESTION_VERB_HINTS = (
     "me diga o produto",
     "me da um produto",
     "me de um produto",
+    "me de uma dica",
+    "me dê uma dica",
+    "me da uma dica",
+    "me dá uma dica",
+    "de uma dica",
+    "dê uma dica",
+    "da uma dica",
+    "dá uma dica",
+    "dica",
+    "dicas",
+    "me de uma ideia",
+    "me dê uma ideia",
+    "me da uma ideia",
+    "me dá uma ideia",
+    "ideia de investimento",
+    "ideias de investimento",
+    "onde investir",
+    "como investir",
+    "onde aplicar",
+    "como aplicar",
+    "onde colocar",
+    "o que comprar",
+    "qual investimento",
+    "qual o melhor investimento",
+    "o que fazer com",
 )
 
 # Substantivos que nomeiam o alvo da sugestao: produto/estrategia/framework.
@@ -1573,6 +1598,12 @@ _PRODUCT_STRATEGY_NOUN_HINTS = (
     "carteira",
     "investimento",
     "investimentos",
+    "dica",
+    "dicas",
+    "ideia",
+    "ideias",
+    "alocacao",
+    "alocação",
 )
 
 # Perfil de risco explícito na mensagem.
@@ -2797,8 +2828,10 @@ def is_product_strategy_suggestion(message: str) -> bool:
         return True
     normalized = normalize_message(message)
     has_amount = _AMOUNT_HINT_PATTERN.search(normalized) is not None
+    if has_amount:
+        return True
     has_risk_profile = has_hint(message, _RISK_PROFILE_HINT_WORDS)
-    return has_amount and has_risk_profile
+    return has_risk_profile
 
 
 def detect_decisive_trade_intent(message: str) -> bool:

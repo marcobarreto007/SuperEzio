@@ -132,8 +132,8 @@ def build_scan_verdict(state: dict[str, Any]) -> ScanVerdict:
         rejected=rejected,
         reasons=tuple(reasons),
         blocking_gate=blocking,
-        next_step_pt="Me passe um ticker com preco (ex. TD.TO) ou peca um scan de mini cap com catalisador.",
-        next_step_en="Give me a priced ticker (e.g. TD.TO) or ask for a mini-cap scan with a catalyst.",
+        next_step_pt="Me passe um ticker com preco (ex. VFV.TO, TD.TO) ou consulte oportunidades TD no cockpit.",
+        next_step_en="Give me a priced ticker (e.g. VFV.TO, TD.TO) or check TD opportunities in the cockpit.",
         source_errors=errors,
         data_health=data_health_facts(),
     )
@@ -227,7 +227,7 @@ def render_small_capital_speech(message: str, scan: dict[str, Any] | None = None
             "Cem dolares num nome sem preco confirmado morre no spread.\n"
             "\n"
             "Live continua congelado. Paper so com evidencia.\n"
-            "Proximo passo: me de um ticker (ex. TD.TO) ou peca um scan de mini cap com catalisador."
+            "Proximo passo: me de um ticker (ex. VFV.TO, TD.TO) ou consulte as oportunidades TD no cockpit."
         )
     return (
         f"You asked for high risk and max return with {amount}.\n"
@@ -238,5 +238,5 @@ def render_small_capital_speech(message: str, scan: dict[str, Any] | None = None
         f"My take with {amount} today: stay in cash or wait for the next window.\n"
         "\n"
         "Live stays frozen. Paper only with evidence.\n"
-        "Next step: give me a ticker (e.g. TD.TO) or ask for a mini-cap scan with a catalyst."
+        "Next step: give me a ticker (e.g. VFV.TO, TD.TO) or check TD opportunities in the cockpit."
     )

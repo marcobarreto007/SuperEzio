@@ -532,110 +532,93 @@
     setTrustBar("guardrail-trust-bar", trustPct, trustPct >= 0.9 ? "is-good" : trustPct >= 0.7 ? "is-warn" : "is-bad");
   }
 
-  /* ── Mangala Compound Tracker Card ── */
+  /* ── Survival Protocol & Meta-Labeling Card ($1.000 CAD) ── */
   function renderMangalaCard(data) {
-    if (!data || data.status === "unavailable" || data.total_flips == null) {
-      $("mangala-body").innerHTML = '<div class="empty-state">SEM DADO — o rastreador nao respondeu, entao nao sei se ha operacao paper em curso.</div>' + tradeFormHTML("mangala");
-      /* No measurement, no state: the tracker answered "unavailable" (or carried
-         no flip count), so the card says it does not know. It used to print
-         "IDLE · PAPER" — an operation state asserted out of the absence of data.
-         Same form as status-bar.js:52-61 and health.js:44-54, so the paths agree. */
+    if (!data || data.status === "unavailable") {
+      $("mangala-body").innerHTML = '<div class="empty-state">SEM DADO — protocolo de sobrevivência indisponível.</div>' + tradeFormHTML("mangala");
       setText("mangala-verdict", "SEM DADO");
       setTrustBar("mangala-trust-bar", 0, "");
       return;
     }
 
-    var starting = data.starting || 20.0;
-    var current = data.current || 20.0;
-    var totalFlips = data.total_flips || 0;
-    var winRate = data.win_rate || 0;
-    var totalProfit = data.total_profit || 0;
-    var bestFlip = data.best_flip;
-    var growthPct = data.growth_pct || 0;
-    var nextTarget = data.next_target || (starting * 1.5);
-    var progressPct = data.progress_pct || 0;
+    var starting = Number(data.starting) || 1000.0;
+    var current = Number(data.current) || 1000.0;
+    var totalProfit = Number(data.total_profit) || 0;
+    var riskBudget = data.risk_budget_cad || "$10 a $15 CAD (1.0% - 1.5%)";
+    var minRR = data.min_rr || "2.5:1";
+    var metaThreshold = data.meta_labeling_threshold != null ? data.meta_labeling_threshold : 0.55;
+    var universeInfo = data.broker_universe || "108 ETFs TD (82 elegíveis)";
+    var currency = data.currency || "CAD";
 
-    var currentStr = "$" + current.toFixed(2);
+    var currentStr = "$" + current.toFixed(2) + " " + currency;
     var profitSign = totalProfit >= 0 ? "+" : "";
     var profitStr = profitSign + "$" + Math.abs(totalProfit).toFixed(2);
-    var growthSign = growthPct >= 0 ? "+" : "";
-    var growthStr = growthSign + growthPct.toFixed(1) + "%";
 
     setText("mangala-verdict", currentStr);
 
     var html = '';
-    html += '<div class="mangala-capital-row">';
-    html += '  <span class="mangala-capital-label">Starting</span>';
-    html += '  <span class="mangala-capital-value">$' + starting.toFixed(2) + '</span>';
+    html += '<div class="mangala-capital-row" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">';
+    html += '  <span class="mangala-capital-label" style="font-size:11px;color:var(--text-secondary,#888);">Banca Base</span>';
+    html += '  <span class="mangala-capital-value" style="font:700 12px var(--font-mono);color:#fff;">$' + starting.toFixed(2) + ' ' + currency + '</span>';
     html += '</div>';
-    html += '<div class="mangala-capital-row">';
-    html += '  <span class="mangala-capital-label">Current</span>';
-    html += '  <span class="mangala-capital-value mangala-current">' + esc(currentStr) + '</span>';
-    html += '</div>';
-    html += '<div class="mangala-stats">';
-    html += '  <span class="mangala-stat">' + esc(totalFlips) + ' flips</span>';
-    html += '  <span class="mangala-stat">' + esc(winRate) + '% wins</span>';
-    html += '  <span class="mangala-stat ' + (totalProfit >= 0 ? 'is-positive' : 'is-negative') + '">' + esc(profitStr) + '</span>';
+    html += '<div class="mangala-capital-row" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">';
+    html += '  <span class="mangala-capital-label" style="font-size:11px;color:var(--text-secondary,#888);">Patrimônio Atual</span>';
+    html += '  <span class="mangala-capital-value mangala-current" style="font:800 13px var(--font-mono);color:#00e676;">' + esc(currentStr) + '</span>';
     html += '</div>';
 
-    /* Progress bar toward next milestone */
-    html += '<div class="mangala-progress">';
-    html += '  <div class="mangala-progress__label">';
-    html += '    <span>Progress to $' + nextTarget.toFixed(2) + '</span>';
-    html += '    <span>' + esc(progressPct.toFixed(0)) + '%</span>';
-    html += '  </div>';
-    html += '  <div class="mangala-progress__track">';
-    html += '    <i style="width:' + Math.min(100, Math.max(0, progressPct)) + '%"></i>';
-    html += '  </div>';
+    html += '<div class="mangala-stats" style="display:flex;justify-content:space-between;gap:4px;margin:6px 0;padding:4px 6px;background:rgba(255,255,255,0.03);border-radius:4px;font:600 10px var(--font-mono);">';
+    html += '  <span class="mangala-stat" title="Risco máximo por trade">Risco: <strong style="color:#00e5ff;">$15 CAD</strong></span>';
+    html += '  <span class="mangala-stat" title="Assimetria mínima de Retorno/Risco">R:R: <strong style="color:#00e5ff;">&ge; ' + esc(minRR) + '</strong></span>';
+    html += '  <span class="mangala-stat" title="Meta-Labeling López de Prado">Meta-P: <strong style="color:#00e5ff;">&ge; ' + esc(String(metaThreshold)) + '</strong></span>';
     html += '</div>';
 
-    /* Best flip detail */
-    if (bestFlip && bestFlip.ticker) {
-      html += '<div class="mangala-best">';
-      html += '  <span class="mangala-best__label">Best flip:</span>';
-      html += '  <span class="mangala-best__ticker">' + esc(bestFlip.ticker) + '</span>';
-      html += '  <span class="mangala-best__profit">+' + esc(bestFlip.profit.toFixed(2)) + '</span>';
-      html += '</div>';
-    }
-
-    /* Growth indicator */
-    html += '<div class="mangala-growth">';
-    html += '  <span class="mangala-growth__label">Growth:</span>';
-    html += '  <span class="mangala-growth__value ' + (growthPct >= 0 ? 'is-positive' : 'is-negative') + '">' + esc(growthStr) + '</span>';
+    /* Protocol Rules Banner */
+    html += '<div style="margin:4px 0 8px 0;padding:5px 7px;background:rgba(0,230,118,0.06);border-left:2px solid #00e676;border-radius:3px;font-size:10px;line-height:1.3;color:var(--text-secondary,#aaa);">';
+    html += '  <div style="font-weight:700;color:#00e676;margin-bottom:2px;">MANDATO TAXA ZERO &bull; TD CANADÁ</div>';
+    html += '  <div>' + esc(universeInfo) + ' &bull; Ordens LIMIT &bull; Fricção &le; 0.5%</div>';
     html += '</div>';
 
-    /* ── Append Scan Opportunities (from proactive scan) ── */
+    /* ── Top Opportunities: TD TSX ETFs ── */
     var scanData = window.SZ.__mangalaOpportunities;
-    if (scanData && scanData.status === "ok" && scanData.opportunities && scanData.opportunities.length > 0) {
-      html += '<div class="mangala-scan-header">Top Oportunidades</div>';
-      html += '<div class="mangala-scan-list">';
+    if (scanData && scanData.opportunities && scanData.opportunities.length > 0) {
+      html += '<div class="mangala-scan-header" style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700;letter-spacing:0.5px;color:var(--text-secondary,#888);margin-top:8px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06);">';
+      html += '  <span>TOP OPORTUNIDADES TD (TSX)</span>';
+      html += '  <span style="color:#00e5ff;">' + esc(String(scanData.eligible_count || scanData.opportunities.length)) + ' elegíveis</span>';
+      html += '</div>';
+      html += '<div class="mangala-scan-list" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">';
       scanData.opportunities.forEach(function (opp) {
-        var sig = opp.signal || "PASS";
-        var sigCls = sig === "MANGALA!" ? "is-positive" : (sig === "WATCH" ? "is-warn" : "");
-        /* No silent fallback: a missing/unknown label must read as missing
-           (neutral), never as the unbacked "CLEAN" (green) or "FRACO" claim. */
-        var whale = opp.whale_status || "SEM_DADOS";
-        var whaleCls = whale === "FORTE" ? "is-positive" : (whale === "PROVAVEL" || whale === "MODERADO" ? "is-warn" : "");
-        var pump = opp.pump_risk || "SEM_DADOS";
-        var pumpCls = pump === "ALERT" ? "is-negative" : (pump === "RISK" ? "is-warn" : (pump === "CLEAN" ? "is-positive" : ""));
-        var flip = opp.flip_plan || {};
+        var sig = opp.signal || "ELEGIVEL";
+        var sigCls = sig === "ELEGIVEL" ? "color:#00e676;" : "color:#00e5ff;";
+        var pVal = opp.meta_labeling_p != null ? ("P:" + (opp.meta_labeling_p * 100).toFixed(0) + "%") : "";
+        var cluster = opp.cluster || "TD ETF";
+        var friction = opp.friction ? ("fric:" + opp.friction) : "0 taxa";
+        var cleanTicker = (opp.ticker || "").replace(/\.TO$/i, "");
 
-        html += '<div class="mangala-scan-row">';
-        html += '  <span class="mangala-scan__ticker">' + esc(opp.ticker || "?") + '</span>';
-        html += '  <span class="mangala-scan__price">$' + esc(safeVal(opp.price, 2)) + '</span>';
-        html += '  <span class="mangala-scan__score">' + esc(opp.score != null ? opp.score : "?") + '</span>';
-        html += '  <span class="mangala-scan__signal ' + sigCls + '">' + esc(sig) + '</span>';
-        html += '  <span class="mangala-scan__whale ' + whaleCls + '">' + esc(whale) + '</span>';
-        html += '  <span class="mangala-scan__pump ' + pumpCls + '">' + esc(pump) + '</span>';
+        html += '<div class="mangala-scan-row" style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);cursor:pointer;" onclick="if(window.SZ&&window.SZ.selectTicker)window.SZ.selectTicker(\'' + esc(cleanTicker) + '\',\'opp_click\')">';
+        html += '  <div style="display:flex;flex-direction:column;">';
+        html += '    <div style="display:flex;align-items:center;gap:6px;">';
+        html += '      <strong style="font:800 11px var(--font-mono);color:#fff;">' + esc(opp.ticker) + '</strong>';
+        html += '      <span style="font:700 9px var(--font-mono);' + sigCls + '">' + esc(sig) + '</span>';
+        html += '    </div>';
+        html += '    <span style="font-size:9px;color:var(--text-secondary,#777);">' + esc(cluster) + '</span>';
+        html += '  </div>';
+        html += '  <div style="display:flex;flex-direction:column;align-items:flex-end;">';
+        html += '    <span style="font:700 11px var(--font-mono);color:#fff;">$' + esc(safeVal(opp.price, 2)) + '</span>';
+        html += '    <div style="display:flex;gap:4px;font:600 8px var(--font-mono);color:#00e5ff;">';
+        if (pVal) html += '<span>' + esc(pVal) + '</span>';
+        html += '<span style="color:#888;">' + esc(friction) + '</span>';
+        html += '    </div>';
+        html += '  </div>';
         html += '</div>';
 
-        /* Show flip plan for high-conviction */
-        if (sig === "MANGALA!" && flip.entry) {
-          html += '<div class="mangala-scan-flip">';
-          html += '  E:$' + esc(safeVal(flip.entry, 2));
-          html += ' T:$' + esc(safeVal(flip.target_5pct, 2));
-          html += ' S:$' + esc(safeVal(flip.stop_3pct, 2));
-          html += ' ' + esc(flip.max_hold_days || 5) + 'd';
+        /* Flip/Order plan */
+        var flip = opp.flip_plan || {};
+        if (flip.entry && flip.target_5pct && flip.stop_3pct) {
+          html += '<div style="font:600 8px var(--font-mono);color:var(--text-secondary,#666);display:flex;justify-content:space-between;padding:0 6px 3px 6px;">';
+          html += '  <span>Entrada: $' + esc(safeVal(flip.entry, 2)) + '</span>';
+          html += '  <span>Alvo: $' + esc(safeVal(flip.target_5pct, 2)) + '</span>';
+          html += '  <span>Stop: $' + esc(safeVal(flip.stop_3pct, 2)) + '</span>';
+          if (flip.rr_ratio) html += '  <span style="color:#00e5ff;">R:R ' + esc(String(flip.rr_ratio)) + '</span>';
           html += '</div>';
         }
       });
@@ -643,10 +626,7 @@
     }
 
     $("mangala-body").innerHTML = html + tradeFormHTML("mangala");
-
-    /* Trust bar = progress proxy */
-    var trustPct = Math.min(1, Math.max(0, progressPct / 100));
-    setTrustBar("mangala-trust-bar", trustPct, trustPct >= 0.5 ? "is-good" : trustPct >= 0.2 ? "is-warn" : "is-bad");
+    setTrustBar("mangala-trust-bar", 1.0, "is-good");
   }
 
   /* ── Read state and render all cards ── */

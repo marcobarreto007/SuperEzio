@@ -131,6 +131,12 @@
   border: 1px dashed var(--amber, #ff9100);
 }
 
+.cp-badge--standby {
+  color: var(--cyan, #00e5ff);
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
 @keyframes cp-pulso {
   0%,
   100% {
@@ -177,6 +183,13 @@
 .cp-fonte__erro {
   flex: 1 1 100%;
   color: var(--red, #ff1744);
+  line-height: 1.45;
+}
+
+.cp-fonte__aviso {
+  flex: 1 1 100%;
+  color: var(--cyan, #00e5ff);
+  font-weight: 600;
   line-height: 1.45;
 }
 

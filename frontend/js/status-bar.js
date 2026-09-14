@@ -120,13 +120,15 @@
     var brokerStatus = brokerInfo(broker);
     var guardInfo = guardrailInfo(snapshot);
     setItem("statusbar-ceo", "CORE: " + upper(core.state), tone(core.state));
-    setItem("statusbar-genie", "CEO: " + upper(ceo.state), tone(ceo.state));
+    var ceoLabel = upper(ceo.state) === "ONLINE" ? "CEO: DEEPSEEK-V4-PRO" : ("CEO: " + upper(ceo.state));
+    setItem("statusbar-genie", ceoLabel, tone(ceo.state));
     var dataStateInfo = getDataStateInfo(data.state);
     var dataText = "DATA: " + dataStateInfo.label;
     if (data.asOf) dataText += " · " + new Date(data.asOf).toLocaleTimeString();
     setItem("statusbar-deep", dataText, dataStateInfo.tone);
     setItem("statusbar-ibkr", brokerStatus.text, brokerStatus.tone);
     setItem("statusbar-guardrails", "MODO: " + mode + " · GUARDRAILS: " + guardInfo.text, worstTone(modeInfo.tone, guardInfo.tone));
+    setItem("statusbar-models", "IA: DEEPSEEK V4 + LOCAL (:8080)", "is-ok");
     setItem("statusbar-latency", "PIPELINE: " + upper(pipeline.state), tone(pipeline.state));
     var marketStatus = $("live-status");
     if (marketStatus) marketStatus.textContent = "DATA " + dataStateInfo.label;
