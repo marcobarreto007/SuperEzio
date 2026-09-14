@@ -12,6 +12,7 @@ echo.
 set "HEALTH_URL=http://127.0.0.1:8002/health"
 set "UI_URL=http://127.0.0.1:8002"
 set "VENV_PY=%~dp0.venv\Scripts\python.exe"
+set "PYTHON_EXE="
 
 rem 1. Check if SuperEzio is already running on port 8002
 curl.exe -fsS --max-time 2 %HEALTH_URL% >nul 2>&1
@@ -20,7 +21,17 @@ if %errorlevel% equ 0 (
     goto :open_ui
 )
 
-if not exist "%VENV_PY%" (
+if exist "%VENV_PY%" (
+    set "PYTHON_EXE=%VENV_PY%"
+) else (
+    for /f "delims=" %%i in ('where python 2^>nul') do (
+        set "PYTHON_EXE=%%i"
+        goto :have_python
+    )
+)
+
+:have_python
+if not defined PYTHON_EXE (
     echo [ERRO] .venv nao encontrado em %VENV_PY%
     echo Instale com: pip install -e ".[dev]"
     echo Nao esta operacional.
@@ -37,7 +48,7 @@ if defined PYTHONPATH (
 
 if not exist "runtime\logs" mkdir "runtime\logs"
 
-start "SuperEzio Server" /min "%VENV_PY%" -m agent_server.main
+start "SuperEzio Server" /min "%PYTHON_EXE%" -m agent_server.main
 
 echo [2/2] Aguardando prontidao do servidor...
 for /l %%i in (1,1,30) do (

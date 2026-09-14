@@ -203,22 +203,38 @@
     mark($("statusbar-ibkr"), ibkrOk ? "is-ok" : "is-warn");
     if (ibkrOk && typeof data.ibkr === "object") {
       var ibkr = data.ibkr;
-      var modeLabel = ibkr.paper === true ? "PAPER" : "LIVE";
+      /* The mode is a claim only when the payload carries it: the old
+         `paper === true ? "PAPER" : "LIVE"` printed LIVE for an ABSENT field —
+         an operational state invented from no evidence, the same defect the
+         served HTML was fixed for. No evidence, no mode. */
+      var modeLabel = ibkr.paper === true ? "IBKR PAPER" : ibkr.paper === false ? "IBKR LIVE" : "IBKR";
       var equity = ibkr.equity || "--";
       var positions = ibkr.positions_count == null ? "--" : ibkr.positions_count;
       var orders = ibkr.orders_count == null ? "--" : ibkr.orders_count;
-      setText("statusbar-ibkr", "IBKR " + modeLabel + ": $" + equity + " (" + positions + " pos, " + orders + " ord)");
+      setText("statusbar-ibkr", modeLabel + ": $" + equity + " (" + positions + " pos, " + orders + " ord)");
       /* Also update topbar account value */
       updateTopbarAccount(equity, ibkr.unrealized_pnl);
     } else {
-      setText("statusbar-ibkr", "IBKR: " + (ibkrOk ? "PAPER" : "OFFLINE"));
+      /* Same rule: the link can be up while the payload carries no mode — that
+         never becomes "PAPER". A link with no report reads SEM DADO, the form
+         status-bar.js#brokerInfo uses for the same item. */
+      var ibkrReport = typeof data.ibkr === "string" ? data.ibkr : String((data.ibkr || {}).status || "");
+      setText("statusbar-ibkr", "IBKR: " + (ibkrOk ? "ONLINE" : ibkrReport.toLowerCase() === "offline" ? "OFFLINE" : "SEM DADO"));
     }
 
+    /* No invented total: `guards.ok || 30` painted "Guardrails: 30/30" green
+       with zero evidence. Unknown stays unknown (status-bar.js renders the same
+       item from the operational snapshot; both paths must agree). */
     var guards = data.guardrails || {};
-    var guardsOk = guards.ok || data.guards_ok || 30;
-    var guardsTotal = guards.total || data.guards_total || 30;
-    mark($("statusbar-guardrails"), guardsOk >= guardsTotal ? "is-ok" : "is-warn");
-    setText("statusbar-guardrails", "Guardrails: " + guardsOk + "/" + guardsTotal);
+    var guardsOk = guards.ok != null ? guards.ok : (data.guards_ok != null ? data.guards_ok : null);
+    var guardsTotal = guards.total != null ? guards.total : (data.guards_total != null ? data.guards_total : null);
+    if (guardsOk == null || guardsTotal == null || guardsTotal === 0) {
+      mark($("statusbar-guardrails"), "is-warn");
+      setText("statusbar-guardrails", "Guardrails: SEM DADO");
+    } else {
+      mark($("statusbar-guardrails"), guardsOk >= guardsTotal ? "is-ok" : "is-warn");
+      setText("statusbar-guardrails", "Guardrails: " + guardsOk + "/" + guardsTotal);
+    }
   }
 
   function updateTopbarAccount(equity, pnl) {
@@ -465,7 +481,9 @@
       return;
     }
     console.log("[Guardrails] received hub data, rendering...", data);
-    var total = data.total_guardrails || data.total || 30;
+    /* No invented default: the branch above already guarantees data.total is a
+       number, and `|| 30` used to turn a real total of 0 into "0/30 ALL PASS". */
+    var total = data.total_guardrails != null ? data.total_guardrails : data.total;
     var summary = data.summary || {};
     var blocking = summary.blocking_count != null ? summary.blocking_count : 0;
     var okCount = summary.decision_counts ? (summary.decision_counts.ALLOW || 0) : (total - blocking);
@@ -517,8 +535,12 @@
   /* ── Mangala Compound Tracker Card ── */
   function renderMangalaCard(data) {
     if (!data || data.status === "unavailable" || data.total_flips == null) {
-      $("mangala-body").innerHTML = '<div class="empty-state">No paper operation running.</div>' + tradeFormHTML("mangala");
-      setText("mangala-verdict", "IDLE · PAPER");
+      $("mangala-body").innerHTML = '<div class="empty-state">SEM DADO — o rastreador nao respondeu, entao nao sei se ha operacao paper em curso.</div>' + tradeFormHTML("mangala");
+      /* No measurement, no state: the tracker answered "unavailable" (or carried
+         no flip count), so the card says it does not know. It used to print
+         "IDLE · PAPER" — an operation state asserted out of the absence of data.
+         Same form as status-bar.js:52-61 and health.js:44-54, so the paths agree. */
+      setText("mangala-verdict", "SEM DADO");
       setTrustBar("mangala-trust-bar", 0, "");
       return;
     }
@@ -823,48 +845,21 @@
     renderPipelineProgress();
   }
 
-  /* Fallback poll that fetches /cockpit/summary directly and maps data to cards.
-     This runs every 5s in addition to the pipeline event bus, so cards update
-     even if events never arrive or are malformed. */
-  async function pollCockpitFallback() {
-    var online = false;
-    try {
-      var snapshot = await window.SZ.health.check();
-      online = snapshot && snapshot.core && snapshot.core.state === "online";
-    } catch (e) { online = false; }
-    if (!online) return;
+  /* ── Poll de 5s REMOVIDO (12/09/2026) ──
+     Havia aqui um pollCockpitFallback() que lia deep.f51 / deep.sdca /
+     deep.neural / deep.trinity / deep.guardrails de /cockpit/summary. Nenhum
+     desses campos existe: o backend publica apenas deep.last_math,
+     deep.last_experts e deep.last_trinity (src/agent_server/endpoints.py:2358),
+     e ao vivo os três chegam vazios (null / [] / ""). Ou seja: o poll passava
+     o tempo todo por cinco `if` falsos, re-renderizava estado velho e ainda
+     duplicava o poll de 10s de refreshAll() sobre o MESMO endpoint, atrás do
+     MESMO gate de /health.
 
-    try {
-      var s = await window.SZ.api.fetchCockpitSummary();
-      if (!s) return;
-
-      /* Map /cockpit/summary fields to card data structures */
-      var deep = s.deep || s.bob || {};
-
-      if (deep.f51) {
-        window.SZ.state = window.SZ.state || {};
-        window.SZ.state.lastF51Verdict = deep.f51;
-      }
-      if (deep.sdca) {
-        window.SZ.__sdcaState = deep.sdca;
-      }
-      if (deep.neural) {
-        window.SZ.__neuralState = deep.neural;
-      }
-      if (deep.trinity) {
-        window.SZ.state = window.SZ.state || {};
-        window.SZ.state.lastTrinity = deep.trinity;
-      }
-      if (deep.guardrails) {
-        window.SZ.state = window.SZ.state || {};
-        window.SZ.state.lastGuardrailHub = deep.guardrails;
-      }
-
-      renderAllCards();
-    } catch (e) {
-      /* silent — keep last known state */
-    }
-  }
+     O que sobrou dele e era verdade: bob.guardrails (que existe mesmo) já é
+     mapeado em refreshAll(); a evidência de F51/SDCA/Neural/Trinity vem dos
+     eventos do pipeline (init.js -> SZ.handleEvent). Se o backend passar a
+     publicar esses campos em /cockpit/summary.deep, o mapeamento volta aqui —
+     com o nome certo do campo.                                   */
 
   async function refreshAll() {
     var online = false;
@@ -914,17 +909,42 @@
         }
       }
     } catch (e) {
-      /* silent */
+      /* The chips keep the last known values, but the failure is not silent:
+         without this the cockpit looked healthy while the summary call failed. */
+      console.warn("[cockpit] falha ao consultar /cockpit/summary:", e);
     }
+  }
+
+  /* A failed fetch is shown, not swallowed: the card keeps its last data but
+     the operator sees that the reading is stale (and the console keeps the
+     reason). Silence is not error handling. */
+  function markFetchDegraded(bodyId, endpoint, err) {
+    console.warn("[cockpit] falha ao consultar " + endpoint + ":", err);
+    var body = $(bodyId);
+    if (!body) return;
+    var el = body.querySelector(".fetch-degraded");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "empty-state fetch-degraded";
+      body.insertBefore(el, body.firstChild);
+    }
+    el.textContent = "SEM DADO · falha em " + endpoint + " (" + new Date().toLocaleTimeString() + ")";
+  }
+
+  function clearFetchDegraded(bodyId) {
+    var body = $(bodyId);
+    var el = body && body.querySelector(".fetch-degraded");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
   }
 
   async function refreshMangala() {
     try {
       var data = await window.SZ.api.fetchMangalaSummary();
       window.SZ.__lastMangalaTracker = data;
+      clearFetchDegraded("mangala-body");
       renderMangalaCard(data);
     } catch (e) {
-      /* silent — keep last known state */
+      markFetchDegraded("mangala-body", "/cockpit/mangala", e);
     }
   }
 
@@ -938,7 +958,11 @@
         renderMangalaCard(trackerData);
       }
     } catch (e) {
-      /* silent */
+      console.warn("[cockpit] falha ao consultar /cockpit/mangala/opportunities:", e);
+      var oppBody = $("mangala-body");
+      if (oppBody && !window.SZ.__lastMangalaTracker) {
+        markFetchDegraded("mangala-body", "/cockpit/mangala/opportunities", e);
+      }
     }
   }
 
@@ -1172,8 +1196,8 @@
     /* Also poll deep state more frequently for card updates */
     window.setInterval(refreshDeepState, 2000);
 
-    /* Fallback: poll /cockpit/summary every 5s to catch missed pipeline events */
-    window.setInterval(pollCockpitFallback, 5000);
+    /* (o poll de 5s de /cockpit/summary foi removido — ver nota acima de
+       refreshDeepState: ele só lia campos inexistentes) */
 
     /* Poll Mangala tracker every 15 seconds (trades change less frequently) */
     window.setInterval(refreshMangala, 15000);
@@ -1195,7 +1219,6 @@
     renderGuardrailCard: renderGuardrailCard,
     renderMangalaCard: renderMangalaCard,
     renderAllCards: renderAllCards,
-    pollCockpitFallback: pollCockpitFallback,
   });
 
   document.addEventListener("DOMContentLoaded", init);

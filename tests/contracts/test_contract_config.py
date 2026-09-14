@@ -59,6 +59,10 @@ def test_universal_config_from_dict_models():
     assert cfg.models["agent"].path == "models/test.gguf"
     assert cfg.models["agent"].is_local is True
     assert cfg.models["agent"].n_gpu_layers == 28
+    # n_ctx e consumido de verdade desde 11/09/2026 (vira ModelProvider.n_ctx e
+    # alimenta o guard de contexto do gateway): o valor declarado tem que vencer
+    # o default, senao a janela do endpoint local nunca chega no guard.
+    assert cfg.models["agent"].n_ctx == 8192
 
 
 def test_universal_config_from_dict_gateway():

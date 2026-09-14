@@ -1,8 +1,11 @@
 # SuperEzio Runtime Configuration v4.2.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-09-10 - DeepSeek em TODOS os papeis (Bob, orquestrador,
-# experts, judge e auditor) via API oficial. GLM-5.3 fica opcional e
-# religavel por SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL.
+# ATUALIZADO: 2026-09-12 - SEPARACAO POR PAPEL (decisao do dono em 12/09):
+# quem DECIDE — CEO (agent) e orquestrador — roda deepseek-v4-pro; os papeis de
+# APOIO — comite de experts (deepseek), daytrade judge e daytrade auditor —
+# ficam em deepseek-v4-flash. Ate 2026-09-10 era flash em todos os papeis.
+# Tudo via API oficial. GLM-5.3 fica opcional e religavel por
+# SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL.
 
 project_name: SuperEzio
 version: 4.2.0
@@ -20,13 +23,14 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (DeepSeek em todos os papeis; GLM-5.3 opcional/religavel)
+# Modelos (cerebro em deepseek-v4-pro; papeis de apoio em deepseek-v4-flash;
+# GLM-5.3 opcional/religavel)
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: DeepSeek V4 Flash (CEO mouth)
+    name: DeepSeek V4 Pro (CEO mouth)
     provider_name: agent
-    model_id: deepseek-v4-flash
+    model_id: deepseek-v4-pro
     base_url: https://api.deepseek.com
     backend: openai_compatible
     role: agent
@@ -37,11 +41,29 @@ models:
     max_tokens: 1800
     timeout_s: 180
 
+  # Voz local (llama.cpp nas 2 GPUs). NAO e o cerebro — o cerebro e a nuvem
+  # acima (DeepSeek V4 Pro). Esta entrada existe para declarar a JANELA REAL
+  # do servidor local, que e a fonte de verdade do guard de contexto do gateway
+  # (LOCAL_CONTEXT_HARD_TOKEN_CAP cai para fallback quando isto nao existe).
+  # Ver docs/architecture/LOCAL_CONTEXT_WINDOW.md.
+  local_voice:
+    name: Ornith-1.5-35B-A3B Q3_K_XL (voz local, llama.cpp)
+    provider_name: local_voice
+    base_url: http://127.0.0.1:8080
+    model_id: Ornith-1.5-35B-A3B-Q3_K_XL
+    backend: openai_compatible
+    role: adjuvant
+    is_local: true
+    n_ctx: 98304
+    api_key_required: false
+    max_tokens: 1800
+    timeout_s: 600
+
   orchestrator:
-    name: DeepSeek V4 Flash (orchestrator)
+    name: DeepSeek V4 Pro (orchestrator)
     provider_name: local_orchestrator
     base_url: https://api.deepseek.com
-    model_id: deepseek-v4-flash
+    model_id: deepseek-v4-pro
     backend: openai_compatible
     role: orchestrator
     is_local: false
@@ -50,6 +72,7 @@ models:
     max_tokens: 1800
     timeout_s: 180
 
+  # Papeis de APOIO (nao decidem): seguem em deepseek-v4-flash.
   experts:
     name: DeepSeek V4 Flash financial experts
     provider_name: deepseek

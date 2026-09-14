@@ -35,6 +35,12 @@
     return "var(--muted)";
   }
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function makeTile(roleObj) {
     var tile = SZ.dom.el("div", "expert-tile expert-tile--pending");
     tile.setAttribute("data-role", roleObj.role);
@@ -67,6 +73,7 @@
     var info = SZ.cards.makeCard("Expert Analysis", badgeText, "neutral", "users");
     info.card.classList.add("card--experts");
 
+
     var grid = SZ.dom.el("div", "expert-grid");
 
     ROLES.forEach(function (roleObj) {
@@ -94,6 +101,12 @@
       bubble.appendChild(info.card);
     }
 
+    // Stamp AFTER insertion. EXPERT_STARTED / EXPERT_DONE /
+    // EXPERT_SKIPPED carry only role+provider
+    // (src/core/pipeline/nodes/experts.py:546, :573, :620) -> receipt
+    // clock, refreshed on every tile update in updateTile().
+    stampCard(info.card, null, "EXPERT_*");
+
     return info;
   }
 
@@ -108,6 +121,10 @@
 
     var tile = card.querySelector('[data-role="' + role + '"]');
     if (!tile) return;
+
+    // Every expert event advances the card's clock: the grid state is
+    // exactly as fresh as the last event that touched it.
+    stampCard(card, null, "EXPERT_" + String(status || "").toUpperCase());
 
     var wasRunning = tile.classList.contains("expert-tile--running");
     var isNowDone = (status === "ok" || status === "fail" || status === "skip");

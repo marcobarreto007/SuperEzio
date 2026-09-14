@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from core.config.logging_config import get_logger
-from core.config.settings import get_settings
+from core.config.settings import PaperTopologyError, assert_paper_topology, get_settings
 
 logger = get_logger(__name__)
 
@@ -75,6 +75,34 @@ def is_execution_frozen() -> bool:
         return get_settings().f51_trading_execution_freeze
     except RuntimeError:
         return True  # Settings invalid → SAFE
+
+
+def snapshot_execution_freeze() -> dict[str, Any]:
+    """MEASURE the global kill switch — never assume it.
+
+    Returns a timestamped reading of :func:`is_execution_frozen` plus the
+    source that decided it. This is the ONLY producer of the freeze value
+    that downstream gate metadata may copy: ``build_order_gate_metadata``
+    refuses to bind an order to an ALLOW decision that carries no such
+    snapshot, so ``execution_freeze`` stops being a literal ``False`` written
+    by construction (the pre-2026-09 tautology) and becomes a reading with a
+    timestamp on it. Nothing here ever writes ``False`` unconditionally —
+    a frozen switch reads as ``True`` and the order is refused.
+    """
+    frozen = is_execution_frozen()
+    kill_switch = _superezio_paper_only_or_live_disabled()
+    raw = os.getenv("F51_TRADING_EXECUTION_FREEZE", "").strip()
+    if kill_switch:
+        source = kill_switch
+    elif raw:
+        source = f"env:F51_TRADING_EXECUTION_FREEZE={raw}"
+    else:
+        source = "settings:f51_trading_execution_freeze"
+    return {
+        "frozen": frozen,
+        "sampled_at": datetime.now(UTC).isoformat(),
+        "source": source,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -240,9 +268,13 @@ def is_explicit_trade_intent(text: str) -> bool:
 
 
 def is_ibkr_connectable() -> bool:
-    settings = get_settings()
-    ibkr_host = settings.ibkr_host
-    ibkr_port = settings.ibkr_port
+    # Fail closed: an invalid boot config or a non-paper topology means the
+    # probe cannot prove anything, so the gate must not conclude "online".
+    try:
+        ibkr_host, ibkr_port = assert_paper_topology()
+    except (PaperTopologyError, RuntimeError) as exc:
+        logger.error("[F51_TRADE_GATE] Paper topology not proven: %s", exc)
+        return False
     try:
         import socket
 
@@ -385,6 +417,32 @@ class TradeGateDecision:
     checked_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     gates_passed: list[str] = field(default_factory=list)
     gates_failed: list[str] = field(default_factory=list)
+    # Freeze reading taken inside evaluate_trade_gate. Mirrored into
+    # evidence["freeze_snapshot"] by _build(); None means "never measured" —
+    # which build_order_gate_metadata refuses to bind to an order.
+    freeze_snapshot: dict[str, Any] | None = None
+
+
+def _require_freeze_snapshot(decision: TradeGateDecision) -> dict[str, Any]:
+    """Return the freeze reading the gate took, or refuse to bind an order.
+
+    ``evaluate_trade_gate`` stamps ``evidence["freeze_snapshot"]`` on every
+    decision it builds. A decision that carries no such stamp did not come
+    from the gate (hand-built, replayed, or forged) and cannot be bound to an
+    order — that is what keeps ``execution_freeze`` a measurement instead of
+    a literal ``False`` written by construction.
+    """
+    snapshot = decision.evidence.get("freeze_snapshot")
+    if (
+        isinstance(snapshot, dict)
+        and isinstance(snapshot.get("frozen"), bool)
+        and str(snapshot.get("sampled_at") or "").strip()
+    ):
+        return snapshot
+    raise ValueError(
+        "gate decision has no measured freeze snapshot "
+        "(build_order_gate_metadata refuses ALLOW decisions without one)"
+    )
 
 
 def build_order_gate_metadata(
@@ -395,13 +453,22 @@ def build_order_gate_metadata(
     consensus_decision: str,
     neural_gate: dict[str, Any],
 ) -> dict[str, Any]:
-    """Bind a prepared order to an actual successful gate decision."""
+    """Bind a prepared order to an actual successful gate decision.
+
+    The gate decision must carry the freeze reading taken inside
+    ``evaluate_trade_gate`` (``evidence["freeze_snapshot"]``, with timestamp):
+    an ALLOW without one is refused, so ``execution_freeze`` in the returned
+    metadata is always a copy of a measurement rather than a literal ``False``.
+    """
     symbol = str(order_symbol or "").strip().upper()
     validated = str(decision.evidence.get("validated_ticker") or "").strip().upper()
     trace_id = str(decision.evidence.get("run_id") or "").strip()
     consensus = str(consensus_decision or "").strip().upper()
     if decision.status != "ALLOW":
         raise ValueError("gate decision is not ALLOW")
+    freeze_snapshot = _require_freeze_snapshot(decision)
+    if freeze_snapshot["frozen"]:
+        raise ValueError("gate decision was sampled while execution was frozen")
     if not symbol or validated != symbol:
         raise ValueError("gate decision ticker does not match order")
     if not trace_id:
@@ -420,7 +487,12 @@ def build_order_gate_metadata(
         "gate_trace_id": trace_id,
         "validated_ticker": validated,
         "journal_ready": True,
-        "execution_freeze": False,
+        # COPIED from the measurement taken inside evaluate_trade_gate — never
+        # a literal. It reads False only because the snapshot above proved it
+        # was False when the gate ran, and it carries that timestamp with it.
+        "execution_freeze": freeze_snapshot["frozen"],
+        "freeze_sampled_at": str(freeze_snapshot["sampled_at"]),
+        "freeze_source": str(freeze_snapshot.get("source") or ""),
         "pipeline_prepared": True,
         "adaptive_policy_applied": True,
         "approval_id": approval_id,
@@ -467,10 +539,12 @@ def evaluate_trade_gate(
     decision = TradeGateDecision()
     gates_checked: list[tuple[str, bool, str]] = []
 
-    # GATE 1: Execution Freeze
-    if is_execution_frozen():
-        superezio_reason = _superezio_paper_only_or_live_disabled()
-        reason = superezio_reason or "F51_TRADING_EXECUTION_FREEZE=true"
+    # GATE 1: Execution Freeze — MEASURED here, once, with a timestamp.
+    # The reading is kept on the decision so that a later ALLOW cannot claim
+    # "freeze was off" without saying when that was observed.
+    decision.freeze_snapshot = snapshot_execution_freeze()
+    if decision.freeze_snapshot["frozen"]:
+        reason = str(decision.freeze_snapshot["source"])
         gates_checked.append(("freeze", False, "execution_frozen_by_env"))
         return _build(
             decision,
@@ -642,6 +716,12 @@ def evaluate_trade_gate(
     ibkr_online = is_ibkr_connectable()
     if not ibkr_online:
         gates_checked.append(("ibkr", False, "ibkr_offline"))
+        # Diagnostics report the validated topology, never a raw env read that
+        # could name a different port than the one the guard approved.
+        try:
+            ibkr_host, ibkr_port = assert_paper_topology()
+        except (PaperTopologyError, RuntimeError):
+            ibkr_host, ibkr_port = "unproven_topology", 0
         return _build(
             decision,
             "BLOCK",
@@ -649,8 +729,8 @@ def evaluate_trade_gate(
             "IBKR TWS/Gateway not reachable. Order blocked.",
             gates_checked,
             evidence={
-                "ibkr_host": os.getenv("IBKR_HOST", "127.0.0.1"),
-                "ibkr_port": os.getenv("IBKR_PORT", "7497"),
+                "ibkr_host": ibkr_host,
+                "ibkr_port": ibkr_port,
             },
         )
     gates_checked.append(("ibkr", True, "ok"))
@@ -696,7 +776,12 @@ def _build(
     decision.status = status
     decision.reason_code = reason_code
     decision.reason = reason
-    decision.evidence = evidence or {}
+    merged = dict(evidence or {})
+    # Every decision — BLOCK included — carries the freeze reading that was
+    # taken when the gate ran. A BLOCK keeps its own "frozen": True on top.
+    if decision.freeze_snapshot is not None:
+        merged.setdefault("freeze_snapshot", decision.freeze_snapshot)
+    decision.evidence = merged
     decision.gates_passed = [g[0] for g in gates if g[1]]
     decision.gates_failed = [g[0] for g in gates if not g[1]]
     return decision

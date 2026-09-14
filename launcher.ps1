@@ -15,6 +15,8 @@ Write-Host ""
 $healthUrl = "http://127.0.0.1:8002/health"
 $uiUrl = "http://127.0.0.1:8002"
 $venvPy = Join-Path $ScriptDir ".venv\Scripts\python.exe"
+. (Join-Path $ScriptDir "config.ps1")
+$PythonExe = if (Test-Path -LiteralPath $venvPy) { $venvPy } else { $script:PythonExe }
 
 function Write-OperationalBanner {
     Write-Host ""
@@ -44,8 +46,8 @@ if ($alreadyRunning) {
     exit 0
 }
 
-if (-not (Test-Path -LiteralPath $venvPy)) {
-    Write-Host "  [ERRO] .venv nao encontrado em $venvPy" -ForegroundColor Red
+if (-not $PythonExe -or -not (Test-Path -LiteralPath $PythonExe)) {
+    Write-Host "  [ERRO] .venv nao encontrado em $venvPy e Python 3.11 nao esta no PATH." -ForegroundColor Red
     Write-Host "  Instale com: pip install -e `".[dev]`"" -ForegroundColor Yellow
     Write-Host "  Nao esta operacional." -ForegroundColor Red
     exit 1
@@ -60,7 +62,7 @@ if (-not (Test-Path $logsDir)) {
 
 $env:PYTHONPATH = "src;" + $env:PYTHONPATH
 
-Start-Process -FilePath $venvPy `
+Start-Process -FilePath $PythonExe `
     -ArgumentList "-m agent_server.main" `
     -WorkingDirectory $ScriptDir `
     -WindowStyle Minimized

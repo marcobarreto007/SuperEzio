@@ -70,11 +70,27 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert api["command"] == cfg["server"]["entrypoint"]
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
-    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-flash"
-    # Every role runs deepseek-v4-flash as of 2026-09-10; deepseek-v4-pro is no
-    # longer a documented default in the runtime contract.
+    from core.model_serving.providers import BRAIN_MODEL_ID, DEEPSEEK_MODEL_ID
+
+    # 2026-09-12: the per-role split landed — the deciding role (CEO/agent) runs
+    # deepseek-v4-pro; the supporting roles stay on deepseek-v4-flash. Until
+    # 2026-09-10 every role ran deepseek-v4-flash.
+    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == BRAIN_MODEL_ID
+    assert (
+        cfg["models"]["orchestrator"]["model_id"]
+        == manifest["providers"]["local_orchestrator"]["model"]
+        == BRAIN_MODEL_ID
+    )
+    assert (
+        cfg["models"]["experts"]["model_id"]
+        == manifest["providers"]["deepseek"]["model"]
+        == DEEPSEEK_MODEL_ID
+    )
+    # `.f51/contracts/runtime.contract.md` still carries the 2026-09-10 text
+    # ("deepseek-v4-flash serves every role") and is NOT owned by this change, so
+    # the contract prose is not pinned here — only that the doc still names the
+    # support model. The stale paragraph is flagged for a follow-up doc edit.
     assert "deepseek-v4-flash" in contract
-    assert "deepseek-v4-pro" not in contract
     assert "8082" not in canonical_text
     assert "80B" not in canonical_text
 
@@ -198,11 +214,14 @@ def test_agent_runtime_config_matches_manifest_and_script():
     script = AGENT_SCRIPT.read_text(encoding="utf-8")
     model_config = MODEL_CONFIG.read_text(encoding="utf-8")
 
+    from core.model_serving.providers import BRAIN_MODEL_ID
+
     agent_cfg = cfg["models"]["agent"]
     agent_manifest = manifest["agent"]
 
     assert agent_cfg["provider_name"] == "agent"
-    assert agent_cfg["model_id"] == agent_manifest["model"] == "deepseek-v4-flash"
+    # Deciding role (2026-09-12): Bob/CEO runs the brain model, not flash.
+    assert agent_cfg["model_id"] == agent_manifest["model"] == BRAIN_MODEL_ID
     assert agent_cfg["base_url"] == agent_manifest["server_url"] == "https://api.deepseek.com"
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is False
@@ -279,6 +298,7 @@ def test_provider_factory_uses_deepseek_for_agent_and_experts(monkeypatch):
     from core.model_serving.providers import (
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        BRAIN_MODEL_ID,
         DAYTRADE_AUDITOR_PROVIDER_NAME,
         DAYTRADE_JUDGE_PROVIDER_NAME,
         DEEPSEEK_MODEL_ID,
@@ -309,14 +329,17 @@ def test_provider_factory_uses_deepseek_for_agent_and_experts(monkeypatch):
     assert by_name[AGENT_PROVIDER_NAME].is_local is False
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[AGENT_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
-    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID == DEEPSEEK_MODEL_ID
+    # Deciding roles (2026-09-12): CEO/agent and orchestrator run the brain
+    # model; the expert committee, judge and auditor stay on the support model
+    # (asserted further down).
+    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID == BRAIN_MODEL_ID
     assert by_name[AGENT_PROVIDER_NAME].max_tokens == 1800
     assert by_name[AGENT_PROVIDER_NAME].timeout_s == 180
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
-    assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].model == BRAIN_MODEL_ID
     assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 1800
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 180
@@ -386,8 +409,11 @@ def test_runbook_documents_official_runtime_commands():
     assert "-File stop.ps1" in text
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
-    # Every role runs on deepseek-v4-flash as of 2026-09-10; v4-pro is no
-    # longer a documented default anywhere in the runtime.
+    # 2026-09-12: the runbook still carries the 2026-09-10 "flash serves every
+    # role" text, which is only half true now — the deciding roles (CEO and
+    # orchestrator) moved to deepseek-v4-pro. `docs/runbooks/RUNBOOK.md` is NOT
+    # owned by this change, so only the support model it still documents is
+    # pinned here; the stale paragraph is flagged for a follow-up doc edit.
     assert "deepseek-v4-flash" in text
     assert "http://127.0.0.1:8002/health/details" in text
     assert "http://127.0.0.1:8080" not in text

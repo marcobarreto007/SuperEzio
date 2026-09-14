@@ -13,15 +13,21 @@ def test_model_manifest_exists():
 
 
 def test_model_manifest_agent():
+    from core.model_serving.providers import BRAIN_MODEL_ID
+
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "deepseek-v4-flash"
+    # Deciding role (2026-09-12): Bob/CEO declares the brain model.
+    assert manifest["agent"]["model"] == BRAIN_MODEL_ID
+    assert manifest["agent"]["base_model"] == BRAIN_MODEL_ID
     assert manifest["agent"]["backend"] == "openai_compatible"
     assert manifest["agent"]["server_url"].startswith("https://api.deepseek.com")
 
 
 def test_model_manifest_providers():
+    from core.model_serving.providers import BRAIN_MODEL_ID, DEEPSEEK_MODEL_ID
+
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "providers" in manifest
@@ -29,8 +35,11 @@ def test_model_manifest_providers():
     assert manifest["providers"]["glm"]["base_url"] == "https://api.z.ai/api/coding/paas/v4"
     assert manifest["providers"]["glm"]["model"] == "glm-5.3"
     assert manifest["providers"]["glm"]["allow_fallback"] is False
+    # Deciding role (2026-09-12): the orchestrator declares the brain model.
+    assert manifest["providers"]["local_orchestrator"]["model"] == BRAIN_MODEL_ID
+    # Supporting role: the expert committee stays on flash.
     assert manifest["providers"]["deepseek"]["base_url"] == "https://api.deepseek.com"
-    assert manifest["providers"]["deepseek"]["model"] == "deepseek-v4-flash"
+    assert manifest["providers"]["deepseek"]["model"] == DEEPSEEK_MODEL_ID
     assert manifest["providers"]["deepseek"]["allow_fallback"] is False
 
 
@@ -80,22 +89,38 @@ def test_provider_constants():
     from core.model_serving.providers import (
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        BRAIN_MODEL_ID,
+        DEEPSEEK_MODEL_ID,
+        DEEPSEEK_OFFICIAL_MODELS,
         DEEPSEEK_PROVIDER_NAME,
         GLM_PROVIDER_NAME,
+        PRIMARY_MODEL_ID,
         PRIMARY_PROVIDER_NAME,
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "deepseek-v4-flash"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
     assert GLM_PROVIDER_NAME == "glm"
+    # Decisao de 2026-09-12: quem DECIDE (CEO/agent e orquestrador) roda o
+    # modelo mais forte; os papeis de APOIO ficam no mais leve. Ambos os IDs
+    # sao oficiais (DEEPSEEK_OFFICIAL_MODELS).
+    assert AGENT_MODEL_ID == BRAIN_MODEL_ID
+    assert PRIMARY_MODEL_ID == BRAIN_MODEL_ID
+    assert BRAIN_MODEL_ID != DEEPSEEK_MODEL_ID
+    assert BRAIN_MODEL_ID in DEEPSEEK_OFFICIAL_MODELS
+    assert DEEPSEEK_MODEL_ID in DEEPSEEK_OFFICIAL_MODELS
 
 
 def test_provider_boundaries_and_credentials(monkeypatch):
-    """DeepSeek serves every role; the optional GLM path stays isolated."""
+    """DeepSeek serves every role (brain on pro, support on flash); the optional
+    GLM path stays isolated."""
     from core.config import reload_config
-    from core.model_serving.providers import build_default_providers
+    from core.model_serving.providers import (
+        BRAIN_MODEL_ID,
+        DEEPSEEK_MODEL_ID,
+        build_default_providers,
+    )
 
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     import core.config.secrets as _secrets
@@ -121,8 +146,13 @@ def test_provider_boundaries_and_credentials(monkeypatch):
         p = by_name[name]
         assert p.is_local is False
         assert p.base_url == "https://api.deepseek.com"
-        assert p.model == "deepseek-v4-flash"
         assert p.api_key == "test-deepseek-secret"
+    # Papeis de cerebro (decisao de 2026-09-12): o modelo mais forte decide.
+    for name in ("agent", "local_orchestrator"):
+        assert by_name[name].model == BRAIN_MODEL_ID
+    # Papeis de apoio: os experts, o judge e o auditor continuam no flash.
+    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+        assert by_name[name].model == DEEPSEEK_MODEL_ID
     # O caminho GLM e opcional: existe aqui so porque o teste arma a chave.
     glm = by_name["glm"]
     assert glm.is_local is False

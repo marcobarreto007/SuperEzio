@@ -6,6 +6,12 @@
   var _card = null;
   var _finalized = false;
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function ensureCard(ceo) {
     if (_card && _card.card && _card.card.isConnected) return _card;
     _card = null;
@@ -47,6 +53,11 @@
     var info = ensureCard(ceo);
     if (!info) return null;
 
+    // EXPLANATION_CHUNK carries only `content` (no timestamp), so the
+    // clock is receipt time — and it is re-stamped on every chunk, which
+    // means it goes quiet the moment the stream dies.
+    stampCard(info.card, null, "EXPLANATION_CHUNK");
+
     var content = info.body.querySelector(".explanation-content");
     if (content) {
       content.textContent = _buffer;
@@ -72,6 +83,8 @@
 
     var info = ensureCard(ceo);
     if (!info) return null;
+
+    stampCard(info.card, null, "EXPLANATION_FINAL");
 
     var content = info.body.querySelector(".explanation-content");
     if (content) {

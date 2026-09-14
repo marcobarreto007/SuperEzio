@@ -1,0 +1,382 @@
+/* ============================================================
+   SuperEzio — Control Panel (plano de controle MIKE -> Ezio)
+   Dono: frontend/js/control-panel.js
+   Mostra o que o MIKE pediu, o que foi NEGADO e o veredito.
+   Regra de ouro desta folha: NEGADO pesa mais que aplicado.
+   Aplicado e rotina e fica discreto; recusa e sinal e fica alto.
+   ============================================================ */
+
+/* DECISAO (12/09/2026): este painel e POPOVER ancorado, nao faixa no fluxo.
+   Ele vigia, nao opera: virar faixa custaria altura permanente do grafico (o
+   corpo do app e height:100dvh; overflow:hidden) para mostrar um monitor
+   secundario. O preco do popover — cobrir o canto inferior esquerdo do grafico
+   — e pago pelo CORPO, e so quando o operador abre: o painel monta FECHADO
+   (js/control-panel.js#prefAberto) e o cabecalho, que carrega o sinal (contador
+   de NEGADOS e moldura vermelha), ocupa uma faixa de ~34px.
+
+   Se um dia ele voltar a atrapalhar o grafico ABERTO, a saida e o operador
+   fechar — nao encolher a area de candles por padrao. */
+.control-panel {
+  position: fixed;
+  left: 16px;
+  bottom: 64px;
+  width: min(420px, calc(100vw - 32px));
+  z-index: 850; /* acima do conteudo, abaixo de popovers (899+) e modais */
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-body, system-ui, sans-serif);
+  color: var(--ink, #f0f7f2);
+  /* Opaco de proposito: este painel vigia recusa, e o grafico atras dele nao
+     pode diluir o vermelho. Legibilidade ganha do vidro aqui. */
+  background: var(--surface, #0a0e0b);
+  border: 1px solid var(--line-light, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.8));
+  overflow: hidden;
+}
+
+/* Fonte morta ou ilegivel: a moldura grita, nao fica vazia em silencio. */
+.control-panel.cp--fonte-morta {
+  border-color: var(--red, #ff1744);
+}
+.control-panel.cp--fonte-morta .cp-src {
+  color: var(--red, #ff1744);
+}
+
+/* ---------- Cabecalho (sempre visivel) ---------- */
+
+.cp-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2, #141b16);
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.cp-toggle {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cp-toggle:focus-visible {
+  outline: 2px solid var(--blue, #00e5ff);
+  outline-offset: 2px;
+}
+
+.cp-title {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cp-sub {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  color: var(--muted, #627267);
+  white-space: nowrap;
+}
+
+.cp-chev {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted, #627267);
+}
+
+/* ---------- Contador de negados (o sinal) ---------- */
+
+.cp-badge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cp-badge--denied {
+  color: #fff;
+  background: var(--red, #ff1744);
+  box-shadow: 0 0 12px rgba(255, 23, 68, 0.5);
+}
+
+.control-panel.cp--tem-negado .cp-badge--denied {
+  animation: cp-pulso 2.4s ease-in-out infinite;
+}
+
+.cp-badge--zero {
+  color: var(--muted, #627267);
+  background: var(--surface-3, #1b261e);
+}
+
+/* Fonte morta: o contador admite que nao leu, em vez de afirmar zero. */
+.cp-badge--sem-leitura {
+  color: var(--amber, #ff9100);
+  background: transparent;
+  border: 1px dashed var(--amber, #ff9100);
+}
+
+@keyframes cp-pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(255, 23, 68, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(255, 23, 68, 0.85);
+  }
+}
+
+/* Sem animacao para quem pediu menos movimento no sistema. */
+@media (prefers-reduced-motion: reduce) {
+  .control-panel.cp--tem-negado .cp-badge--denied {
+    animation: none;
+  }
+}
+
+/* ---------- Corpo ---------- */
+
+.cp-body {
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px;
+}
+
+.cp-body[hidden] {
+  display: none;
+}
+
+.cp-fonte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--ink-secondary, #a4b3a8);
+}
+
+.cp-fonte__erro {
+  flex: 1 1 100%;
+  color: var(--red, #ff1744);
+  line-height: 1.45;
+}
+
+.cp-fonte__dica {
+  flex: 1 1 100%;
+  color: var(--amber, #ff9100);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.cp-sec {
+  margin-bottom: 12px;
+}
+
+.cp-sec:last-child {
+  margin-bottom: 0;
+}
+
+.cp-sec__hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cp-sec__titulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-secondary, #a4b3a8);
+}
+
+.cp-sec--negado .cp-sec__titulo {
+  color: var(--red, #ff1744);
+}
+
+.cp-sec__vazio {
+  font-size: 11px;
+  color: var(--muted, #627267);
+  font-style: italic;
+}
+
+/* ---------- NEGADO: o item de maior peso ---------- */
+
+.cp-denied {
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  border-left: 4px solid var(--red, #ff1744);
+  border-radius: 0 6px 6px 0;
+  background: var(--red-bg, rgba(255, 23, 68, 0.08));
+}
+
+.cp-denied:last-child {
+  margin-bottom: 0;
+}
+
+.cp-denied__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-denied__kind {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink, #f0f7f2);
+  word-break: break-all;
+}
+
+.cp-denied__meta {
+  margin-top: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--ink-secondary, #a4b3a8);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.cp-denied__motivo {
+  margin-top: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--red, #ff1744);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Origem: quem barrou. `bridge` (nem chegou ao Ezio) pesa mais que `ezio`. */
+.cp-origem {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cp-origem--bridge {
+  color: #fff;
+  background: var(--red, #ff1744);
+}
+
+.cp-origem--ezio {
+  color: var(--red, #ff1744);
+  background: transparent;
+  border: 1px solid var(--red, #ff1744);
+}
+
+.cp-origem--outro {
+  color: var(--ink-secondary, #a4b3a8);
+  border: 1px solid var(--line-light, rgba(255, 255, 255, 0.12));
+}
+
+.cp-estado {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--red, #ff1744);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ---------- Veredito: rotina, peso baixo de proposito ---------- */
+
+.cp-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  border-left: 2px solid var(--line-light, rgba(255, 255, 255, 0.12));
+  border-radius: 0 4px 4px 0;
+  background: rgba(255, 255, 255, 0.02);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+}
+
+.cp-linha__kind {
+  color: var(--ink-secondary, #a4b3a8);
+  word-break: break-all;
+}
+
+.cp-linha__meta {
+  flex: 1 1 100%;
+  color: var(--muted, #627267);
+  font-size: 9px;
+  word-break: break-word;
+}
+
+.cp-veredito {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cp-veredito--applied {
+  color: var(--green, #00e676);
+  background: var(--green-bg, rgba(0, 230, 118, 0.08));
+}
+
+.cp-veredito--unknown {
+  color: var(--amber, #ff9100);
+  background: var(--amber-bg, rgba(255, 145, 0, 0.08));
+}
+
+.cp-veredito--outro {
+  color: var(--ink-secondary, #a4b3a8);
+  background: var(--surface-3, #1b261e);
+}
+
+.cp-mais {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--muted, #627267);
+  font-style: italic;
+}
+
+/* ---------- Tela estreita: o dock vira faixa de largura total ---------- */
+
+@media (max-width: 640px) {
+  .control-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 56px;
+  }
+  .cp-body {
+    max-height: 44vh;
+  }
+}

@@ -1783,6 +1783,46 @@ def test_frontend_ibkr_order_mirror_integration():
     assert ".order-row.is-selected" in charts_css
 
 
+def _served_placeholder(html: str, element_id: str) -> str:
+    """Text served between ``<tag id="element_id">`` and its closing tag.
+
+    Reads the ELEMENT, not the whole file: the comments around it deliberately
+    quote the old literals to explain the fix, and must not decide this.
+    """
+    start = html.index(f'id="{element_id}"')
+    open_tag_end = html.index(">", start)
+    close_tag_start = html.index("<", open_tag_end)
+    return html[open_tag_end + 1 : close_tag_start].strip()
+
+
+def test_chart_card_stamp_uses_the_backend_clock():
+    """CHART_DATA is an announcement: its server_ts must reach the card stamp.
+
+    The event carries {"type","ticker","server_ts"} and nothing else
+    (endpoints.py), so the ``if (ev.chartData)`` branch that used to sit in
+    events.js could never be true — the chart was fed only by
+    init.js#loadChart (GET /api/chart-data/{ticker}). That dead branch was
+    removed, and the one field the event does ship now feeds the card stamp:
+    server_ts makes the stamp a DATA-time stamp (solid rule in
+    render-pipeline.js) instead of a receipt-time one (dashed).
+    """
+    from pathlib import Path
+
+    events_js = Path("frontend/js/events.js").read_text(encoding="utf-8")
+
+    # The fabricated feed must not come back: no event may assign a chart
+    # payload (init.js#loadChart owns SZ.state.chartData) and no event may
+    # paint the chart. Checked as CODE, not as text — events.js explains this
+    # history in comments, which must not decide the assertion.
+    assert "SZ.state.chartData =" not in events_js
+    assert "renderChart" not in events_js
+    # server_ts is read, and only when the backend actually sent it — a
+    # CHART_DATA without it degrades to receipt time instead of inventing one.
+    assert "time: hasServerTs ? secs : null" in events_js
+    assert 'key: hasServerTs ? "server_ts" : null' in events_js
+    assert "stampChart(ev);" in events_js
+
+
 def test_frontend_operational_truth_contract():
     """Idle experts, broker isolation and trust null must be explicit UI contracts."""
     from pathlib import Path
@@ -1809,13 +1849,39 @@ def test_frontend_operational_truth_contract():
     assert 'score == null ? "TRUST: --"' in trust_js
     assert "open hypotheses: " in init_js
     assert "audit evidence, not broker positions" in init_js
-    assert "CORE CHECKING · PAPER MODE · IBKR CHECKING" in html
+    # CHANGED 2026-09-12 (deliberate, not a regression): the served HTML used
+    # to pin "CORE CHECKING · PAPER MODE · IBKR CHECKING" and "IDLE · PAPER".
+    # Both asserted a state — a trading mode, an idle paper operation — at
+    # page-serve time, before any measurement existed to support it. That is
+    # the same defect the #statusbar-guardrails item was already fixed for
+    # (see index.html). The placeholders now claim nothing; status-bar.js and
+    # cockpit.js write the measured values once the snapshot arrives. Asserting
+    # the literal again would re-freeze the invented state, so the test now
+    # asserts the ABSENCE of a claim.
+    assert _served_placeholder(html, "cockpit-connection") == "CORE: SEM DADO · IBKR: SEM DADO"
+    assert "PAPER" not in _served_placeholder(html, "cockpit-connection")
+    assert "CHECKING" not in _served_placeholder(html, "cockpit-connection")
     assert 'id="f51-verdict">READY<' in html
     assert 'id="sdca-verdict">READY<' in html
     assert 'id="neural-verdict">READY<' in html
     assert 'id="trinity-verdict">READY<' in html
     assert 'id="guardrails-summary">--<' in html
-    assert 'id="mangala-verdict">IDLE · PAPER<' in html
+    assert _served_placeholder(html, "mangala-verdict") == "--"
+    assert "PAPER" not in _served_placeholder(html, "mangala-verdict")
+    # CHANGED 2026-09-12 (deliberate, not a regression): the same defect lived on
+    # at RUNTIME. cockpit.js#renderMangalaCard wrote "IDLE · PAPER" whenever the
+    # mangala tracker answered "unavailable", and the legacy status bar printed a
+    # mode ("PAPER"/"LIVE") from a field the payload may not carry — states
+    # asserted out of absent evidence, after the served HTML had already been
+    # fixed. Both now answer SEM DADO unless the payload carries the fact
+    # (status-bar.js:52-61 / health.js:44-54 form), so the absence is locked.
+    assert 'setText("mangala-verdict", "IDLE · PAPER")' not in cockpit_js
+    assert 'ibkr.paper === true ? "PAPER" : "LIVE"' not in cockpit_js
+    assert 'setText("mangala-verdict", "SEM DADO")' in cockpit_js
+    assert (
+        '"IBKR: " + (ibkrOk ? "ONLINE" : ibkrReport.toLowerCase() === "offline" ? "OFFLINE" : "SEM DADO")'
+        in cockpit_js
+    )
 
 
 def test_cockpit_local_response_does_not_leave_pipeline_running():

@@ -41,8 +41,17 @@
     var pipe = pipelineState();
     var chart = dataState(state.chartData);
     var brokerConnected = broker.connection === "connected" || broker.can_read_account === true;
-    var policyPhase = String(((mission.current_policy || {}).phase) || "").toLowerCase();
-    var mode = broker.paper === true || policyPhase.indexOf("paper") >= 0 ? "paper" : "research";
+    /* Execution mode is derived from the evidence /health/details really sends
+       under mission: paper_trading.active first, then mission.phase /
+       paper_trading.mode. It used to read mission.current_policy.phase — a field
+       the backend does not carry — so the indexOf("paper") test was always -1 and
+       the mode collapsed to "research" whatever the backend said. With no
+       evidence the mode stays null: status-bar.js renders that as SEM DADO, and
+       an absent fact never becomes a claim. Same two fields status-bar.js uses,
+       so both paths agree. */
+    var paper = mission.paper_trading || {};
+    var phase = String(mission.phase || paper.mode || "").toLowerCase();
+    var mode = paper.active === true ? "paper" : (phase ? phase.split("_")[0] : null);
     var guardrails = state.lastGuardrailHub || ((state.deep || {}).guardrails) || null;
     var guardData = guardrails && (guardrails.data || guardrails);
     var guardTotal = guardData && (guardData.total_guardrails || guardData.total);

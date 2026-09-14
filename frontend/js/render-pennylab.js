@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -70,6 +76,7 @@
     var info = SZ.cards.makeCard("PennyLab", badgeText, badgeCls, "flask-conical");
     info.card.classList.add("card--pennylab");
 
+
     // Decision badge area
     if (decision) {
       var decEl = SZ.dom.el("div", "penny-decision penny-decision--" + String(decision).toLowerCase().replace(/_/g, "-"));
@@ -98,6 +105,14 @@
     } else {
       bubble.appendChild(info.card);
     }
+
+    // Stamp AFTER insertion. NOTE: no backend code emits
+    // PENNYLAB_ANALYSIS today (only frontend/js/events.js:296 listens for
+    // it), so this card never renders. The stamp is here so that whoever
+    // wires the emitter gets a correct clock for free — PennylabReport
+    // does carry `generated_at` (src/experts/pennylab/schemas.py:108) and
+    // it will be picked up automatically.
+    stampCard(info.card, ev, "PENNYLAB_ANALYSIS");
 
     return info;
   }

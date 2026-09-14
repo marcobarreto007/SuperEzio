@@ -37,6 +37,7 @@ from .auth import (
     jwt_auth_middleware,
     register_auth_routes,
 )
+from .control_endpoints import router as control_router
 from .endpoints import router as a2a_router
 
 # Load local environment before reading runtime configuration.
@@ -567,6 +568,17 @@ def _register_public_routes(app: FastAPI) -> None:
     already-built routes directly preserves the same route contract.
     """
     app.router.routes.extend(a2a_router.routes)
+    # Plano de controle (MIKE/bridge). Mesmo motivo do a2a_router: sem prefix e
+    # sem dependencia de router, entao estender as rotas ja construidas preserva
+    # o contrato. Sem isto o POST /control/commands responde 404.
+    #
+    # NAO registramos app.state.task_executor de proposito (12/09/2026): sem ele
+    # o kind `task.submit` devolve 409 `executor_not_wired` e faz rollback da
+    # fila, em vez de executar. O `/task/submit` do Ezio e um StreamingResponse
+    # de pipeline, nao um callable de fundo — adapta-lo para rodar sob o plano de
+    # controle mexe no caminho do dinheiro e merece passo proprio, com teste.
+    # Os outros tres kinds (task.cancel, feedback, bob.ibkr.recover) funcionam.
+    app.router.routes.extend(control_router.routes)
 
 
 _register_public_routes(app)

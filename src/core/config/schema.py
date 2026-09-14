@@ -25,7 +25,11 @@ class ModelConfig:
 
     path: str = ""
     role: str = "general"
-    n_ctx: int = 8192
+    # Janela do modelo local (llama-server). Era 8192 (era Qwen3.8); o build de
+    # 2 GPUs serve 98304 desde 11/09/2026. Fonte de verdade operacional:
+    # config/runtime.yml (entrada local_voice) -> ModelProvider.n_ctx -> guard
+    # do gateway. Este default so vale para entrada que nao declare n_ctx.
+    n_ctx: int = 98304
     n_gpu_layers: int = 0
     gpu: Any = 0
     vram_budget_gb: float = 0.0
@@ -154,7 +158,7 @@ class UniversalConfig:
                     name=section.get("name", name),
                     path=section.get("path", ""),
                     role=section.get("role", "general"),
-                    n_ctx=section.get("n_ctx", 8192),
+                    n_ctx=section.get("n_ctx", 98304),
                     n_gpu_layers=section.get("n_gpu_layers", 0),
                     gpu=section.get("gpu", 0),
                     vram_budget_gb=section.get("vram_budget_gb", 0.0),

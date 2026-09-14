@@ -1,12 +1,16 @@
 """Provider dataclasses and the external cloud provider factory.
 
-Every role — CEO/agent, orchestrator, financial expert committee, day-trade
-judge and auditor — defaults to the official DeepSeek HTTPS API
-(deepseek-v4-flash). The Z.ai Coding Plan endpoint (glm-5.3) is optional:
+The roles that DECIDE — CEO/agent and orchestrator — default to the official
+DeepSeek HTTPS API on ``deepseek-v4-pro``; the SUPPORT roles (financial expert
+committee, day-trade judge and auditor) stay on ``deepseek-v4-flash`` (decision
+of 2026-09-12; before that every role ran flash). The Z.ai Coding Plan endpoint
+(glm-5.3) is optional:
 SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL switch a role back to it, and
 the ``glm`` provider is only built when SUPEREZIO_GLM_CODING_PLAN_API_KEY (or
 one of its legacy aliases) is present. Asking for a glm model without the key
-degrades that role to DeepSeek so the process still boots.
+degrades that role to its OWN DeepSeek model (brain on pro, support on flash —
+``ModelProvider.degrade_model``) so the process still boots without demoting
+the roles that decide.
 
 The ModelGateway keeps the automatic credit fallback GLM -> DeepSeek for Bob
 (SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default on) for when that path is armed.
@@ -42,9 +46,14 @@ DEEPSEEK_PROVIDER_NAME = "deepseek"
 # API. GLM-5.3 stays reachable via SUPEREZIO_PRIMARY_MODEL /
 # SUPEREZIO_AGENT_MODEL and is only instantiated when its coding-plan key is
 # present; requesting a glm model without that key degrades to DeepSeek.
+# Base: os papeis de APOIO (comite de experts, judge, auditor) rodam no flash.
 DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
-AGENT_MODEL_ID = DEEPSEEK_MODEL_ID
-PRIMARY_MODEL_ID = AGENT_MODEL_ID
+# Cerebro: quem DECIDE — CEO (agent) e orquestrador — roda no pro.
+# Decisao de 12/09/2026. O modelo mais forte vai no papel que decide; os papeis
+# de apoio continuam no flash. Ambos estao em DEEPSEEK_OFFICIAL_MODELS.
+BRAIN_MODEL_ID = "deepseek-v4-pro"
+AGENT_MODEL_ID = BRAIN_MODEL_ID
+PRIMARY_MODEL_ID = BRAIN_MODEL_ID
 DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
@@ -184,6 +193,7 @@ def _glm_coding_plan_key() -> str:
 def _optional_glm_or_deepseek(
     *,
     requested_model: str,
+    degrade_model: str,
     env_url: str,
     role_api_key_env: str,
     experts_base_url: str,
@@ -191,8 +201,15 @@ def _optional_glm_or_deepseek(
     glm_key: str,
     role_label: str,
 ) -> tuple[str, bool, str, str]:
-    """Resolve a role endpoint. GLM without a coding-plan key falls back to DeepSeek."""
-    model = requested_model.strip() or DEEPSEEK_MODEL_ID
+    """Resolve a role endpoint. GLM without a coding-plan key falls back to DeepSeek.
+
+    ``degrade_model`` is the DeepSeek model OF THIS ROLE (12/09/2026: the roles
+    that decide run the brain model, the support ones run flash). Only the
+    caller knows which role it is building, so the degrade target is passed in
+    and never hardcoded here — a forgotten ``SUPEREZIO_AGENT_MODEL=glm-5.3``
+    without the key must not silently demote the CEO to the support model.
+    """
+    model = requested_model.strip() or degrade_model
     if _is_glm_coding_model(model):
         if glm_key:
             return (
@@ -206,9 +223,9 @@ def _optional_glm_or_deepseek(
             "booting DeepSeek %s instead",
             role_label,
             model,
-            DEEPSEEK_MODEL_ID,
+            degrade_model,
         )
-        model = DEEPSEEK_MODEL_ID
+        model = degrade_model
         env_url = ""
     base_url = env_url or experts_base_url
     is_local = _is_local_url(base_url)
@@ -295,6 +312,35 @@ class ModelProvider:
     temperature: float = 0.7
     is_local: bool = False
     backend: str = "cloud"
+    # Janela real do endpoint, quando conhecida (n_ctx do config). 0 = nao
+    # declarada -> o guard de contexto cai em LOCAL_CONTEXT_HARD_TOKEN_CAP.
+    # A janela e propriedade do ENDPOINT local, nao do papel: por isso se
+    # resolve uma vez em build_providers e se copia para todo provedor local.
+    n_ctx: int = 0
+    # Modelo DeepSeek para onde ESTE papel degrada quando o GLM e pedido sem
+    # chave (build_default_providers) ou quando o endpoint GLM fica sem credito
+    # (ModelGateway). So quem monta o papel sabe se ele decide, por isso o alvo
+    # viaja com o provedor: papel de cerebro -> BRAIN_MODEL_ID; de apoio ->
+    # DEEPSEEK_MODEL_ID (default). Sem isso o fallback rebaixava o CEO a flash.
+    degrade_model: str = DEEPSEEK_MODEL_ID
+
+
+def _local_window_from_config(config: "UniversalConfig | None") -> int:
+    """Janela (n_ctx) declarada para o endpoint local no config; 0 se nao houver.
+
+    A janela e propriedade do ENDPOINT (o llama-server), nao do papel: por isso
+    e resolvida uma vez e copiada para todo provedor is_local. Sem declaracao,
+    devolve 0 e o guard de contexto do gateway cai em
+    LOCAL_CONTEXT_HARD_TOKEN_CAP (comportamento anterior, preservado).
+    """
+    models = getattr(config, "models", None) or {}
+    for model_config in models.values():
+        if not getattr(model_config, "is_local", False):
+            continue
+        n_ctx = int(getattr(model_config, "n_ctx", 0) or 0)
+        if n_ctx > 0:
+            return n_ctx
+    return 0
 
 
 def build_default_providers(
@@ -326,6 +372,8 @@ def build_default_providers(
     primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
     primary_base_url, primary_is_local, primary_api_key, primary_model = _optional_glm_or_deepseek(
         requested_model=primary_model,
+        # Orquestrador DECIDE: degrada para o cerebro, nunca para o flash.
+        degrade_model=PRIMARY_MODEL_ID,
         env_url=primary_env_url,
         role_api_key_env="SUPEREZIO_PRIMARY_API_KEY",
         experts_base_url=experts_base_url,
@@ -351,6 +399,8 @@ def build_default_providers(
             ),
             temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
             is_local=primary_is_local,
+            n_ctx=_local_window_from_config(config) if primary_is_local else 0,
+            degrade_model=PRIMARY_MODEL_ID,
             backend="openai_compatible",
         )
     )
@@ -424,6 +474,8 @@ def build_default_providers(
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
     agent_base_url, agent_is_local, agent_api_key, agent_model = _optional_glm_or_deepseek(
         requested_model=agent_model,
+        # CEO DECIDE: degrada para o cerebro, nunca para o flash.
+        degrade_model=AGENT_MODEL_ID,
         env_url=agent_env_url,
         role_api_key_env="SUPEREZIO_AGENT_API_KEY",
         experts_base_url=experts_base_url,
@@ -450,6 +502,8 @@ def build_default_providers(
             max_tokens=experts_max_tokens if not agent_is_local else LOCAL_MAX_TOKENS,
             temperature=0.4,
             is_local=agent_is_local,
+            n_ctx=_local_window_from_config(config) if agent_is_local else 0,
+            degrade_model=AGENT_MODEL_ID,
             backend="openai_compatible",
         )
     )

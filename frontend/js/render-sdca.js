@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -85,6 +91,7 @@
     var info = SZ.cards.makeCard("SDCA Firewall", badgeText, badgeCls, "flame");
     info.card.classList.add("card--sdca");
 
+
     // Decision banner
     if (decision) {
       var banner = SZ.dom.el("div", "sdca-decision sdca-decision--" + String(decision).toLowerCase());
@@ -125,6 +132,11 @@
     } else {
       bubble.appendChild(info.card);
     }
+
+    // Stamp AFTER insertion. SDCA_FIREWALL carries no timestamp
+    // (src/core/pipeline/nodes/sdca_firewall.py:114 forwards no time
+    // field) -> receipt clock.
+    stampCard(info.card, ev, "SDCA_FIREWALL");
 
     return info;
   }

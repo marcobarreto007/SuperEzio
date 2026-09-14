@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -125,6 +131,7 @@
     var info = SZ.cards.makeCard("Neural Decision", badgeText, badgeCls, "brain");
     info.card.classList.add("card--neural");
 
+
     // Veto warning banner
     if (veto) {
       var vetoBanner = SZ.dom.el("div", "neural-veto-banner");
@@ -198,6 +205,13 @@
     } else {
       bubble.appendChild(info.card);
     }
+
+    // Stamp AFTER insertion. This is the only card whose payload carries
+    // a real producer timestamp: the backend writes NEURAL_DECISION with
+    // `as_of` (src/core/pipeline/nodes/neural_decision.py:103). It is a
+    // BAR time, not a wall clock — so it will honestly read as old when
+    // the forecast rests on old candles.
+    stampCard(info.card, ev, "NEURAL_DECISION");
 
     return info;
   }

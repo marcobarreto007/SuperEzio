@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -110,6 +116,7 @@
     var info = SZ.cards.makeCard("Data Quality", badgeText, badgeCls, "database");
     info.card.classList.add("card--data-quality");
 
+
     var grid = SZ.dom.el("div", "dq-grid");
 
     SOURCES.forEach(function (key) {
@@ -129,6 +136,11 @@
     } else {
       bubble.appendChild(info.card);
     }
+
+    // Stamp AFTER insertion. DATA_COLLECTED carries analysis_id but no
+    // timestamp (src/core/pipeline/nodes/collector.py:235, :298)
+    // -> receipt clock.
+    stampCard(info.card, ev, "DATA_COLLECTED");
 
     return info;
   }

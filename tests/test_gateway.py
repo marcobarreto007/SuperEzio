@@ -7,7 +7,10 @@ import pytest
 import core.model_serving.gateway as gateway_module
 from core.model_serving.gateway import ModelGateway
 from core.model_serving.providers import (
+    AGENT_MODEL_ID,
     AGENT_PROVIDER_NAME,
+    BRAIN_MODEL_ID,
+    DEEPSEEK_MODEL_ID,
     DEEPSEEK_PROVIDER_NAME,
     PRIMARY_PROVIDER_NAME,
     GatewayConfig,
@@ -16,7 +19,15 @@ from core.model_serving.providers import (
 from core.resilience import CircuitBreaker, CircuitState
 
 
-def _provider(name, priority=0, base_url="http://x/api", backend="cloud", model="test-model"):
+def _provider(
+    name,
+    priority=0,
+    base_url="http://x/api",
+    backend="cloud",
+    model="test-model",
+    degrade_model=None,
+):
+    kwargs = {} if degrade_model is None else {"degrade_model": degrade_model}
     return ModelProvider(
         name=name,
         base_url=base_url,
@@ -24,6 +35,7 @@ def _provider(name, priority=0, base_url="http://x/api", backend="cloud", model=
         api_key="",
         backend=backend,
         model=model,
+        **kwargs,
     )
 
 
@@ -155,6 +167,60 @@ class TestProvidersForRequest:
         assert "daytrade_auditor" not in names
         assert "deepseek" in names
         assert names == ["local_orchestrator", "deepseek"]
+
+    def test_glm_fallback_keeps_the_role_model_of_a_deciding_role(self, monkeypatch):
+        """GLM credit fallback must respect the role: a deciding provider
+        (degrade_model = brain) hops to DeepSeek on ITS model, never on the
+        support one — and the shared deepseek provider is not mutated."""
+        monkeypatch.delenv("SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK", raising=False)
+        glm_agent = _provider(
+            AGENT_PROVIDER_NAME,
+            priority=-10,
+            base_url="https://api.z.ai/api/coding/paas/v4",
+            model="glm-5.3",
+            degrade_model=BRAIN_MODEL_ID,
+        )
+        plain_deepseek = _provider(
+            DEEPSEEK_PROVIDER_NAME,
+            priority=-290,
+            base_url="https://api.deepseek.com",
+            model=DEEPSEEK_MODEL_ID,
+        )
+        gw = _gateway(glm_agent, plain_deepseek)
+
+        result = gw._providers_for_request(AGENT_PROVIDER_NAME)
+
+        assert [p.name for p in result] == [AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME]
+        assert result[0].model == "glm-5.3"
+        assert result[1].model == BRAIN_MODEL_ID == AGENT_MODEL_ID
+        assert result[1].base_url == "https://api.deepseek.com"
+        assert plain_deepseek.model == DEEPSEEK_MODEL_ID  # shared provider untouched
+        stored = {p.name: p for p in gw.providers}
+        assert stored[DEEPSEEK_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+
+    def test_glm_fallback_keeps_the_role_model_of_a_support_role(self, monkeypatch):
+        """A support provider (default degrade_model = flash) keeps the support
+        model on the same hop, reusing the existing deepseek provider object."""
+        monkeypatch.delenv("SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK", raising=False)
+        glm_judge = _provider(
+            "daytrade_judge",
+            priority=-304,
+            base_url="https://api.z.ai/api/coding/paas/v4",
+            model="glm-5.3",
+        )
+        plain_deepseek = _provider(
+            DEEPSEEK_PROVIDER_NAME,
+            priority=-290,
+            base_url="https://api.deepseek.com",
+            model=DEEPSEEK_MODEL_ID,
+        )
+        gw = _gateway(glm_judge, plain_deepseek)
+
+        result = gw._providers_for_request("daytrade_judge")
+
+        assert [p.name for p in result] == ["daytrade_judge", DEEPSEEK_PROVIDER_NAME]
+        assert result[1] is plain_deepseek
+        assert result[1].model == DEEPSEEK_MODEL_ID
 
 
 class TestPrimaryProvider:

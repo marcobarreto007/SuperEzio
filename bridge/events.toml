@@ -1,0 +1,135 @@
+# bridge/events.toml — inventário versionado das rotas do Ezio.
+#
+# Fonte da verdade do que o bridge (127.0.0.1:8009) enxerga. O bridge nasce como
+# polling + diff (docs/architecture/MIKE_EZIO_BRIDGE.md §1/§2), então "evento" é o
+# resultado de comparar dois snapshots — esta lista diz QUAIS rotas entram no
+# snapshot e QUAIS eventos cada uma pode originar.
+#
+# REGRA DURA: rota ausente daqui = rota não classificada = o MIKE fica cego
+# quando a rota aparecer. tests/test_control_endpoints.py quebra quando uma rota
+# nova surgir em src/agent_server/{endpoints,main,auth,control_endpoints}.py sem
+# entrada aqui — é a mitigação do risco registrado em §9 do plano.
+#
+# class:
+#   command  — rota de comando chamada pelo bridge (allowlist, default-deny)
+#   poll     — leitura amostrada; diff contra o snapshot gera evento
+#   stream   — NDJSON/SSE; NÃO consumida (polling+diff é a decisão, §1)
+#   internal — existe e é legível, mas o bridge não usa
+#   deny     — proibida ao MIKE: credencial, freeze, env, atestação de fato, evidência
+#   static   — UI/assets (o bridge nunca faz proxy de frontend, §2)
+
+[meta]
+version = 1
+updated_at = "2026-09-11"
+default_policy = "unclassified"
+snapshot_poll_interval_s = 30
+plan = "docs/architecture/MIKE_EZIO_BRIDGE.md"
+route_sources = [
+  "src/agent_server/endpoints.py",
+  "src/agent_server/main.py",
+  "src/agent_server/auth.py",
+  "src/agent_server/control_endpoints.py",
+]
+classes = ["command", "poll", "stream", "internal", "deny", "static"]
+event_envelope = ["event_type", "seq", "ts", "source", "payload", "snapshot_id"]
+
+# Vocabulário fechado de event_type. Um "emits" fora daqui é erro de digitação.
+[events]
+"ezio.boot" = "primeiro snapshot depois do bridge subir"
+"ezio.restarted" = "boot_id novo: o Ezio reiniciou, o bridge re-baseia o snapshot"
+"ezio.degraded" = "/health (ou details) saiu de ok"
+"ezio.recovered" = "/health voltou para ok"
+"ezio.cockpit.changed" = "/cockpit/summary mudou"
+"ezio.broker.changed" = "/cockpit/portfolio mudou (conexão, posições ou ordens)"
+"ezio.mangala.changed" = "mangala mudou"
+"ezio.trade.journal_changed" = "/trades/history mudou (trade novo, status novo)"
+"ezio.sentiment.alert" = "alerta de sentimento novo"
+"ezio.task.state_changed" = "task ativa mudou de estado"
+"ezio.paper.approval_pending" = "aprovação de paper pendente no cockpit"
+"ezio.command.settled" = "/control/commands respondeu applied/rejected/unknown"
+"ezio.command.denied" = "/control/commands recusou (401/403/503)"
+
+# Contrato de comando (Fase 2), espelhado em src/agent_server/control_endpoints.py.
+# tests/test_control_endpoints.py compara as duas listas — divergência quebra o teste.
+[commands]
+route = "POST /control/commands"
+policy = "default-deny"
+allowed = ["bob.ibkr.recover", "feedback", "task.cancel", "task.submit"]
+forbidden_families = [
+  "freeze",
+  "env",
+  "trade/manual",
+  "trade/execute",
+  "paper/approve|reject",
+  "evidence",
+  "shell|exec|eval|python|subprocess",
+]
+
+# Rotas. Chave = "METHOD /path", exatamente como no decorador.
+# snapshot = true → entra no snapshot base §2; false → consulta sob demanda.
+[routes]
+"GET /" = { class = "static", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:789", note = "cockpit HTML; o bridge nunca faz proxy de frontend (§2)" }
+"GET /favicon.ico" = { class = "static", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:802", note = "asset" }
+"GET /dashboard" = { class = "static", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:1431", note = "dashboard HTML, sem contrato de evento" }
+"GET /health/dashboard" = { class = "static", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:1285", note = "dashboard HTML" }
+"GET /api/health/dashboard-data" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:1303", note = "payload do dashboard" }
+"GET /metrics/prometheus" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:709", note = "scrape Prometheus" }
+"GET /metrics" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:1248", note = "telemetria JSON do produto" }
+"GET /neural/logs" = { class = "stream", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:1575", note = "SSE de log; bridge não consome (§1)" }
+"GET /api/chart-data/{ticker}" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:837", note = "candles por ticker para o gráfico" }
+"GET /api/chart-sse/{ticker}" = { class = "stream", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:951", note = "NDJSON/SSE de candles; bridge não consome" }
+"GET /capabilities" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2111", note = "auto-descrição do agente" }
+"GET /product/manifest" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2129", note = "manifesto do produto" }
+"GET /feedback/stats" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2093", note = "agregado de feedback" }
+"POST /api/sdca/evaluate" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2142", note = "avaliação SDCA sob demanda; não executa trade" }
+"POST /experts/neural-decision/predict" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2150", note = "predição de expert sob demanda" }
+"GET /health/trace/{run_id}" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2503", note = "trace de decisão por run" }
+"GET /health/trace/agent/{agent}/stats" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2515", note = "estatística por agente" }
+"GET /sentiment/pulse/{ticker}" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2423", note = "pulso por ticker (UI)" }
+"GET /sentiment/history/{ticker}" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2444", note = "histórico por ticker (UI)" }
+"GET /sentiment/history/{ticker}/db" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2464", note = "histórico por ticker (SQLite)" }
+"GET /trade/td-commission-free" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2940", note = "manifesto de ETFs sem comissão" }
+"GET /trade/status/{order_id}" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2958", note = "ticket local por order_id" }
+"GET /training/orders" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2971", note = "ordens de treino" }
+"GET /bob/pain" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/main.py:606", note = "resumo de dor legível" }
+"POST /task/submit" = { class = "internal", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:1328", note = "mesma ação do kind task.submit; o MIKE só entra por POST /control/commands" }
+"POST /task/cancel/{run_id}" = { class = "internal", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:3032", note = "mesma ação do kind task.cancel; o MIKE só entra por POST /control/commands" }
+"POST /feedback" = { class = "internal", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2067", note = "mesma ação do kind feedback; o MIKE só entra por POST /control/commands" }
+"POST /bob/ibkr/recover" = { class = "internal", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/main.py:638", note = "mesma ação do kind bob.ibkr.recover; o MIKE só entra por POST /control/commands" }
+
+"GET /health" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.boot", "ezio.restarted", "ezio.degraded", "ezio.recovered"], source = "src/agent_server/main.py:815", note = "liveness + auth_required + boot_id (§2 core)" }
+"HEAD /health" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.boot", "ezio.restarted", "ezio.degraded", "ezio.recovered"], source = "src/agent_server/main.py:815", note = "mesmo handler de GET /health (api_route)" }
+"GET /health/details" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.degraded", "ezio.recovered"], source = "src/agent_server/main.py:1012", note = "checagem profunda: GPU, modelos, redis, custo (§2 core)" }
+"GET /cockpit/summary" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.cockpit.changed", "ezio.paper.approval_pending"], source = "src/agent_server/endpoints.py:2322", note = "agregado da frontpage (§2 core)" }
+"GET /trades/history" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.trade.journal_changed"], source = "src/agent_server/endpoints.py:2315", note = "journal de trades (§2 core)" }
+"GET /sentiment/alerts" = { class = "poll", snapshot = true, mutable = false, bridge_calls = false, emits = ["ezio.sentiment.alert"], source = "src/agent_server/endpoints.py:2432", note = "alertas de sentimento (§2 core)" }
+"GET /bob/health" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.degraded", "ezio.recovered"], source = "src/agent_server/main.py:581", note = "corpo do Bob: órgãos, dor, ANS" }
+"GET /cockpit/portfolio" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.broker.changed"], source = "src/agent_server/endpoints.py:2236", note = "verdade do broker: conexão, posições, ordens" }
+"GET /cockpit/mangala" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.mangala.changed"], source = "src/agent_server/endpoints.py:2243", note = "mangala diário" }
+"GET /cockpit/mangala/opportunities" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.mangala.changed"], source = "src/agent_server/endpoints.py:2277", note = "oportunidades do mangala" }
+"GET /sentiment/pulse" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.sentiment.alert"], source = "src/agent_server/endpoints.py:2414", note = "pulso de sentimento do mercado" }
+"GET /task/active" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.task.state_changed"], source = "src/agent_server/endpoints.py:3041", note = "tasks ativas (1 por sessão)" }
+"GET /task/status/{run_id}" = { class = "poll", snapshot = false, mutable = false, bridge_calls = false, emits = ["ezio.task.state_changed"], source = "src/agent_server/endpoints.py:3024", note = "é assim que o bridge sai do estado unknown de um comando em voo" }
+
+"POST /control/commands" = { class = "command", snapshot = false, mutable = true, bridge_calls = true, emits = ["ezio.command.settled", "ezio.command.denied"], source = "src/agent_server/control_endpoints.py:494", note = "única rota de comando do plano de controle (allowlist, default-deny)" }
+
+"GET /auth/me" = { class = "deny", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/auth.py:591", note = "identidade; o bridge nunca fala /auth/*" }
+"POST /auth/register" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/auth.py:512", note = "registro saiu da superfície pública na Fase 0 (auth.py:459); MIKE nunca chama" }
+"POST /auth/login" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/auth.py:538", note = "credencial; MIKE nunca recebe SUPEREZIO_API_KEY" }
+"POST /auth/refresh" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/auth.py:559", note = "credencial" }
+"GET /evidence" = { class = "deny", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2211", note = "evidência: se o MIKE escreve, o journal perde valor de prova (§5)" }
+"GET /evidence/{run_id}" = { class = "deny", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2182", note = "evidência (§5)" }
+"GET /evidence/{run_id}/{filename:path}" = { class = "deny", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2198", note = "evidência (§5)" }
+"POST /paper/approve/{request_id}" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2388", note = "atestação humana; o MIKE não aprova paper (§5)" }
+"POST /paper/reject/{request_id}" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2401", note = "atestação humana; o MIKE não rejeita paper (§5)" }
+"POST /api/trading/token" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2621", note = "emite credencial de trading; MIKE nunca recebe (§5)" }
+"POST /trade/execute" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2642", note = "entrada de trade: nunca pelo bridge (§2, §5)" }
+"POST /trade/td-draft" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2715", note = "ticket live-manual: atestação de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/request-approval" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2776", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/td-preview" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2797", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/money-gate" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2818", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/approve/{approval_id}" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2866", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/reject/{approval_id}" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2884", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/entered" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2900", note = "atestações de fato do mundo (§5)" }
+"POST /trade/manual/{ticket_id}/broker-confirm" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2920", note = "atestações de fato do mundo (§5)" }
+"GET /bob/heal" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/main.py:619", note = "auto-cura muta o corpo do Bob; fora do contrato de comando" }

@@ -4,13 +4,222 @@ History: the 2026-08-20 checkpoint recorded a critical defect — every candle
 returned by /api/chart-data had time=0, collapsing every chart. The provider
 shapes the timestamp as an ISO-8601 string under the "datetime" key; the
 endpoint normalizes it via _parse_candle_time. These tests pin that contract.
+
+Second contract pinned here (2026-09-12): the ``CHART_DATA`` event on the chat
+stream must carry ``server_ts``, the same epoch-seconds stamp the live candle
+stream already sends in its ``snapshot``/``candle`` payloads. The chart card was
+the only card with no server time to render, so its header could not be
+timestamped while every sibling card could.
 """
 
 from __future__ import annotations
 
+import json
+import time
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
+
+
+class _MockPipeline:
+    """Minimal pipeline stand-in: yields the events the test hands it.
+
+    Defines ``stream_events``, so /task/submit takes the modern branch and each
+    dict is forwarded verbatim.
+    """
+
+    def __init__(self) -> None:
+        self.events_to_yield: list[object] = []
+
+    async def stream_events(self, prompt: str, **kwargs):
+        for ev in self.events_to_yield:
+            yield ev
+
+    def get_status(self) -> dict:
+        return {"status": "ok", "nodes": []}
+
+    def shutdown(self) -> None:
+        pass
+
+
+class _MockChatPipeline:
+    """Old-branch pipeline: no ``stream_events``, so /task/submit falls back to
+    ``chat_async``, where a JSON-encoded string chunk is unwrapped as an event."""
+
+    def __init__(self) -> None:
+        self.chunks_to_yield: list[object] = []
+
+    async def chat_async(self, prompt: str, **kwargs):
+        for ch in self.chunks_to_yield:
+            yield ch
+
+    def get_status(self) -> dict:
+        return {"status": "ok", "nodes": []}
+
+    def shutdown(self) -> None:
+        pass
+
+
+@pytest.fixture
+def chart_client(monkeypatch):
+    """TestClient with a mock pipeline and dev-anon auth (mirrors the module
+    convention above: importing agent_server.main leaks the operator's
+    PUBLIC_MODE/secret into the process env).
+
+    The import runs FIRST on purpose: ``load_local_env()`` runs at import time
+    and would otherwise reinstate the operator's PUBLIC_MODE/secret on top of
+    the values pinned below, handing the first request a 401.
+    """
+
+    from agent_server.main import app
+
+    monkeypatch.delenv("SUPEREZIO_JWT_SECRET", raising=False)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
+
+    original = getattr(app.state, "pipeline", None)
+
+    def _install(mock_p):
+        app.state.pipeline = mock_p
+        return mock_p, TestClient(app)
+
+    yield _install, original
+    if original is not None:
+        app.state.pipeline = original
+    else:
+        try:
+            delattr(app.state, "pipeline")
+        except AttributeError:
+            pass
+
+
+def _ndjson_events(response) -> list[dict]:
+    return [json.loads(line) for line in response.text.strip().split("\n") if line.strip()]
+
+
+def _submit(client, *, message: str, ticker: str = "MSFT", session: str = "s-chart-ts"):
+    payload = {
+        "from": "test-runner",
+        "to": "bob",
+        "type": "TASK.SUBMIT",
+        "payload": {"message": message, "session_id": session, "ticker": ticker},
+    }
+    response = client.post("/task/submit", json=payload)
+    assert response.status_code == 200, response.text
+    return _ndjson_events(response)
+
+
+def test_chart_data_event_carries_server_ts(chart_client):
+    """The chart card must be timestampable: CHART_DATA needs server_ts."""
+    install, _ = chart_client
+    _, client = install(_MockPipeline())
+    before = int(time.time())
+    events = _submit(client, message="analise o MSFT", ticker="MSFT")
+    after = int(time.time())
+
+    chart_events = [ev for ev in events if ev.get("type") == "CHART_DATA"]
+    assert chart_events, f"no CHART_DATA emitted; got {[e.get('type') for e in events]}"
+    chart = chart_events[0]
+    assert chart["ticker"] == "MSFT"
+    assert "server_ts" in chart, f"CHART_DATA must carry server_ts; got {chart}"
+    assert isinstance(chart["server_ts"], int), (
+        f"server_ts must be epoch seconds as int (same as the candle stream); "
+        f"got {type(chart['server_ts']).__name__}"
+    )
+    assert before <= chart["server_ts"] <= after, (
+        f"server_ts {chart['server_ts']} outside the request window [{before}, {after}]"
+    )
+
+
+def test_chart_data_server_ts_reuses_candle_stream_convention(chart_client):
+    """One convention, not two: server_ts is what the candle stream already sends.
+
+    Pins the reuse decision — if someone later renames the stamp on either side,
+    this fails instead of silently splitting the contract in half.
+    """
+    import inspect
+
+    import agent_server.endpoints as ep
+
+    candle_src = inspect.getsource(ep.stream_chart_data)
+    assert '"server_ts": int(time.time())' in candle_src, (
+        "the candle stream is the reference convention for server_ts"
+    )
+
+    install, _ = chart_client
+    _, client = install(_MockPipeline())
+    events = _submit(client, message="analise o MSFT", ticker="MSFT", session="s-chart-conv")
+    chart = next(ev for ev in events if ev.get("type") == "CHART_DATA")
+    assert set(chart.keys()) >= {"type", "ticker", "server_ts"}
+    assert chart["type"] == "CHART_DATA"
+
+
+def test_stream_events_passthrough_without_ts_is_stamped(chart_client):
+    """A CHART_DATA forwarded from the pipeline must not reach the UI time-less.
+
+    /task/submit takes the ``stream_events`` branch for the current pipeline and
+    forwards every dict verbatim — so the stamp has to happen on the way out.
+    """
+    install, _ = chart_client
+    mock_p, client = install(_MockPipeline())
+    mock_p.events_to_yield = [
+        {"type": "CHART_DATA", "ticker": "MSFT"},
+        {"type": "CHUNK", "content": "ok"},
+    ]
+    before = int(time.time())
+    events = _submit(client, message="analise o MSFT", ticker="MSFT", session="s-chart-pass")
+    after = int(time.time())
+
+    charts = [ev for ev in events if ev.get("type") == "CHART_DATA"]
+    assert len(charts) >= 2, "expected the header CHART_DATA plus the piped one"
+    piped = charts[-1]
+    assert "server_ts" in piped, f"piped CHART_DATA arrived without server_ts: {piped}"
+    assert before <= piped["server_ts"] <= after
+
+
+def test_stream_events_passthrough_keeps_its_own_ts(chart_client):
+    """An emitter that already stamped server_ts must not be overwritten."""
+    install, _ = chart_client
+    mock_p, client = install(_MockPipeline())
+    mock_p.events_to_yield = [
+        {"type": "CHART_DATA", "ticker": "MSFT", "server_ts": 1234567890},
+        {"type": "CHUNK", "content": "ok"},
+    ]
+    events = _submit(client, message="analise o MSFT", ticker="MSFT", session="s-chart-keep")
+    charts = [ev for ev in events if ev.get("type") == "CHART_DATA"]
+    assert charts[-1]["server_ts"] == 1234567890
+
+
+def test_chat_async_passthrough_without_ts_is_stamped(chart_client):
+    """Same invariant on the legacy ``chat_async`` branch (JSON string chunks)."""
+    install, _ = chart_client
+    mock_p, client = install(_MockChatPipeline())
+    mock_p.chunks_to_yield = [
+        json.dumps({"type": "CHART_DATA", "ticker": "MSFT"}),
+        json.dumps({"type": "CHUNK", "content": "ok"}),
+    ]
+    before = int(time.time())
+    events = _submit(client, message="analise o MSFT", ticker="MSFT", session="s-chart-chat")
+    after = int(time.time())
+
+    charts = [ev for ev in events if ev.get("type") == "CHART_DATA"]
+    assert len(charts) >= 2, "expected the header CHART_DATA plus the piped one"
+    assert charts[-1].get("server_ts") is not None
+    assert before <= charts[-1]["server_ts"] <= after
+
+
+def test_chat_async_passthrough_keeps_its_own_ts(chart_client):
+    """Legacy branch must not clobber an emitter's own stamp either."""
+    install, _ = chart_client
+    mock_p, client = install(_MockChatPipeline())
+    mock_p.chunks_to_yield = [
+        json.dumps({"type": "CHART_DATA", "ticker": "MSFT", "server_ts": 1234567890}),
+        json.dumps({"type": "CHUNK", "content": "ok"}),
+    ]
+    events = _submit(client, message="analise o MSFT", ticker="MSFT", session="s-chart-chat2")
+    charts = [ev for ev in events if ev.get("type") == "CHART_DATA"]
+    assert charts[-1]["server_ts"] == 1234567890
 
 
 def _make_candles(n: int = 30) -> list[dict]:

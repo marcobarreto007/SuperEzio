@@ -3,15 +3,34 @@
   "use strict";
   var MAX_ALERTS = 50;
   var TOAST_DURATION = 5000;
+  var SERVER_ALERTS_ENDPOINT = "/sentiment/alerts";
   var alerts = [];
   var unreadCount = 0;
+  /* Origin bookkeeping: alerts born in this browser ("local") are not server
+     state, and the badge must not imply they are. Server alerts come from
+     /sentiment/alerts (GET, read-only, already served by the backend). */
+  var serverState = "loading"; /* loading | ok | error */
+  var serverCount = 0;
 
-  /* -- Persistence -- */
+  /* -- Persistence (local items only; server items are re-hydrated) -- */
   function load() {
-    try { var s = localStorage.getItem("sz_alerts"); if (s) { var p = JSON.parse(s); if (Array.isArray(p)) { alerts = p.slice(0, MAX_ALERTS); unreadCount = alerts.filter(function(aa){return !aa.read}).length; } } } catch(e){}
+    try { var s = localStorage.getItem("sz_alerts"); if (s) { var p = JSON.parse(s); if (Array.isArray(p)) { alerts = p.slice(0, MAX_ALERTS).map(function (aa) { aa.source = "local"; return aa; }); unreadCount = alerts.filter(function(aa){return !aa.read}).length; } } } catch(e){ console.warn("[alerts] cache local ilegivel (sz_alerts), comecando vazio:", e); }
   }
 
-  function save() { try { localStorage.setItem("sz_alerts", JSON.stringify(alerts.slice(0, MAX_ALERTS))); } catch(e){} }
+  function save() {
+    try {
+      var local = alerts.filter(function (aa) { return aa.source !== "server"; });
+      localStorage.setItem("sz_alerts", JSON.stringify(local.slice(0, MAX_ALERTS)));
+    } catch(e){ console.warn("[alerts] nao foi possivel gravar o cache local de alertas:", e); }
+  }
+
+  function loadServerReadIds() {
+    try { var s = localStorage.getItem("sz_alerts_server_read"); var p = s ? JSON.parse(s) : []; return Array.isArray(p) ? p : []; } catch (e) { return []; }
+  }
+  function saveServerReadIds(ids) {
+    try { localStorage.setItem("sz_alerts_server_read", JSON.stringify(ids.slice(-200))); } catch (e) { /* storage off: read state stays session-only */ }
+  }
+  var serverReadIds = loadServerReadIds();
 
 
   /* -- Alert CRUD -- */
@@ -23,7 +42,8 @@
       description: String(description || ""),
       data: data || {},
       ts: new Date().toISOString(),
-      read: false
+      read: false,
+      source: "local"
     };
     alerts.unshift(alert);
     if (alerts.length > MAX_ALERTS) alerts.length = MAX_ALERTS;
@@ -33,10 +53,75 @@
     return alert;
   }
 
+  /* ── Server alerts (/sentiment/alerts) ──
+     Each item is turned into the same shape the list already renders, plus
+     source:"server". Nothing is invented: an item whose fields are unknown
+     still says "sem dado" instead of a fabricated score. */
+  function describeServerAlert(a) {
+    var ticker = a.ticker || a.symbol || "?";
+    if (a.delta != null) return { title: "Sentimento virou em " + ticker, description: "score " + a.from + " -> " + a.to + " (delta " + a.delta + ")" };
+    if (a.count != null) return { title: "Pico de mencoes em " + ticker, description: a.count + " mencoes vs media " + a.avg };
+    if (a.accounts != null) return { title: "Contas coordenadas em " + ticker, description: a.accounts + " contas no mesmo movimento" };
+    if (a.institutional || a.social) return { title: "Divergencia institucional x social em " + ticker, description: "social: " + (a.social || "sem dado") };
+    return { title: String(a.type || "ALERTA") + " " + ticker, description: "sem detalhe enviado pelo servidor" };
+  }
+
+  function mapServerAlert(a) {
+    var type = String((a && a.type) || "SENTIMENT").toUpperCase();
+    var ts = (a && (a.detected_at || a.ts || a.timestamp)) || null;
+    var text = describeServerAlert(a || {});
+    var id = "srv-" + type + "-" + ((a && (a.ticker || a.symbol)) || "?") + "-" + (ts || "");
+    return {
+      id: id,
+      type: "SENTIMENT",
+      rawType: type,
+      title: text.title,
+      description: text.description,
+      data: a || {},
+      ts: ts || new Date().toISOString(),
+      read: serverReadIds.indexOf(id) >= 0,
+      source: "server"
+    };
+  }
+
+  async function hydrateFromServer() {
+    var api = window.SZ && window.SZ.api;
+    if (!api || typeof api.fetchSentimentAlerts !== "function") {
+      serverState = "error";
+      renderBadge();
+      renderList();
+      return null;
+    }
+    try {
+      var payload = await api.fetchSentimentAlerts(20);
+      var list = (payload && Array.isArray(payload.alerts)) ? payload.alerts : [];
+      var serverAlerts = list.map(mapServerAlert);
+      serverCount = serverAlerts.length;
+      alerts = alerts.filter(function (aa) { return aa.source !== "server"; }).concat(serverAlerts);
+      alerts.sort(function (x, y) { return new Date(y.ts) - new Date(x.ts); });
+      if (alerts.length > MAX_ALERTS) alerts.length = MAX_ALERTS;
+      unreadCount = alerts.filter(function (aa) { return !aa.read; }).length;
+      serverState = "ok";
+      renderBadge();
+      renderList();
+      return serverAlerts;
+    } catch (e) {
+      serverState = "error";
+      console.warn("[alerts] falha ao consultar " + SERVER_ALERTS_ENDPOINT + ":", e);
+      renderBadge();
+      renderList();
+      return null;
+    }
+  }
+
   function markRead(id) {
     for (var i = 0; i < alerts.length; i++) {
       if (alerts[i].id === id && !alerts[i].read) {
         alerts[i].read = true;
+        if (alerts[i].source === "server" && serverReadIds.indexOf(id) < 0) {
+          serverReadIds.push(id);
+          saveServerReadIds(serverReadIds);
+        }
         unreadCount = Math.max(0, unreadCount - 1);
         save(); renderBadge(); renderList();
         return;
@@ -45,12 +130,17 @@
   }
 
   function markAllRead() {
-    for (var i = 0; i < alerts.length; i++) alerts[i].read = true;
+    for (var i = 0; i < alerts.length; i++) {
+      alerts[i].read = true;
+      if (alerts[i].source === "server" && serverReadIds.indexOf(alerts[i].id) < 0) serverReadIds.push(alerts[i].id);
+    }
+    saveServerReadIds(serverReadIds);
     unreadCount = 0; save(); renderBadge(); renderList();
   }
 
   function getUnreadCount() { return unreadCount; }
   function getAlerts() { return alerts.slice(); }
+  function getServerState() { return { state: serverState, count: serverCount, endpoint: SERVER_ALERTS_ENDPOINT }; }
 
   /* -- Icons & colors -- */
   function getIcon(type) {
@@ -60,6 +150,7 @@
       case "GUARDRAIL": return "🛡️";
       case "TRADE": return "💰";
       case "SYSTEM": return "⚙️";
+      case "SENTIMENT": return "📡";
       default: return "🔔";
     }
   }
@@ -71,6 +162,7 @@
       case "GUARDRAIL": return "#ef5350";
       case "TRADE": return "#00e676";
       case "SYSTEM": return "#90a4ae";
+      case "SENTIMENT": return "#b388ff";
       default: return "#58a6ff";
     }
   }
@@ -108,12 +200,21 @@
   function renderList() {
     var container = document.getElementById("alert-list");
     if (!container) return;
+    var localCount = alerts.filter(function (aa) { return aa.source !== "server"; }).length;
+    var origin = serverState === "ok"
+      ? "servidor " + serverCount + " · local " + localCount
+      : (serverState === "loading" ? "servidor: consultando..." : "servidor: SEM DADO (" + SERVER_ALERTS_ENDPOINT + ")");
+    /* Styled inline: this file may not touch frontend/css/*.css. */
+    var originHtml = '<div class="alert-list__origin" style="padding:4px 12px 6px;font-size:11px;opacity:.7">' + esc(origin) + '</div>';
     if (alerts.length === 0) {
-      container.innerHTML = '<div class="alert-list__empty">Nenhum alerta.</div>';
+      container.innerHTML = '<div class="alert-list__empty">Nenhum alerta.</div>' + originHtml;
       return;
     }
     var h = '<div class="alert-list__header"><span class="alert-list__count">' + unreadCount + ' nao lidos</span>';
     h += '<button class="alert-list__mark-read" id="alert-mark-all-read" type="button">Marcar tudo lido</button></div>';
+    /* The badge belongs to the local UI as much as to the backend; say which
+       is which instead of letting both look like server state. */
+    h += originHtml;
     h += '<div class="alert-list__items">';
     for (var i = 0; i < alerts.length; i++) {
       var a = alerts[i];
@@ -123,7 +224,7 @@
       h += '<span class="alert-item__icon" style="color:' + color + '">' + icon + '</span>';
       h += '<div class="alert-item__body"><div class="alert-item__title">' + esc(a.title) + '</div>';
       h += '<div class="alert-item__desc">' + esc(a.description) + '</div>';
-      h += '<div class="alert-item__ts">' + formatTime(a.ts) + '</div></div>';
+      h += '<div class="alert-item__ts">' + (a.source === "server" ? "servidor · " : "local · ") + formatTime(a.ts) + '</div></div>';
       if (!a.read) h += '<span class="alert-item__dot"></span>';
       h += '</div>';
     }
@@ -255,6 +356,9 @@
   function init() {
     load();
     renderBadge();
+    /* Real backend alerts (read-only endpoint) + refresh every 30s. */
+    hydrateFromServer();
+    window.setInterval(hydrateFromServer, 30000);
 
     var bellBtn = document.getElementById("alert-bell-btn");
     if (bellBtn) {
@@ -288,6 +392,8 @@
     markAllRead: markAllRead,
     getUnreadCount: getUnreadCount,
     getAlerts: getAlerts,
+    getServerState: getServerState,
+    hydrateFromServer: hydrateFromServer,
     showToast: showToast,
     toggleDropdown: toggleDropdown,
     renderBadge: renderBadge,

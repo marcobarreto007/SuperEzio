@@ -57,7 +57,7 @@ def _deepseek_contract_env(monkeypatch):
 
 def test_model_provider_defaults():
     """ModelProvider must be constructable with mandatory fields."""
-    from core.model_serving.providers import ModelProvider
+    from core.model_serving.providers import DEEPSEEK_MODEL_ID, ModelProvider
 
     p = ModelProvider(
         name="test-provider",
@@ -71,6 +71,9 @@ def test_model_provider_defaults():
     assert p.backend in ("openai_compatible", "cloud")
     assert p.is_local is False
     assert p.priority == 0
+    # Papel nao declarado degrada como APOIO (flash): so quem monta um papel
+    # que decide marca degrade_model explicitamente.
+    assert p.degrade_model == DEEPSEEK_MODEL_ID
 
 
 def test_provider_is_local_flag():
@@ -137,7 +140,7 @@ def test_build_default_providers_primary_is_present(monkeypatch):
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
-        DEEPSEEK_MODEL_ID,
+        BRAIN_MODEL_ID,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
     )
@@ -148,7 +151,8 @@ def test_build_default_providers_primary_is_present(monkeypatch):
 
     assert PRIMARY_PROVIDER_NAME in by_name
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
-    assert by_name[PRIMARY_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    # Deciding role (2026-09-12): the orchestrator runs the brain model.
+    assert by_name[PRIMARY_PROVIDER_NAME].model == BRAIN_MODEL_ID
 
 
 def test_experts_are_pinned_to_glm53(monkeypatch):
@@ -193,9 +197,11 @@ def test_experts_are_pinned_to_glm53(monkeypatch):
         assert provider.timeout_s == 60
 
 
-def test_missing_glm_key_skips_provider_and_degrades_requested_roles(monkeypatch):
+def test_missing_glm_key_skips_provider_and_degrades_each_role_to_its_model(monkeypatch):
     """No coding-plan key: glm provider is not built. Roles pointed at glm
-    fall back to DeepSeek so boot survives. DeepSeek key remains required."""
+    degrade to the DeepSeek model OF THEIR OWN ROLE (12/09/2026: deciding roles
+    keep the brain model, support roles keep the flash one) so boot survives
+    without demoting anyone. DeepSeek key remains required."""
     monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
@@ -203,8 +209,12 @@ def test_missing_glm_key_skips_provider_and_degrades_requested_roles(monkeypatch
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
         AGENT_PROVIDER_NAME,
+        BRAIN_MODEL_ID,
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
         DEEPSEEK_MODEL_ID,
         DEEPSEEK_OFFICIAL_BASE_URL,
+        DEEPSEEK_PROVIDER_NAME,
         GLM_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
@@ -218,11 +228,40 @@ def test_missing_glm_key_skips_provider_and_degrades_requested_roles(monkeypatch
     providers, _ = build_default_providers(UniversalConfig())
     by_name = {p.name: p for p in providers}
     assert GLM_PROVIDER_NAME not in by_name
-    assert by_name[AGENT_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    # Papeis que DECIDEM (CEO/agent e orquestrador): o degrade mantem o cerebro.
+    assert by_name[AGENT_PROVIDER_NAME].model == BRAIN_MODEL_ID
     assert by_name[AGENT_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
-    assert by_name[PRIMARY_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].model == BRAIN_MODEL_ID
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == DEEPSEEK_OFFICIAL_BASE_URL
     assert by_name[AGENT_PROVIDER_NAME].api_key == "sk-ds-test-only"
+    # Papeis de APOIO (committee/judge/auditor): continuam no flash.
+    for name in (
+        DEEPSEEK_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+    ):
+        assert by_name[name].model == DEEPSEEK_MODEL_ID
+
+
+def test_blank_model_env_keeps_the_role_model(monkeypatch):
+    """A blank model env (``VAR=`` in .env) must not silently demote a deciding
+    role to the support model: the role's own default wins."""
+    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "   ")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "   ")
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import (
+        AGENT_PROVIDER_NAME,
+        BRAIN_MODEL_ID,
+        PRIMARY_PROVIDER_NAME,
+        build_default_providers,
+    )
+
+    providers, _ = build_default_providers(UniversalConfig())
+    by_name = {p.name: p for p in providers}
+    assert by_name[AGENT_PROVIDER_NAME].model == BRAIN_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].model == BRAIN_MODEL_ID
 
 
 def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):
@@ -387,14 +426,21 @@ def test_gateway_glm_agent_falls_back_only_to_deepseek(monkeypatch):
     """Contract 2026-09-05 (GLM credit fallback): a GLM-pinned agent may fall
     back ONLY to the plain official DeepSeek provider — never to the
     orchestrator, judge or auditor — and only while the credit-fallback flag
-    is on (the default) with the request allowing fallback."""
+    is on (the default) with the request allowing fallback.
+
+    12/09/2026: that fallback must respect the ROLE. The agent decides, so the
+    DeepSeek hop carries the brain model — never the support one."""
     from core.config.schema import UniversalConfig
     from core.model_serving.gateway import create_gateway_from_config
     from core.model_serving.providers import (
+        AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        BRAIN_MODEL_ID,
+        DEEPSEEK_MODEL_ID,
         DEEPSEEK_OFFICIAL_BASE_URL,
         DEEPSEEK_PROVIDER_NAME,
         GLM_CODING_PLAN_MODEL,
+        build_default_providers,
     )
 
     monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", GLM_CODING_PLAN_MODEL)
@@ -404,12 +450,22 @@ def test_gateway_glm_agent_falls_back_only_to_deepseek(monkeypatch):
     gw = create_gateway_from_config(cfg)
     agent = next(p for p in gw.providers if p.name == AGENT_PROVIDER_NAME)
     assert agent.base_url.startswith("https://api.z.ai")
+    assert agent.degrade_model == AGENT_MODEL_ID == BRAIN_MODEL_ID
 
     providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
     assert [p.name for p in providers] == [AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME]
     fallback = providers[1]
-    assert fallback.model == "deepseek-v4-flash"
+    assert fallback.model == BRAIN_MODEL_ID
     assert fallback.base_url == DEEPSEEK_OFFICIAL_BASE_URL
+
+    # The plain deepseek provider in the list (support role) is untouched: the
+    # brain hop is a copy, so the committee/judge never inherit the brain model.
+    plain, _ = build_default_providers(cfg)
+    by_name = {p.name: p for p in plain}
+    assert by_name[DEEPSEEK_PROVIDER_NAME].model == DEEPSEEK_MODEL_ID
+    assert next(p for p in gw.providers if p.name == DEEPSEEK_PROVIDER_NAME).model == (
+        DEEPSEEK_MODEL_ID
+    )
 
 
 def test_gateway_glm_agent_fallback_off_or_disallowed_is_self_only(monkeypatch):

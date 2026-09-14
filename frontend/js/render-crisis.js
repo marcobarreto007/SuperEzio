@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -127,6 +133,7 @@
     var info = SZ.cards.makeCard("Crisis Radar", badgeText, badgeCls, "radar");
     info.card.classList.add("card--crisis");
 
+
     // Regime badge area
     if (regime) {
       var regimeEl = SZ.dom.el("div", "crisis-regime crisis-regime--" + String(regime).toLowerCase());
@@ -162,6 +169,11 @@
     } else {
       bubble.appendChild(info.card);
     }
+
+    // Stamp AFTER insertion. CRISIS_MATH carries no timestamp
+    // (src/core/pipeline/nodes/f51.py:83 sends systemic_risk / regime /
+    // alert only) -> receipt clock.
+    stampCard(info.card, ev, "CRISIS_MATH");
 
     return info;
   }

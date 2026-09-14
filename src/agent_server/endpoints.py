@@ -442,7 +442,15 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
 
 
 def _cockpit_guardrail_summary() -> dict[str, Any]:
-    """Return no score until a real Guardrail Hub run supplies evidence."""
+    """Return no score until a real Guardrail Hub run supplies evidence.
+
+    This is a deliberate stub, not a wiring gap: it takes no input and reads no
+    state, so it cannot ever report a real score. It is published as
+    ``bob.guardrails`` and ``status.guardrails`` with ``ok``/``total`` null and
+    ``layers`` empty, and consumers must render it as "no data" -- a real
+    Guardrail Hub producer is out of scope for this endpoint. Do not wire a UI
+    to ``layers``/``evidence_at`` expecting them to fill in later.
+    """
     return {
         "ok": None,
         "total": None,
@@ -1620,7 +1628,19 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             buffer_answer_until_validation = chart_context_attached
             answer_repaired = False
             if detected_ticker:
-                yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
+                # server_ts: same stamp the live candle stream already carries
+                # (/api/chart-stream snapshot/candle payloads). Without it the
+                # chart card was the only card with no server time to render.
+                yield (
+                    json.dumps(
+                        {
+                            "type": "CHART_DATA",
+                            "ticker": detected_ticker,
+                            "server_ts": int(time.time()),
+                        }
+                    )
+                    + "\n"
+                )
             yield (
                 json.dumps(
                     {"type": "STREAM_START", "msg_id": envelope.msg_id, "run_id": task.run_id}
@@ -1697,6 +1717,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 trade_order_context = {
                                     k: v for k, v in event.items() if k != "type" and v is not None
                                 }
+                            if event_type == "CHART_DATA":
+                                # Same invariant the header event carries: a
+                                # CHART_DATA must never reach the UI time-less,
+                                # whichever path emitted it. Never overwrite a
+                                # stamp the emitter already provided.
+                                event.setdefault("server_ts", int(time.time()))
                             yield json.dumps(event, ensure_ascii=False) + "\n"
                         else:
                             content_str = str(event)
@@ -1780,6 +1806,11 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 try:
                                     event = json.loads(raw_chunk)
                                     if event.get("type") in {"CHART_DATA"}:
+                                        # Keep the invariant "every CHART_DATA
+                                        # carries server_ts" true whichever
+                                        # path emitted it; never overwrite a
+                                        # stamp the emitter already provided.
+                                        event.setdefault("server_ts", int(time.time()))
                                         yield (json.dumps(event, ensure_ascii=False) + "\n")
                                         continue
                                 except json.JSONDecodeError:
@@ -1996,7 +2027,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     # Honest visitor-facing fallback — no technical dump on
                     # screen. The structured detail stays in the ERROR event
                     # above for the operator. Context-overflow is the common
-                    # cause (local llama window is 8192 tokens).
+                    # cause (local llama window is 98304 tokens).
                     honest_reason = "do meu cerebro sobrecarregado"
                     if "context" in (provider_error or err_detail).lower():
                         honest_reason = "de espaco de contexto insuficiente no meu cerebro local"
@@ -2321,7 +2352,17 @@ async def get_trade_history(limit: int = Query(50, ge=1, le=250)) -> dict[str, A
 
 @router.get("/cockpit/summary")
 def get_cockpit_summary(request: Request) -> dict[str, Any]:
-    """Return aggregated cockpit data for the frontpage panels."""
+    """Return aggregated cockpit data for the frontpage panels.
+
+    ``deep`` publishes exactly three data fields and nothing else:
+    ``last_math`` (MATH_REPORT), ``last_experts`` (EXPERT_DONE, last 12) and
+    ``last_trinity`` (TRINITY_DELIBERATION). They are filled by
+    :func:`_remember_cockpit_event` from chat-stream pipeline events, live in
+    process memory only, and read empty until the first analysis of the current
+    process. ``deep["contract"]`` restates this in the payload itself, mapping
+    the names callers keep guessing (f51 / sdca / neural / trinity /
+    guardrails) to the path that really carries each one.
+    """
 
     pipeline = getattr(request.app.state, "pipeline", None)
     pipeline_status = pipeline.get_status() if pipeline else {"status": "unavailable"}
@@ -2362,6 +2403,35 @@ def get_cockpit_summary(request: Request) -> dict[str, Any]:
         "last_math": getattr(request.app.state, "last_math_report", None),
         "last_experts": getattr(request.app.state, "last_expert_verdicts", []),
         "last_trinity": getattr(request.app.state, "last_trinity_report", ""),
+    }
+    # -- deep contract, published on purpose -----------------------------
+    # A 5s frontend poll used to read deep.f51 / deep.sdca / deep.neural /
+    # deep.trinity / deep.guardrails from this endpoint. Four of those five
+    # keys never existed here, so the poll only ever walked false branches and
+    # re-rendered stale state. The concepts were real; the paths were guessed.
+    # This block publishes the real schema, marks which fields are populated
+    # right now, and points each guessed concept at the path that truly carries
+    # it -- so the next reader does not have to guess again.
+    deep["contract"] = {
+        "scope": "process memory (app.state) — empty again after a restart",
+        "filled_by": "chat-stream pipeline events (_remember_cockpit_event)",
+        "populated": {
+            "last_math": deep["last_math"] is not None,
+            "last_experts": bool(deep["last_experts"]),
+            "last_trinity": bool(deep["last_trinity"]),
+        },
+        "fields": {
+            "last_math": {"type": "object|null", "from_event": "MATH_REPORT"},
+            "last_experts": {"type": "array", "from_event": "EXPERT_DONE", "kept": 12},
+            "last_trinity": {"type": "object|string", "from_event": "TRINITY_DELIBERATION"},
+        },
+        "elsewhere": {
+            "trinity": "deep.last_trinity",
+            "guardrails": "bob.guardrails / status.guardrails (stub — always empty)",
+            "f51": "not published by this endpoint (pipeline events only)",
+            "sdca": "not published by this endpoint (pipeline events only)",
+            "neural": "not published by this endpoint (pipeline events only)",
+        },
     }
     bob = {
         "last_decision": getattr(request.app.state, "last_decision_trace", {}),
@@ -2560,15 +2630,152 @@ def _resolve_evidence_file(run_id: str, filename: str):
 _TRADING_TOKENS: dict[str, float] = {}
 _TRADING_TOKEN_TTL = 900  # 15 minutes
 
+# Rotas cujo segundo fator passa por _require_trading_auth (chave de API = 2º fator).
+_TRADING_AUTH_APIKEY_ROUTES: tuple[str, ...] = (
+    "POST /paper/approve/{request_id}",
+    "POST /paper/reject/{request_id}",
+    "POST /trade/execute",
+)
+
+# Rotas cujo segundo fator passa por _require_td_ticket_auth. Apenas open access
+# as pula; sem SUPEREZIO_API_KEY elas recusam com 503 em vez de pular.
+_TRADING_AUTH_TD_ROUTES: tuple[str, ...] = (
+    "POST /trade/td-draft",
+    "POST /trade/manual/{ticket_id}/request-approval",
+    "POST /trade/manual/{ticket_id}/td-preview",
+    "POST /trade/manual/{ticket_id}/money-gate",
+    "POST /trade/manual/{ticket_id}/approve/{approval_id}",
+    "POST /trade/manual/{ticket_id}/reject/{approval_id}",
+    "POST /trade/manual/{ticket_id}/entered",
+    "POST /trade/manual/{ticket_id}/broker-confirm",
+)
+
+# ONDE MORA A PROTEÇÃO REAL enquanto os segundos fatores acima estão pulados.
+# Isto é uma afirmação verificada, não uma frase solta: quem a derruba faz
+# falhar tests/test_trading_failopen_freeze_anchor.py::TestFailOpenNeedsARealFreezeGate.
+_TRADING_AUTH_PROTECTION = (
+    "trade gate de freeze: evaluate_trade_gate mede is_execution_frozen() e bloqueia com "
+    "EXECUTION_FREEZE; build_order_gate_metadata._require_freeze_snapshot recusa ALLOW sem "
+    "freeze_snapshot datado; ibkr_adapter._low_level_gate_check reamostra o freeze no connect"
+)
+_TRADING_AUTH_PROBE = (
+    "tests/test_trading_failopen_freeze_anchor.py::TestFailOpenNeedsARealFreezeGate"
+)
+
+# Pula-uma-vez por motivo: o skip nunca é mudo, mas também não vira spam por request.
+_TRADING_AUTH_BYPASS_LOGGED: set[str] = set()
+
+
+def _trading_auth_bypass_reason() -> str:
+    """Por que o segundo fator é pulado — ``""`` quando ele é exigido."""
+    if _open_access_enabled():
+        return "SUPEREZIO_OPEN_ACCESS=1"
+    if not os.getenv("SUPEREZIO_API_KEY"):
+        return "SUPEREZIO_API_KEY is unset"
+    return ""
+
+
+def _measured_freeze_reading() -> dict[str, Any]:
+    """Lê o gate de freeze para o banner de boot — nunca assume que ele congelou.
+
+    Uma leitura indisponível devolve ``frozen: None`` (desconhecido), nunca
+    ``True``: o banner não pode afirmar proteção que não conseguiu medir.
+    """
+    try:
+        from core.pipeline.f51_trade_gate import snapshot_execution_freeze
+
+        return snapshot_execution_freeze()
+    except Exception as exc:  # noqa: BLE001 — banner de boot nunca pode derrubar o processo
+        return {
+            "frozen": None,
+            "sampled_at": "",
+            "source": f"unreadable:{str(exc)[:120]}",
+        }
+
+
+def log_trading_auth_posture() -> dict[str, Any]:
+    """Banner de boot: diz em voz alta o que as rotas de trading NÃO autenticam.
+
+    Substitui o silêncio do ``return ""``. O operador passa a saber, no boot e
+    no log, (a) por que o 2º fator está sendo pulado — chave ausente ou
+    ``SUPEREZIO_OPEN_ACCESS=1`` —, (b) quais rotas ficam sem autenticação, e
+    (c) qual é a proteção real no lugar dela: o gate de freeze, com a leitura
+    MEDIDA no momento do boot (``frozen``/``sampled_at``/``source``).
+
+    Severidade: ``info`` quando o 2º fator é exigido, ``warning`` quando ele é
+    pulado mas a transmissão está congelada, ``critical`` quando ele é pulado e
+    o freeze NÃO está ligado (ou não pôde ser lido) — o caso em que o fail-open
+    deixa de ser defensável.
+
+    Chamado no import do módulo (boot) e coberto por
+    ``tests/test_trading_failopen_freeze_anchor.py``.
+    """
+    reason = _trading_auth_bypass_reason()
+    freeze = _measured_freeze_reading()
+    open_access = reason == "SUPEREZIO_OPEN_ACCESS=1"
+    if reason:
+        # Sem chave de API, as rotas _require_td_ticket_auth recusam (503) em vez
+        # de pular — só open access abre as duas famílias.
+        unauthenticated = list(_TRADING_AUTH_TD_ROUTES) if open_access else []
+        unauthenticated += list(_TRADING_AUTH_APIKEY_ROUTES)
+        refused = [] if open_access else list(_TRADING_AUTH_TD_ROUTES)
+    else:
+        unauthenticated = []
+        refused = []
+    posture: dict[str, Any] = {
+        "second_factor": "bypassed" if reason else "enforced",
+        "bypass_reason": reason,
+        "unauthenticated_routes": unauthenticated,
+        "refused_routes": refused,
+        "real_protection": _TRADING_AUTH_PROTECTION,
+        "probe": _TRADING_AUTH_PROBE,
+        "execution_frozen": freeze.get("frozen"),
+        "freeze_source": str(freeze.get("source") or ""),
+        "freeze_sampled_at": str(freeze.get("sampled_at") or ""),
+    }
+    if not reason:
+        logger.info("trading_auth_posture_enforced", **posture)
+    elif freeze.get("frozen") is True:
+        logger.warning("trading_auth_second_factor_bypassed", **posture)
+    else:
+        logger.critical("trading_auth_second_factor_bypassed_unfrozen", **posture)
+    return posture
+
+
+def _note_trading_auth_bypass(reason: str, request: Request) -> None:
+    """O skip nunca é mudo: ``warning`` no primeiro de cada motivo, ``debug`` depois."""
+    path = getattr(getattr(request, "url", None), "path", "")
+    level = logger.debug if reason in _TRADING_AUTH_BYPASS_LOGGED else logger.warning
+    _TRADING_AUTH_BYPASS_LOGGED.add(reason)
+    level(
+        "trading_auth_bypassed",
+        reason=reason,
+        path=path,
+        real_protection=_TRADING_AUTH_PROTECTION,
+        probe=_TRADING_AUTH_PROBE,
+    )
+
 
 def _require_trading_auth(request: Request) -> str:
     """Verify second-factor trading token.
 
     Skipped when ``SUPEREZIO_API_KEY`` is unset (dev) or
     ``SUPEREZIO_OPEN_ACCESS=1`` (trusted distribution — no identification).
-    Live broker transmission remains independently frozen.
+    The skip is deliberate (no secret on disk) and it is not silent:
+    :func:`log_trading_auth_posture` says it out loud at boot and
+    :func:`_note_trading_auth_bypass` logs the first skipped request.
+
+    Why the skip is defensible: live broker transmission stays independently
+    frozen — not by this header, by the trade gate. That is a claim with a
+    probe, not a sentence in a docstring: if the freeze gate stops measuring
+    (literal ``execution_freeze``, ALLOW bound without a dated
+    ``freeze_snapshot``, adapter without the connect-time re-sample),
+    ``tests/test_trading_failopen_freeze_anchor.py`` goes red and this door
+    stops being justified.
     """
-    if _open_access_enabled() or not os.getenv("SUPEREZIO_API_KEY"):
+    bypass_reason = _trading_auth_bypass_reason()
+    if bypass_reason:
+        _note_trading_auth_bypass(bypass_reason, request)
         return ""
     token = request.headers.get("X-Trading-Token", "")
     if not token:
@@ -2587,9 +2794,15 @@ def _open_access_enabled() -> bool:
 
 
 def _require_td_ticket_auth(request: Request) -> str:
-    """Live-manual TD drafts. Open-access skips the API-key factor; freeze still holds."""
+    """Live-manual TD drafts. Open-access skips the API-key factor; freeze still holds.
+
+    "Freeze still holds" é a mesma afirmação verificada de
+    :func:`_require_trading_auth` — mesma sonda:
+    ``tests/test_trading_failopen_freeze_anchor.py``.
+    """
 
     if _open_access_enabled():
+        _note_trading_auth_bypass("SUPEREZIO_OPEN_ACCESS=1 (td ticket)", request)
         return ""
     if not os.getenv("SUPEREZIO_API_KEY"):
         raise HTTPException(
@@ -2599,6 +2812,13 @@ def _require_td_ticket_auth(request: Request) -> str:
     token = _require_trading_auth(request)
     _TRADING_TOKENS.pop(token, None)
     return token
+
+
+# Boot: importar este módulo É o boot do processo da API, e é aqui que a decisão
+# de pular o 2º fator é tomada — então o banner sai daqui, uma vez, em vez de
+# ficar no silêncio de um `return ""`. Não é fail-closed de propósito: a decisão
+# do dono é documentar e gritar, não exigir segredo em disco.
+log_trading_auth_posture()
 
 
 def _manual_workflow() -> ManualTradeWorkflow:

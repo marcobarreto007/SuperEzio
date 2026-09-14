@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="css/ops-console.css">
   <link rel="stylesheet" href="css/cockpit.css?v=ui-fix-20260823d">
   <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/control-panel.css">
 </head>
 <body>
 
@@ -74,7 +75,13 @@
       </div>
       <div class="topbar__connection">
         <span class="topbar__conn-dot" id="sys-dot" title="Checking..."></span>
-        <span class="topbar__conn-text" id="cockpit-connection">CORE CHECKING · PAPER MODE · IBKR CHECKING</span>
+        <!-- Placeholder only: status-bar.js and cockpit.js rewrite this label
+             from the operational snapshot ("CORE <state> · <mode> MODE · IBKR
+             <state>"). It used to assert a trading mode — "PAPER MODE" next to
+             "CHECKING" — in the served HTML, before any measurement existed to
+             support it. Same defect the #statusbar-guardrails item below was
+             fixed for. Now it claims nothing. -->
+        <span class="topbar__conn-text" id="cockpit-connection">CORE: SEM DADO · IBKR: SEM DADO</span>
       </div>
       <button class="topbar__icon-btn broker-chip--unknown" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark" width="14" height="14"></i><span id="broker-status-label">IBKR</span></button>
       <button class="topbar__icon-btn" id="sdca-lab-btn" title="SDCA Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert" width="14" height="14"></i></button>
@@ -268,7 +275,12 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--mangala">MNG</span>
             <span class="expert-card__name">Mangala Tracker</span>
-            <span class="expert-card__verdict" id="mangala-verdict">IDLE · PAPER</span>
+            <!-- Placeholder only. It used to assert an idle paper operation
+                 ("IDLE · PAPER") in the served HTML, before any measurement
+                 existed to support it. cockpit.js#renderMangalaCard fills this
+                 from the compound-tracker snapshot; "--" is the codebase's
+                 "no claim yet" value (matching #guardrails-summary). -->
+            <span class="expert-card__verdict" id="mangala-verdict">--</span>
           </div>
           <div class="expert-card__bd" id="mangala-body">
             <div class="empty-state">No paper operation running.</div>
@@ -297,7 +309,12 @@
     <span class="bot-bar__item" id="statusbar-genie">CEO: CHECKING</span>
     <span class="bot-bar__item" id="statusbar-deep">DATA: UNKNOWN</span>
     <span class="bot-bar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
-    <span class="bot-bar__item" id="statusbar-guardrails">MODE: PAPER</span>
+    <!-- Placeholder only. status-bar.js rewrites this item as
+         "MODO: <mode> · GUARDRAILS: <n>/<total>" from the operational snapshot.
+         It read the literal "MODE: PAPER", which asserted a paper mode in the
+         served HTML before any data existed — the one item in this bar that
+         claimed something up front. It now claims nothing. -->
+    <span class="bot-bar__item" id="statusbar-guardrails">MODO: SEM DADO · GUARDRAILS: SEM DADO</span>
     <span class="bot-bar__item" id="statusbar-latency">PIPELINE: IDLE</span>
     <span class="bot-bar__item" id="statusbar-cost">Cost: $0.00</span>
   </footer>
@@ -435,6 +452,9 @@
     </div>
   </section>
 
+  <!-- ===== CONTROL PLANE (MIKE -> Ezio) — dono: js/control-panel.js ===== -->
+  <section id="control-panel" class="control-panel" aria-label="Plano de controle MIKE / Ezio"></section>
+
   <!-- ===== AUTH MODAL ===== -->
   <div id="auth-modal"></div>
 
@@ -473,6 +493,7 @@
   <script src="js/blame-panel.js"></script>
   <script src="js/bob-panel.js?v=ui-fix-20260823d"></script>
   <script src="js/status-bar.js?v=ui-fix-20260823d"></script>
+  <script src="js/control-panel.js"></script>
   <script src="js/init.js?v=ui-fix-20260823d"></script>
 </body>
 </html>

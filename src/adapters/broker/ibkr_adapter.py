@@ -14,6 +14,7 @@ import os
 from typing import Any
 
 from core.config.logging_config import get_logger
+from core.config.settings import PaperTopologyError, assert_paper_topology
 
 logger = get_logger(__name__)
 
@@ -29,13 +30,17 @@ def _low_level_gate_check(order: Any) -> bool:
       - gate_trace_id (non-empty string)
       - validated_ticker (non-empty, matches order.symbol)
       - journal_ready == True
-      - execution_freeze == False
+      - execution_freeze == False, WITH freeze_sampled_at (proof it was
+        measured, not written as a literal by the producer)
       - pipeline_prepared == True
       - adaptive_policy_applied == True
       - approval_id (non-empty)
       - consensus_decision in {SUPPORT, NEUTRAL}
       - neural_gate_status == ALLOW
       - neural_model_id (non-empty)
+
+    Environmental checks (6-7) are RE-MEASURED here at connect time; the
+    metadata is never trusted as the last word on freeze or topology.
     """
     import socket
 
@@ -46,6 +51,7 @@ def _low_level_gate_check(order: Any) -> bool:
     validated_ticker = order_meta.get("validated_ticker", "")
     journal_ready = order_meta.get("journal_ready", False)
     execution_freeze = order_meta.get("execution_freeze", True)  # default SAFE
+    freeze_sampled_at = str(order_meta.get("freeze_sampled_at") or "").strip()
     pipeline_prepared = order_meta.get("pipeline_prepared", False)
     adaptive_policy_applied = order_meta.get("adaptive_policy_applied", False)
     approval_id = str(order_meta.get("approval_id") or "")
@@ -88,10 +94,19 @@ def _low_level_gate_check(order: Any) -> bool:
         )
         return False
 
-    # 5. execution_freeze MUST be False
+    # 5. execution_freeze MUST be False, and MUST carry the timestamp of the
+    #    measurement that produced it. A "False" without a snapshot is a
+    #    literal — exactly the tautology this check exists to catch.
     if execution_freeze:
         logger.error(
             "BLOCKED_LOW_LEVEL_UNGATED_ORDER:execution_frozen symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+    if not freeze_sampled_at:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:unmeasured_freeze symbol=%s "
+            "(execution_freeze was not measured)",
             getattr(order, "symbol", "?"),
         )
         return False
@@ -126,15 +141,29 @@ def _low_level_gate_check(order: Any) -> bool:
 
     # ── Environmental checks (defense in depth) ──
 
-    # 6. Env-level freeze (catches cases where metadata is forged)
-    env_freeze = os.getenv("F51_TRADING_EXECUTION_FREEZE", "true").strip().lower()
-    if env_freeze not in ("0", "false", "no", "off"):
-        logger.error("low_level_gate_blocked_env_freeze")
+    # 6. Freeze RE-SAMPLED here, not read off the metadata (which is forgeable).
+    #    This is the measurement the old raw-env comparison only approximated:
+    #    it missed the SUPEREZIO_* kill-switch family entirely.
+    try:
+        from core.pipeline.f51_trade_gate import is_execution_frozen
+
+        if is_execution_frozen():
+            logger.error("low_level_gate_blocked_env_freeze")
+            return False
+    # Catch amplo deliberado: se a leitura do kill switch nao puder ser feita,
+    # o gate bloqueia (fail-closed); a excecao nunca sobe para o chamador.
+    except Exception:  # noqa: BLE001
+        logger.error("low_level_gate_blocked_freeze_unreadable")
         return False
 
-    # 7. IBKR connectivity
-    ibkr_host = os.getenv("IBKR_HOST", "127.0.0.1")
-    ibkr_port = int(os.getenv("IBKR_PORT", "7497"))
+    # 7. Paper topology — the socket is built only against a proven-paper
+    #    (loopback + allowlisted port) endpoint. Live ports are refused here,
+    #    at the point of use, and not only at boot.
+    try:
+        ibkr_host, ibkr_port = assert_paper_topology()
+    except (PaperTopologyError, RuntimeError) as exc:
+        logger.error("low_level_gate_blocked_paper_topology: %s", exc)
+        return False
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(2.0)
@@ -178,9 +207,11 @@ class InteractiveBrokersAdapter:
         port: int | None = None,
         client_id: int | None = None,
     ):
-        # Config is now managed by IBKRService, but we keep params for compatibility
-        self._host = host or os.getenv("IBKR_HOST", "127.0.0.1")
-        self._port = port or int(os.getenv("IBKR_PORT", "7497"))
+        # Config is now managed by IBKRService, but we keep params for compatibility.
+        # Host/port come from the validated paper topology — never from a raw
+        # env read at the point of use: a non-paper endpoint raises HERE,
+        # before any socket or connection is built.
+        self._host, self._port = assert_paper_topology(host, port)
         # client_id is ignored — IBKRService manages its own stable clientId
         self._client_id = client_id or int(os.getenv("IBKR_CLIENT_ID", "1"))
 

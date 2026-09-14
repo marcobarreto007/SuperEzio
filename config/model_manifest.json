@@ -1,13 +1,13 @@
 {
     "project": "SuperEzio",
     "version": "4.2.0",
-    "updated": "2026-09-10",
-    "note": "DEEPSEEK STACK (2026-09-10): every role - CEO/agent, orchestrator, financial experts, daytrade judge and auditor - runs on deepseek-v4-flash at the official DeepSeek HTTPS API. GLM-5.3 (Z.ai Coding Plan) remains an optional, re-armable path: point SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL at glm-5.3 and provide SUPEREZIO_GLM_CODING_PLAN_API_KEY.",
+    "updated": "2026-09-12",
+    "note": "DEEPSEEK STACK (2026-09-12): the deciding roles - CEO/agent (Bob) and orchestrator - run on deepseek-v4-pro; the supporting roles - financial experts, daytrade judge and auditor - stay on deepseek-v4-flash. All at the official DeepSeek HTTPS API. Until 2026-09-10 every role ran deepseek-v4-flash. GLM-5.3 (Z.ai Coding Plan) remains an optional, re-armable path: point SUPEREZIO_PRIMARY_MODEL / SUPEREZIO_AGENT_MODEL at glm-5.3 and provide SUPEREZIO_GLM_CODING_PLAN_API_KEY.",
     "agent": {
         "provider_name": "agent",
         "persona": "Bob",
-        "base_model": "deepseek-v4-flash",
-        "model": "deepseek-v4-flash",
+        "base_model": "deepseek-v4-pro",
+        "model": "deepseek-v4-pro",
         "server_url": "https://api.deepseek.com",
         "priority": -10,
         "backend": "openai_compatible",
@@ -21,9 +21,9 @@
         "local_orchestrator": {
             "provider_name": "local_orchestrator",
             "base_url": "https://api.deepseek.com",
-            "model": "deepseek-v4-flash",
+            "model": "deepseek-v4-pro",
             "priority": 0,
-            "role": "orchestrator"
+            "role": "orchestrator (deciding role: deepseek-v4-pro)"
         },
         "glm": {
             "provider_name": "glm",
@@ -75,7 +75,7 @@
         }
     },
     "expert_runtime": {
-        "description": "Experts are role prompts selected by intent and pinned to the deepseek provider (deepseek-v4-flash, official HTTPS API), as are the CEO/agent, orchestrator, judge and auditor.",
+        "description": "Experts are role prompts selected by intent and pinned to the deepseek provider (deepseek-v4-flash, official HTTPS API), as are the daytrade judge and auditor (supporting roles). The deciding roles - CEO/agent and orchestrator - run deepseek-v4-pro.",
         "roles": [
             "fundamental",
             "technical",

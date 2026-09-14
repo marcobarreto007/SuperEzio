@@ -46,10 +46,12 @@ from ..verdict import build_pipeline_verdict, build_verdict_dict, validate_answe
 
 logger = logging.getLogger(__name__)
 
-# Conservative character budget for an 8192-token llama context while
-# reserving 512 output tokens and chat-template overhead. Runtime evidence on
-# Qwen3.8 showed that an unbounded 37 KB prompt became 8705 input tokens.
-LOCAL_AGENT_INPUT_CHAR_BUDGET = 24_000
+# Conservative character budget for the local llama context, reserving output
+# tokens and chat-template overhead. Runtime evidence on Qwen3.8 showed that an
+# unbounded 37 KB prompt became 8705 input tokens. Raised 2026-09-11 with the
+# window itself (8192 -> 98304; see LOCAL_CONTEXT_HARD_TOKEN_CAP in
+# model_serving/gateway.py), keeping the same ~2.93 chars per token of window.
+LOCAL_AGENT_INPUT_CHAR_BUDGET = 288_000
 _PROMPT_TRUNCATION_MARKER = "\n[TRUNCATED TO FIT LOCAL CONTEXT]"
 
 # Trace logger singleton

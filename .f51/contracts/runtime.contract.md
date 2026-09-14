@@ -28,9 +28,11 @@ incorporates the detailed module contracts but does not duplicate them.
 | Product launcher | `setup_superezio.bat run` -> `start.ps1` | 8002 | `http://127.0.0.1:8002/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The production runtime uses the official DeepSeek HTTPS API (`https://api.deepseek.com`):
-`deepseek-v4-flash` serves every role — Bob CEO, orchestrator, financial experts, judge,
-and auditor. No local inference server or GPU is required. The Z.ai GLM coding-plan
+The production runtime uses the official DeepSeek HTTPS API (`https://api.deepseek.com`).
+Per-role split in effect since 2026-09-12: the deciding roles — Bob CEO (`agent`) and the
+orchestrator — run `deepseek-v4-pro`; the supporting roles — financial experts, daytrade
+judge, and auditor — stay on `deepseek-v4-flash`. Until 2026-09-10 every role ran
+`deepseek-v4-flash`. No local inference server or GPU is required. The Z.ai GLM coding-plan
 provider (`glm-5.3`) is an optional path only: it is built when
 `SUPEREZIO_GLM_CODING_PLAN_API_KEY` is present, and requesting a `glm-*` model without
 that key fails closed. `SUPEREZIO_DEEPSEEK_API_KEY` is supplied through ignored local
@@ -39,8 +41,14 @@ configuration or the process environment. No cross-provider fallback is permitte
 `start.ps1` accepts `-SkipBrowser`, `-IsolatedValidation`, and
 `-HealthTimeoutMinutes` (default 6). It refuses occupied API ports. Isolated
 validation separates storage and freezes execution. Launch success proves API
-liveness only. `stop.ps1` terminates only the PID and start time recorded in
-`runtime/api-process.json`; it refuses reused PIDs and leaves other launchers alone.
+liveness only. `stop.ps1` terminates the PID and start time recorded in
+`runtime/api-process.json` — and, when that record is missing or stale, the
+**verified owner of the API port** (identified by its command line as
+`python ... agent_server.main`). It refuses reused PIDs, refuses to kill a
+process that does not look like the SuperEzio API (escape hatch: `-ForceKill`),
+and leaves other launchers alone. Updated 2026-09-12: before this, a manually
+started backend survived `stop.ps1` while the port stayed held, and `start.ps1`
+then refused with a message that did not say why.
 
 ## Configuration
 

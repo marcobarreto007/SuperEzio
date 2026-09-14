@@ -21,6 +21,41 @@
     return Boolean(window.SZ_SHOW_DEBUG_CARDS);
   }
 
+  /* Freshness stamp for the chart card (render-pipeline.js, loaded first).
+   *
+   * CHART_DATA is an ANNOUNCEMENT, not a payload: endpoints.py emits
+   * {"type","ticker","server_ts"} and no emitter in this codebase ever put a
+   * `chartData` object in it (grep "chartData" over src/: nothing). The OHLCV
+   * the card draws comes from GET /api/chart-data/{ticker}, applied by
+   * init.js#loadChart — that is what fills SZ.state.chartData and repaints.
+   *
+   * What this event does carry is the backend's own clock: `server_ts`, epoch
+   * SECONDS (endpoints.py stamps it on every CHART_DATA it emits, whichever
+   * path produced it). So the stamp can show the age of the DATA the backend
+   * produced instead of the moment this tab happened to receive it —
+   * render-pipeline.js draws the difference as solid vs dashed rule. A
+   * CHART_DATA without server_ts (older backend) still gets stamped, but with
+   * receipt time and the dashed rule: it never invents a data time.
+   *
+   * The announced ticker goes into the tooltip, so the stamp names the symbol
+   * the timestamp actually describes. detected_ticker is the UI ticker this
+   * frontend sent, falling back to what the prompt names (endpoints.py:1520)
+   * — the same ticker loadChart drew, except when the prompt names a symbol
+   * while the UI had none selected. */
+  function stampChart(ev) {
+    if (!SZ.stamp || !SZ.stamp.attach) return;
+    var header = document.querySelector(".market-header__info");
+    if (!header) return;
+    var secs = Number(ev && ev.server_ts);
+    var hasServerTs = isFinite(secs) && secs > 0;
+    var ticker = String((ev && ev.ticker) || "").toUpperCase();
+    SZ.stamp.attach(header, {
+      time: hasServerTs ? secs : null,
+      key: hasServerTs ? "server_ts" : null,
+      label: "CHART_DATA" + (ticker ? " " + ticker : "")
+    });
+  }
+
   function getCeoBubble() {
     if (!SZ.chat || !SZ.chat.currentCEO) return null;
     return SZ.chat.currentCEO.bubble || null;
@@ -160,13 +195,20 @@
         SZ.state.currentCeo = "ceo";
         break;
 
-      /* -- CHART_DATA -- */
+      /* -- CHART_DATA --
+       * The `if (ev.chartData)` gate that used to live here was never true:
+       * the backend sends {"type","ticker","server_ts"} and nothing else, and
+       * no emitter anywhere in the codebase has ever set that key (checked by
+       * grep over src/). So the branch never ran — it was dead code shaped
+       * like a chart feed, and the chart was in fact only ever fed by
+       * init.js#loadChart calling GET /api/chart-data/{ticker}. Assigning
+       * SZ.state.chartData from here would also have bypassed that path's
+       * cache, stale-response guard and label update. Removed rather than
+       * repaired: there is no payload to gate on. The one thing the event
+       * really delivers — the ticker and the backend's server_ts — feeds the
+       * card stamp. */
       case "CHART_DATA":
-        if (ev.chartData) {
-          SZ.state.chartData = ev.chartData;
-          if (SZ.renderProfile)   SZ.renderProfile();
-          if (SZ.renderChart)     SZ.renderChart();
-        }
+        stampChart(ev);
         break;
 
       /* -- CHUNK -- */
@@ -259,20 +301,14 @@
 
       /* -- GUARDRAIL_HUB -- */
       case "GUARDRAIL_HUB":
-        console.log("[SSE] GUARDRAIL_HUB received, rendering card");
         (function () {
+          /* Record the EVIDENCE only. The rodapé item is rendered from the
+             operational snapshot by status-bar.js (single renderer), which is
+             also what stopped the old "30/30 green" when the event arrived
+             without a total_guardrails — no total is invented here any more. */
           if (SZ.state) SZ.state.lastGuardrailHub = ev;
-          var summary = ev.summary || {};
-          var ok = (summary.decision_counts || {}).ALLOW || 0;
-          var total = ev.total_guardrails || 30;
-          var blocking = summary.blocking_count || 0;
-          var guardEl = document.getElementById("statusbar-guardrails");
-          if (guardEl) {
-            var cls = "is-ok";
-            if (blocking > 0) cls = "is-warn";
-            if (blocking > 2) cls = "is-error";
-            guardEl.className = "cockpit-statusbar__item " + cls;
-            guardEl.textContent = "Guardrails: " + ok + "/" + total + (blocking ? " (" + blocking + " blocking)" : "");
+          if (window.SZ.health && window.SZ.health.check) {
+            try { window.SZ.health.check(); } catch (e) { console.warn("[GuardrailHub] snapshot refresh failed:", e); }
           }
           var latEl = document.getElementById("statusbar-latency");
           if (latEl) latEl.textContent = "Guard: " + new Date().toLocaleTimeString();
@@ -520,164 +556,26 @@
   }
 
   /* ==============================================================
-   * SSE PIPELINE STREAM (fallback for real-time events)
+   * PIPELINE EVENT STREAM -- REMOVED (a rota nao existe no backend)
    *
-   * Creates a persistent fetch() + ReadableStream connection to the
-   * backend pipeline event endpoint. Uses fetch() instead of EventSource
-   * so we can pass the JWT token in the Authorization header (EventSource
-   * only supports query params, which risk leaking the token to logs).
+   * Aqui havia um fetch() + ReadableStream para /pipeline/events/stream,
+   * com reconexao em backoff (2s -> 30s). Essa rota NAO existe em
+   * src/agent_server/endpoints.py e responde 404 ao vivo (12/09/2026):
+   *   curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8002/pipeline/events/stream
+   *   ->  404
+   * Ou seja: o "stream em tempo real" nunca conectava; o codigo so girava
+   * em backoff. Nenhum outro arquivo chamava SZ.startPipelineStream
+   * (verificado por grep) -- por isso o bloco foi removido, em vez de
+   * mantido como codigo que finge trabalhar.
    *
-   * If the endpoint is not available (404) the connection falls back to
-   * silent polling via /cockpit/summary (handled by cockpit.js).
+   * De onde os eventos realmente vem:
+   *   - NDJSON de POST /task/submit (init.js le o stream e chama SZ.handleEvent);
+   *   - reconciliacao por poll de /cockpit/summary (cockpit.js, a cada 10s).
    *
-   * Auto-reconnects with exponential backoff (2s, 4s, 8s ... 30s max).
+   * Se um dia o backend expuser um stream de eventos, reimplemente aqui --
+   * conferindo primeiro a rota em src/agent_server/endpoints.py.
    * ============================================================== */
-  var PIPELINE_SSE_RETRY_DELAYS = [2000, 4000, 8000, 15000, 30000];
-  var _pipelineEs = null;
-  var _pipelineRetryIdx = 0;
-  var _pipelineRetryTimer = null;
-
-  function startPipelineStream(url) {
-    stopPipelineStream();
-    if (!url) url = "/pipeline/events/stream";
-
-    var auth = window.SZ && window.SZ.auth;
-    var token = null;
-    if (auth && typeof auth.getValidToken === "function") {
-      token = auth.getValidToken();
-    }
-    if (!token && auth && typeof auth.getToken === "function") {
-      token = auth.getToken();
-    }
-
-    var headers = { Accept: "application/x-ndjson" };
-    if (token) {
-      headers["Authorization"] = "Bearer " + token;
-    }
-
-    var api = window.SZ && window.SZ.api;
-    var base = (api && api.base) || "";
-    var absUrl = base + url;
-    var ac = new AbortController();
-    _pipelineEs = ac;
-    _pipelineRetryIdx = 0;
-
-    console.log("[SSE] startPipelineStream connecting to " + absUrl);
-
-    (function connect() {
-      if (ac.signal.aborted) return;
-
-      fetch(absUrl, { headers: headers, signal: ac.signal })
-        .then(function (resp) {
-          if (!resp.ok) {
-            console.warn("[SSE] pipeline stream " + resp.status + " - falling back to polling");
-            ac.abort();
-            _pipelineEs = null;
-            return;
-          }
-          if (!resp.body) {
-            console.warn("[SSE] pipeline stream has no body - fallback to polling");
-            ac.abort();
-            _pipelineEs = null;
-            return;
-          }
-
-          console.log("[SSE] pipeline stream connected");
-          _pipelineRetryIdx = 0;
-
-          var reader = resp.body.getReader();
-          var decoder = new TextDecoder();
-          var buffer = "";
-
-          function pump() {
-            if (ac.signal.aborted) return;
-            reader.read().then(function (result) {
-              if (result.done) {
-                console.log("[SSE] pipeline stream ended (done=true)");
-                scheduleReconnect(ac);
-                return;
-              }
-              buffer += decoder.decode(result.value, { stream: true });
-
-              var lines = buffer.split("\n");
-              buffer = lines.pop();
-
-              for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (!line) continue;
-                var ev = null;
-                try {
-                  ev = JSON.parse(line);
-                } catch (parseErr) {
-                  if (line.indexOf("data:") === 0) {
-                    try {
-                      ev = JSON.parse(line.slice(5).trim());
-                    } catch (_) { /* skip malformed */ }
-                  }
-                  if (!ev) {
-                    console.warn("[SSE] parse error (skipping line):", parseErr, line);
-                    continue;
-                  }
-                }
-                try {
-                  if (window.SZ.handleEvent) SZ.handleEvent(ev);
-                } catch (handlerErr) {
-                  console.warn("[SSE] handleEvent error:", handlerErr, ev);
-                }
-              }
-
-              if (typeof window.scheduler !== "undefined" && typeof window.scheduler.yield === "function") {
-                window.scheduler.yield().then(pump);
-              } else {
-                setTimeout(pump, 0);
-              }
-            }).catch(function (err) {
-              if (err.name === "AbortError") return;
-              console.warn("[SSE] read error:", err);
-              scheduleReconnect(ac);
-            });
-          }
-
-          pump();
-        })
-        .catch(function (err) {
-          if (err.name === "AbortError") return;
-          console.warn("[SSE] connection error:", err);
-          scheduleReconnect(ac);
-        });
-    })();
-  }
-
-  function scheduleReconnect(ac) {
-    if (ac.signal.aborted) return;
-    if (_pipelineRetryIdx >= PIPELINE_SSE_RETRY_DELAYS.length) {
-      console.warn("[SSE] max reconnect attempts reached - stopping pipeline stream");
-      return;
-    }
-    var delay = PIPELINE_SSE_RETRY_DELAYS[_pipelineRetryIdx];
-    _pipelineRetryIdx++;
-    console.log("[SSE] reconnecting in " + delay + "ms (attempt " + _pipelineRetryIdx + ")");
-    _pipelineRetryTimer = setTimeout(function () {
-      if (_pipelineEs === ac) {
-        startPipelineStream();
-      }
-    }, delay);
-  }
-
-  function stopPipelineStream() {
-    if (_pipelineRetryTimer) {
-      clearTimeout(_pipelineRetryTimer);
-      _pipelineRetryTimer = null;
-    }
-    if (_pipelineEs) {
-      try { _pipelineEs.abort(); } catch (_) { /* ignore */ }
-      _pipelineEs = null;
-    }
-    _pipelineRetryIdx = 0;
-  }
 
   window.SZ = window.SZ || {};
   window.SZ.handleEvent = handleEvent;
-  window.SZ.startPipelineStream = startPipelineStream;
-  window.SZ.stopPipelineStream = stopPipelineStream;
 })();

@@ -275,7 +275,10 @@ def _open_access() -> bool:
     Used for a small trusted distribution. Paper trading and local TD drafts
     skip the second identification factor. Live broker transmission stays
     independently frozen (``SUPEREZIO_LIVE_TRADING_DISABLED`` /
-    ``F51_TRADING_EXECUTION_FREEZE``). Registration stays closed in public mode.
+    ``F51_TRADING_EXECUTION_FREEZE``) — and that claim is NOT taken on faith:
+    ``tests/test_trading_failopen_freeze_anchor.py::TestFailOpenNeedsARealFreezeGate``
+    fails if the gate stops being a real measurement (it was a construction
+    literal until 2026-09-12). Registration stays closed in public mode.
     """
     return os.getenv("SUPEREZIO_OPEN_ACCESS", "").strip().lower() in {"1", "true", "yes", "on"}
 

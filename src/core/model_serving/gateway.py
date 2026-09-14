@@ -13,6 +13,7 @@ import logging
 import os
 import time
 from collections.abc import AsyncGenerator, Generator
+from dataclasses import replace
 from enum import Enum
 from typing import Any
 
@@ -40,20 +41,46 @@ from .sanitizer import PrivateChannelFilter, strip_private_model_channels
 
 logger = logging.getLogger(__name__)
 
-# Local llama window is 8192 tokens. Guard thresholds: reject above HARD (the
-# request would die with a raw 400), warn near the limit (generation also needs
-# headroom). Estimates are conservative: ~3.5 chars/token for PT/EN text and
-# 768 tokens per image (llama.cpp mmproj patch heuristic) — over-estimating is
-# the safe direction for a fail-fast guard.
-LOCAL_CONTEXT_HARD_TOKEN_CAP = 8000
+# Local llama window: 98304 tokens (raised 2026-09-11 — the 2-GPU build serves
+# -c 98304; the previous 8192 dated from the Qwen3.8 era and blocked the local
+# mouth from reading any medium source file). Guard thresholds: reject above
+# HARD (the request would die with a raw 400), warn near the limit (generation
+# also needs headroom). Estimates are conservative: ~3.5 chars/token for PT/EN
+# text and 768 tokens per image (llama.cpp mmproj patch heuristic) —
+# over-estimating is the safe direction for a fail-fast guard.
+# Janela conhecida do servidor local (start-f51.ps1: -c 98304). O config pode
+# declarar outra (ModelProvider.n_ctx) e ela vence; isto aqui e o fallback.
+LOCAL_CONTEXT_DEFAULT_WINDOW = 98_304
+# Entrada e resposta dividem o mesmo slot (-np 1), entao o teto desconta a folga.
+LOCAL_CONTEXT_OUTPUT_RESERVE = 2_048
+LOCAL_CONTEXT_HARD_TOKEN_CAP = LOCAL_CONTEXT_DEFAULT_WINDOW - LOCAL_CONTEXT_OUTPUT_RESERVE
+# Warn at the same fraction of the window the old 6500/8000 pair used (~81%).
+LOCAL_CONTEXT_WARN_TOKEN_CAP = 78_000
 _LOCAL_CONTEXT_IMAGE_TOKENS = 768
 
 
-def local_context_fits(messages: list[dict[str, str]]) -> tuple[bool, int, str]:
+def _context_cap(window: int | None = None) -> int:
+    """Teto efetivo de entrada.
+
+    A janela declarada (ModelProvider.n_ctx) vence a constante; entrada e
+    resposta dividem o mesmo slot (-np 1), entao a folga de saida e descontada.
+    """
+    if window and window > 0:
+        return max(window - LOCAL_CONTEXT_OUTPUT_RESERVE, 1)
+    return LOCAL_CONTEXT_HARD_TOKEN_CAP
+
+
+def local_context_fits(
+    messages: list[dict[str, str]], window: int | None = None
+) -> tuple[bool, int, str]:
     """Estimate input tokens and decide whether they fit the local window.
+
+    `window` e a janela real do endpoint local quando conhecida; sem ela vale
+    LOCAL_CONTEXT_HARD_TOKEN_CAP.
 
     Returns (fits, estimated_tokens, reason). Pure and deterministic — no I/O.
     """
+    cap = _context_cap(window)
     estimated = 0
     for message in messages:
         content = message.get("content", "")
@@ -68,7 +95,7 @@ def local_context_fits(messages: list[dict[str, str]]) -> tuple[bool, int, str]:
                     estimated += _LOCAL_CONTEXT_IMAGE_TOKENS
         else:
             estimated += len(str(content or "")) // 3
-    if estimated > LOCAL_CONTEXT_HARD_TOKEN_CAP:
+    if estimated > cap:
         return False, estimated, "over_hard_cap"
     return True, estimated, "fits"
 
@@ -138,7 +165,7 @@ def _strip_image_content(
 
 
 def _is_local_provider(provider: Any) -> bool:
-    """True quando o provedor e a boca LOCAL (llama-server, janela 8192).
+    """True quando o provedor e a boca LOCAL (llama-server, janela 98304).
 
     O cerebro em nuvem (deepseek-v4 na api.deepseek.com) tem janela grande —
     o guard legado de contexto nao deve disparar nele (incidente 2026-09-10:
@@ -337,6 +364,25 @@ class ModelGateway:
             return self.providers[0]
         raise RuntimeError("No model provider is available.")
 
+    @staticmethod
+    def _role_degrade_provider(
+        role_provider: ModelProvider, deepseek_provider: ModelProvider
+    ) -> ModelProvider:
+        """Return the DeepSeek hop a GLM role degrades to, on THAT role's model.
+
+        The GLM credit fallback must not silently demote a deciding role (CEO,
+        orchestrator) to the support model: every provider carries where its own
+        role degrades (``ModelProvider.degrade_model``, set by the builder that
+        knows the role). Only the model id changes — provider name, endpoint and
+        circuit/cooldown identity stay on the DeepSeek boundary — and the shared
+        provider object is never mutated. When the role degrades to the model
+        the plain DeepSeek provider already runs, that object is reused as-is.
+        """
+        target = (getattr(role_provider, "degrade_model", "") or "").strip()
+        if not target or target == deepseek_provider.model:
+            return deepseek_provider
+        return replace(deepseek_provider, model=target)
+
     def _providers_for_request(
         self, preferred_provider: str | None = None, allow_fallback: bool = True
     ) -> list[ModelProvider]:
@@ -380,9 +426,10 @@ class ModelGateway:
                             None,
                         )
                         if deepseek_p and deepseek_p != p:
+                            fallback_p = self._role_degrade_provider(p, deepseek_p)
                             if _skip_cooldown(p.name):
-                                return [deepseek_p]
-                            return [p, deepseek_p]
+                                return [fallback_p]
+                            return [p, fallback_p]
 
                     if (
                         p.name
@@ -1261,24 +1308,32 @@ class ModelGateway:
             messages = _strip_image_content(messages)
 
         # ── Local-context pre-flight guard ──
-        # The local llama window is 8192 tokens. Requests far beyond it were
-        # rejected by llama-server with a raw 400 (demo failure 24/08: two
-        # requests of 34k-37k tokens), surfacing as "runtime error". Fail here
-        # first, with an actionable message, instead of sending garbage.
-        # Cloud mouths (deepseek-v4) have a large window — only the LOCAL
-        # llama-server is guarded (incident 2026-09-10).
+        # Requests far beyond the local window were rejected by llama-server
+        # with a raw 400 (demo failure 24/08: two requests of 34k-37k tokens),
+        # surfacing as "runtime error". Fail here first, with an actionable
+        # message, instead of sending garbage. Cloud mouths (deepseek-v4) have
+        # a large window — only the LOCAL llama-server is guarded (incident
+        # 2026-09-10). Thresholds live in LOCAL_CONTEXT_HARD_TOKEN_CAP /
+        # LOCAL_CONTEXT_WARN_TOKEN_CAP so the window is stated in one place.
         if provider_obj.name in ("agent", "local_orchestrator") and _is_local_provider(
             provider_obj
         ):
-            ok, estimated, _reason = local_context_fits(messages)
+            ok, estimated, _reason = local_context_fits(
+                messages, getattr(provider_obj, "n_ctx", 0) or None
+            )
             if not ok:
                 raise RuntimeError(
                     "local_context_exceeded: prompt estimates at ~"
-                    f"{estimated} tokens, the local window is 8192. "
+                    f"{estimated} tokens, the local window is "
+                    f"{LOCAL_CONTEXT_HARD_TOKEN_CAP}. "
                     "Shorten the conversation (or attach fewer images) and retry."
                 )
-            if estimated > 6500:
-                logger.warning("local_context_near_limit: %s tokens of 8192", estimated)
+            if estimated > LOCAL_CONTEXT_WARN_TOKEN_CAP:
+                logger.warning(
+                    "local_context_near_limit: %s tokens of %s",
+                    estimated,
+                    LOCAL_CONTEXT_HARD_TOKEN_CAP,
+                )
 
         # Extrai assistant prefix do último message se role=assistant
         prefix = assistant_prefix

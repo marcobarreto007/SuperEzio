@@ -10,6 +10,8 @@ import pytest
 
 from core.model_serving.gateway import ModelGateway
 from core.model_serving.providers import (
+    BRAIN_MODEL_ID,
+    DEEPSEEK_MODEL_ID,
     GLM_CODING_PLAN_BASE_URL,
     _normalize_zai_base_url,
     build_providers,
@@ -52,10 +54,17 @@ def test_default_build_is_deepseek_for_every_role(monkeypatch) -> None:
     providers, _ = build_default_providers(cfg)
     assert providers, "default provider build must not be empty"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
+    # Separacao por papel (decisao de 12/09/2026): quem DECIDE — CEO (agent) e
+    # orquestrador — roda no pro; os papeis de APOIO continuam no flash. Antes
+    # desta data era flash em todos, e este laco afirmava isso.
+    for name in ("agent", "local_orchestrator"):
         assert by_name[name].is_local is False
         assert by_name[name].base_url == "https://api.deepseek.com"
-        assert by_name[name].model == "deepseek-v4-flash"
+        assert by_name[name].model == BRAIN_MODEL_ID
+    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+        assert by_name[name].is_local is False
+        assert by_name[name].base_url == "https://api.deepseek.com"
+        assert by_name[name].model == DEEPSEEK_MODEL_ID
     # The GLM path is optional: it is built here only because the fixture
     # (autouse) arms its coding-plan key.
     assert by_name["glm"].base_url == "https://api.z.ai/api/coding/paas/v4"
@@ -122,8 +131,10 @@ def test_glm53_missing_coding_plan_key_degrades_to_deepseek(monkeypatch) -> None
     providers, _ = build_providers()
     by_name = {p.name: p for p in providers}
     assert "glm" not in by_name
-    assert by_name["agent"].model == "deepseek-v4-flash"
-    assert by_name["local_orchestrator"].model == "deepseek-v4-flash"
+    # O degrade do GLM cai no modelo DO PAPEL, nao num fixo: o cerebro continua
+    # no pro mesmo quando o GLM e pedido sem chave (decisao de 12/09/2026).
+    assert by_name["agent"].model == BRAIN_MODEL_ID
+    assert by_name["local_orchestrator"].model == BRAIN_MODEL_ID
 
 
 def test_custom_agent_env_override(monkeypatch) -> None:

@@ -1,6 +1,7 @@
 import pytest
 
 from src.core.pipeline.nodes.agent import (
+    LOCAL_AGENT_INPUT_CHAR_BUDGET,
     _fit_messages_to_local_context,
     _parse_tool_calls,
     node_agent,
@@ -10,17 +11,22 @@ from src.core.pipeline.nodes.tool_executor import node_tool_executor
 
 
 def test_local_prompt_budget_trims_reports_before_binding_contracts():
+    # Anexos dimensionados a partir do orcamento real: assim o teste continua
+    # provando TRUNCAMENTO quando a janela local mudar, em vez de virar um
+    # numero magico que so vale para uma janela. (24_000 fixo quebrava quando
+    # o orcamento subiu para 288_000 em 11/09/2026.)
+    orcamento = LOCAL_AGENT_INPUT_CHAR_BUDGET
     messages = [
         {"role": "system", "content": "binding-system" * 300},
         {"role": "system", "content": "binding-verdict" * 300},
-        {"role": "user", "content": "Pipeline Report:\n" + "P" * 20_000},
-        {"role": "user", "content": "Observations so far:\n" + "O" * 12_000},
+        {"role": "user", "content": "Pipeline Report:\n" + "P" * orcamento},
+        {"role": "user", "content": "Observations so far:\n" + "O" * (orcamento // 2)},
         {"role": "user", "content": "final instruction"},
     ]
 
     fitted = _fit_messages_to_local_context(messages)
 
-    assert sum(len(message["content"]) for message in fitted) <= 24_000
+    assert sum(len(message["content"]) for message in fitted) <= orcamento
     assert fitted[0]["content"] == messages[0]["content"]
     assert fitted[1]["content"] == messages[1]["content"]
     assert fitted[-1]["content"] == "final instruction"

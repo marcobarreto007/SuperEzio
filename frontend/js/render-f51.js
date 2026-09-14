@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  /* Freshness stamp — implemented in render-pipeline.js (loaded first).
+   * Resolved at call time so script order is irrelevant. */
+  function stampCard(card, ev, label) {
+    if (SZ.stamp && SZ.stamp.card) SZ.stamp.card(card, ev, label);
+  }
+
   function pct(v) {
     return (v != null && !isNaN(v)) ? Math.round(v * 100) + "%" : "--";
   }
@@ -126,6 +132,7 @@
     var info = SZ.cards.makeCard("F51 Verdict", badgeText, badgeCls, "shield-check");
     info.card.classList.add("card--f51");
 
+
     var inner = SZ.dom.el("div", "f51-inner");
 
     // Gauge
@@ -162,6 +169,11 @@
     }
 
     info.body.appendChild(inner);
+
+    // Stamp AFTER the card is in the DOM, so it paints on first try.
+    // F51_VERDICT carries no timestamp (src/core/pipeline/nodes/f51.py:48
+    // sends confidence / decision_score / factors only) -> receipt clock.
+    stampCard(info.card, ev, "F51_VERDICT");
 
     var bubble = ceo.bubble;
     var anchor = bubble.querySelector(".pipeline-bar");

@@ -18,6 +18,24 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _OFFICIAL_DEEPSEEK_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 
+# ═══════════════════════════════════════════════════════════════
+# PAPER-ONLY TOPOLOGY — structural, not permissive
+# ═══════════════════════════════════════════════════════════════
+#
+# Paper vs live in IBKR is *topology* — which port you dial — not a flag.
+# The allowlist therefore lives here, validated at boot, so switching to live
+# requires editing disk/settings and restarting, not setting an env var at
+# the point of use (the old failure mode: IBKR_PORT=7496 in the environment
+# silently turned the whole paper pipeline into a live one).
+
+PAPER_IBKR_PORTS: frozenset[int] = frozenset({7497, 4002})  # TWS paper, Gateway paper
+LIVE_IBKR_PORTS: frozenset[int] = frozenset({7496, 4001})  # TWS live, Gateway live
+PAPER_IBKR_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+class PaperTopologyError(RuntimeError):
+    """Raised when the IBKR topology cannot be proven to be paper."""
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -84,7 +102,11 @@ class Settings(BaseSettings):
         default=7497,
         ge=1024,
         le=65535,
-        description="IBKR TWS paper port (7497) or Gateway port (4002).",
+        description=(
+            "IBKR port. PAPER ONLY: must be in PAPER_IBKR_PORTS "
+            "(7497 TWS paper, 4002 Gateway paper). Live ports "
+            "(7496 TWS live, 4001 Gateway live) fail validation at boot."
+        ),
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -226,6 +248,25 @@ class Settings(BaseSettings):
             raise ValueError("SUPEREZIO_DEEPSEEK_MODEL must not be blank")
         return cleaned
 
+    @field_validator("ibkr_port")
+    @classmethod
+    def _validate_paper_port(cls, value: int) -> int:
+        """Fail at boot, not at order time, when the topology is not paper.
+
+        A live port is rejected loudly: this system is paper-only by
+        construction, so there is no supported way to dial TWS live.
+        """
+        if value in LIVE_IBKR_PORTS:
+            raise ValueError(
+                f"IBKR_PORT={value} is a LIVE trading port. This system is paper-only; "
+                f"allowed ports: {sorted(PAPER_IBKR_PORTS)}."
+            )
+        if value not in PAPER_IBKR_PORTS:
+            raise ValueError(
+                f"IBKR_PORT={value} is not in the paper allowlist {sorted(PAPER_IBKR_PORTS)}."
+            )
+        return value
+
     @property
     def deepseek_api_key_configured(self) -> bool:
         secret = self.superezio_deepseek_api_key
@@ -319,3 +360,35 @@ def is_paper_submit_enabled() -> bool:
         return get_settings().superezio_enable_paper_order_submit
     except RuntimeError:
         return False
+
+
+def assert_paper_topology(host: str | None = None, port: int | None = None) -> tuple[str, int]:
+    """SINGLE structural guard: prove the IBKR socket is paper, or refuse.
+
+    Call this where the socket/connection is actually built — not once at boot
+    — so a topology change cannot slip in between. Returns the validated
+    ``(host, port)`` pair; raises :class:`PaperTopologyError` otherwise.
+
+    Values come from the validated Settings singleton unless explicitly
+    overridden, so the decision is never re-read from ``os.getenv`` at the
+    point of use.
+    """
+    settings = get_settings()  # raises RuntimeError when boot config is invalid
+    resolved_host = (host or settings.ibkr_host).strip().lower()
+    resolved_port = settings.ibkr_port if port is None else int(port)
+
+    if resolved_host not in PAPER_IBKR_HOSTS:
+        raise PaperTopologyError(
+            f"IBKR host {resolved_host!r} is not loopback ({sorted(PAPER_IBKR_HOSTS)}). "
+            "This system is paper-only and bound to loopback."
+        )
+    if resolved_port in LIVE_IBKR_PORTS:
+        raise PaperTopologyError(
+            f"IBKR port {resolved_port} is a LIVE trading port. Paper-only topology; "
+            f"allowed ports: {sorted(PAPER_IBKR_PORTS)}."
+        )
+    if resolved_port not in PAPER_IBKR_PORTS:
+        raise PaperTopologyError(
+            f"IBKR port {resolved_port} is not in the paper allowlist {sorted(PAPER_IBKR_PORTS)}."
+        )
+    return resolved_host, resolved_port

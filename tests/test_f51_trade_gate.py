@@ -32,7 +32,19 @@ _NEURAL_GATE = {
 def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
     allowed = TradeGateDecision(
         status="ALLOW",
-        evidence={"validated_ticker": "AAPL", "run_id": "run-123"},
+        evidence={
+            "validated_ticker": "AAPL",
+            "run_id": "run-123",
+            # Fase 1 (MIKE_EZIO_BRIDGE.md §3): o produtor só aceita ALLOW que
+            # carregue a leitura datada do freeze. Uma decisão montada à mão
+            # também precisa dela — é o que impede `execution_freeze` de ser
+            # um literal `False` escrito por construção.
+            "freeze_snapshot": {
+                "frozen": False,
+                "sampled_at": "2026-09-11T12:00:00+00:00",
+                "source": "settings:f51_trading_execution_freeze",
+            },
+        },
     )
     metadata = build_order_gate_metadata(
         allowed,

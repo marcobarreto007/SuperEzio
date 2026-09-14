@@ -1,44 +1,41 @@
 {
-  "date_local": "2026-09-11",
-  "session": "arch-c4-sdca-observe",
+  "date_local": "2026-09-13",
+  "session": "audit-and-bridge-consolidation",
   "status": "APPLIED_LOCAL",
-  "objective": "C4 SDCA observe: aresta depois do mega-nó; flag default 0 loga C4_WOULD_BLOCK e segue Trinity; =1 bloqueia BLOCK/ERROR/missing antes de Trinity/Bob.",
-  "predecessor": "arch-c3-bind-and-boot",
+  "objective": "Consolidação da auditoria 11 módulos, persistência do bridge MIKE/Ezio (:8009), endpoints de controle, painel e travas de topologia paper.",
+  "predecessor": "arch-c4-sdca-observe",
   "invariants": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
-    "c1_changes_decisions": false,
-    "c2_binds_bob": false,
-    "c3_binds_bob": true,
-    "c4_enforces": false
+    "paper_topology": "LOOPBACK_ONLY",
+    "c1_c4": "active"
   },
   "files": [
-    "src/core/pipeline/organ_board.py",
-    "src/core/pipeline/graph.py",
-    "src/core/pipeline/nodes/guardrails.py",
-    "src/core/evidence/arch_flags.py",
-    "src/core/evidence/__init__.py",
+    "bridge/",
+    "src/adapters/broker/ibkr_adapter.py",
+    "src/agent_server/control_endpoints.py",
+    "src/agent_server/endpoints.py",
     "src/core/config/settings.py",
-    "tests/test_arch_c4_organ_edge.py",
-    "docs/architecture/TARGET_ARCHITECTURE.md",
-    ".env.example",
-    "CLAUDE.md",
-    "AGENTS.md",
-    ".f51/TASK_BOARD.md",
-    ".f51/MONEY_GATE.md"
+    "src/core/pipeline/f51_trade_gate.py",
+    "frontend/js/control-panel.js",
+    "frontend/css/control-panel.css",
+    "tests/test_cockpit_deep_contract.py",
+    "tests/test_control_endpoints.py",
+    "tests/test_paper_topology_freeze_snapshot.py",
+    "tests/test_trading_failopen_freeze_anchor.py",
+    "docs/architecture/MIKE_EZIO_BRIDGE.md"
   ],
-  "rollback": "SUPEREZIO_ARCH_C4=0 (observe; default). Do not flip =1 this session.",
-  "next_step": "Observar C4_WOULD_BLOCK em turnos com ticker; só então flip SUPEREZIO_ARCH_C4=1. C5–C6 off.",
+  "rollback": "git revert local",
+  "next_step": "Execução das correções dos P0s da auditoria (financial_engine.py indicators, fallback juiz/auditor no gateway, e freshness gate).",
   "verification": {
-    "ruff": "All checks passed! (7 files C4)",
-    "pytest_c4": "tests/test_arch_c4_organ_edge.py — 10 passed in 3.35s",
-    "pytest_c4_smoke_sdca_c3": "53 passed in 248.59s (C4 9/9 + smoke + SDCA + C3; 10º teste de render BLOCK depois)"
+    "ruff": "All checks passed! (src tests)",
+    "pytest_contracts": "466 passed in 25.68s",
+    "pytest_deep_contracts": "102 passed in 5.34s",
+    "pytest_modified_components": "229 passed in 40.87s"
   },
   "still_true": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
-    "mega_node": "auto_full_analysis still the production graph",
-    "c4_default": "observe (0)",
-    "c5_c6": "off"
+    "paper_topology": "LOOPBACK_ONLY"
   }
 }
