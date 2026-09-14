@@ -126,23 +126,37 @@ class FraudPatternMatcher:
                 self._add_pattern_text(" | ".join(str(p) for p in parts if p))
 
     def search_patterns(self, query: str, limit: int = 3) -> list[str]:
-        results = []
+        """Busca por substring, ordenada por relevância.
+
+        Correção de bug (2026-09-14): o `score` era computado e descartado, e a
+        ordenação usava `len(texto)` — qualquer query devolvia os mesmos três
+        documentos mais longos do corpus. Agora ordena por nº de keywords que
+        casam e, no empate, pelo texto mais curto (match mais concentrado).
+        """
+        scored: list[tuple[float, int, str]] = []
         query_lower = query.lower()
 
         if query.upper() in self.pump_symbols:
-            results.append(
-                f"[TECHNICAL_ALERT]: {query.upper()} has historical Pump & Dump manipulation markers in the forensic logs."
+            scored.append(
+                (
+                    float("inf"),
+                    0,
+                    f"[TECHNICAL_ALERT]: {query.upper()} has historical Pump & Dump manipulation markers in the forensic logs.",
+                )
             )
 
         keywords = [k for k in query_lower.replace(",", " ").split() if len(k) > 3]
         if self.knowledge_base and keywords:
             for text in self.knowledge_base:
-                score = sum(1 for kw in keywords if kw in text.lower())
+                lowered = text.lower()
+                score = sum(1 for kw in keywords if kw in lowered)
                 if score > 0:
-                    results.append("[PATTERN_FOUND]: " + text[:800] + "...")
+                    scored.append(
+                        (float(score), -len(text), "[PATTERN_FOUND]: " + text[:800] + "...")
+                    )
 
-        results.sort(key=lambda x: len(x), reverse=True)
-        return results[:limit]
+        scored.sort(key=lambda item: (-item[0], -item[1]))
+        return [text for _, _, text in scored[:limit]]
 
     @property
     def _embedder(self):

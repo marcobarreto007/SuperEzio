@@ -1,0 +1,83 @@
+{
+  "date_local": "2026-09-14",
+  "session": "universo-negociavel-e-corpus-de-aprendizado",
+  "status": "APPLIED_LOCAL",
+  "objective": "Construir o orgao que faltava (UNIVERSO negociavel efetivo), destravar o elo vermelho (fechador de posicao + labeler de barreira tripla) e consertar a camada de dados. Registra tambem a pesquisa externa do dia e a conclusao desconfortavel sobre o valor do comite.",
+  "predecessor": "github-policy-override-and-learning-loop-investigation",
+
+  "entregue": {
+    "universo": {
+      "resultado": "108 simbolos = 84 EXPOSICOES DISTINTAS (corte 0,95, complete-linkage + identidade de fundo). 82 elegiveis (historico >=1000 barras E friccao <=0,5%).",
+      "arquivos": ["config/td_universe_effective.json", "scripts/build_effective_universe.py", "scripts/verify_effective_universe.py"],
+      "verificacao": "9 checagens duras, todas verdes. O verificador recomputa da origem, nao confia no JSON.",
+      "achado_central": "O corte de 0,95 mede MOEDA, nao exposicao: VFV x VOO = 0,9171 (mesmo indice, moedas diferentes) nao funde, enquanto SPY x VOO = 0,9982 funde. Logo 84 ainda esta inflado. Normalizar por USDCAD PIOROU (0,9376 -> 0,9265) e foi registrado como falha, nao entregue como maquinario.",
+      "metodo_spread": "Corwin & Schultz (2012), media de 252 pregoes. E ESTIMATIVA (teto, nao spread de tela). A mediana dava 0,0000% para ~70 dos 108 e produzia um falso 'zero excluidos' — trocada pela media, 3 nomes caem (ARKK, GDX, ETHA).",
+      "excluidos": {"so_historico": 23, "so_friccao": 2, "ambas": 1, "abaixo_de_161_barras": ["TCCB 85", "TSTB 85", "TCOM 84"]}
+    },
+    "fechador_e_labeler": {
+      "arquivos": ["src/core/trading/triple_barrier.py", "src/core/trading/holding_period.py", "src/core/trading/position_closer.py"],
+      "fonte": "ml4t/engineer (MIT) como fonte primaria — NAO o mlfinpy, que so avalia close e nao ve toque intrabar. mlfinpy fica creditado como linhagem.",
+      "swing": "5 barras = 7 dias. Derivado do bucket do feedback_loop.py:184-188 (o unico holding period que o repo mede), limite INFERIOR de cada faixa (pessimista).",
+      "decisoes": ["dry-run e o DEFAULT", "um fetch por ticker por ciclo", "split DETECTADO e NAO aplicado — detectar por preco nao distingue split de queda real, e aplicar o fator errado inventaria PnL", "desempate stop-antes-de-alvo"],
+      "bug_achado": "A primeira versao devolvia None antes de varrer as barras: um stop batido ficaria pendurado esperando o prazo. Corrigido com regressao.",
+      "testes": "52 novos · 100 passed nos arquivos tocados"
+    },
+    "datasets": {
+      "technical_neural": "794 tickers OHLCV, CC0, minimo 1.166 barras / mediana 4.198. O card do HF estava ERRADO em 3 pontos — o pior: a ordem das colunas VARIA (87 ordens distintas em 794 arquivos); seguir o card corromperia 97%.",
+      "crisis": "11 series: JST R.6 com a dummy crisisJST (88 episodios, 1870-2008), Shiller CAPE (1871-), FRED (6 series), BIS credit gap, OFR. JST e CC BY-NC-SA (nao-comercial).",
+      "armadilha": "Selecionar pelos maiores arquivos pegou cascas sub-penny com volume ZERO. Lote curado de liquidos: 292 tickers.",
+      "manifesto": "data/reference/MANIFEST.json — fonte, licenca, cobertura por item"
+    },
+    "camada_de_dados": {
+      "alpha_vantage": "O limite e 25/DIA, nao '5 req/min' — esse comentario era INVENCAO. Contador diario implementado (src/data/daily_quota.py), escrita atomica, cota consumida so DEPOIS dos desvios (cache-hit nao gasta).",
+      "finnhub": "403 em TODAS as resolucoes (5/D/W/M/60) — endpoint premium inteiro. Estava em priority 1 e queimava a primeira tentativa de TODA requisicao de candle. Removido da rota.",
+      "stooq": "Confirmado HTTP 404. Provider e teste removidos.",
+      "tmx": "MEDIDO ANTES: 10/10 ETFs .TO ja vem do yfinance (priority 2, keyless, cobre TSX). Promover o tmx daria ZERO e criaria o risco do CDR. NAO MEXIDO — medicao registrada no codigo."
+    },
+    "governanca": {
+      "regra_1": "USAR QUALQUER FONTE — pesquisar, clonar, copiar e implementar. Autorizacao permanente. Unica excecao: gastar dinheiro (free tier sem cartao liberado).",
+      "guard": "Corrigido: linha 1 estava corrompida ('ate da #!/usr/bin/env bash'); padrao de credencial pegava falso positivo em nome de sessao com 'risk-'; hf_ nao era detectado. Verificado em 5 casos.",
+      "git": "data/reference/ destrackeado (825 arquivos, ~121 MB sairam do indice, NADA do disco). .gitignore corrigido. git gc: 43 MB recuperados, 7 .idx orfaos e 1 objeto temporario de 05/09 removidos. fsck exit=0 — o repo nunca esteve estragado."
+    },
+    "pesquisa_externa": {
+      "relatorios": ["labeler de barreira tripla", "fechador de posicao", "sistemas de trading OSS", "assistentes de IA financeira", "dados em tempo real", "datasets por expert"],
+      "achado_desconfortavel": "DeepFund mediu AO VIVO e o DeepSeek-V3 teve prejuizo liquido. PortBench: so 32,5% batem o equal-weight no Sharpe, e o ranking de QA estatico tem correlacao NEGATIVA (rho=-0,49) com o pipeline real. Traducao: a auditoria de 4,95/10 e estatica e nao prediz nada. O desenho do comite e a parte que menos importa.",
+      "tres_ideias_a_copiar": ["numero calculado por codigo / narrativa pelo LLM ('explain-only, never modifies')", "arbitragem por utilidade realizada em vez de voto", "baseline cash/equal-weight carimbado em toda saida"],
+      "teatro": "O debate bull/bear do TradingAgents NAO tem ablation; backtest de 3 meses e 3 acoes; Sharpe 8,21 com ressalva dos proprios autores. Copiar o codigo, nao a confianca."
+    }
+  },
+
+  "em_andamento": {
+    "base_de_conhecimento": "data/reference/knowledge/ — universe.jsonl (47 KB, 3 agentes escrevendo), crisis.jsonl e pennylab.jsonl em producao. Cada item carrega fonte_url + verificado_em.",
+    "rag": "src/core/rag/tfidf_rag.py criado + tests/test_rag_discrimination.py. Hipoteses a confirmar: o fraud_rag e matcher de SUBSTRING (nao vetorial) e pode nao discriminar com 500 documentos.",
+    "proximas_frentes": ["caderneta de recomendacao (substitui o paper order desligado)", "ligar os dados nos experts (o pipeline ainda pede 6M e o dado esta no disco)", "separacao numero/narrativa"]
+  },
+
+  "invariants": {
+    "github": "ANY_SOURCE_ALLOWED_2026-09-14",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "zero_commission_mandate": "ENFORCED",
+    "equity_truth": "DERIVED_OR_FAIL_CLOSED",
+    "total_order_risk": "ENFORCED",
+    "derived_daily_loss": "ENFORCED",
+    "micro_capital_bankroll": "1000 CAD",
+    "position_closer": "DRY_RUN_BY_DEFAULT",
+    "universe": "84 EXPOSURES / 82 ELIGIBLE"
+  },
+
+  "next_step": "Caderneta de recomendacao (o corpus que destrava outcome_learning/feedback_loop/adaptive_agent), ligar os datasets nos experts, e a separacao numero/narrativa.",
+
+  "verification": {
+    "pytest": "2744 passed, 10 skipped, 0 failed (rodado 2x)",
+    "ruff": "All checks passed / 472 files formatted",
+    "fsck": "exit=0",
+    "universe_verifier": "9 checagens duras verdes"
+  },
+
+  "still_true": {
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "credential_rule": "nunca ler nem commitar .env, chave ou credencial"
+  }
+}

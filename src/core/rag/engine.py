@@ -36,6 +36,8 @@ _documents_cache: list[dict[str, Any]] = []
 _faiss_index: Any = None  # faiss.Index | None
 _faiss_available: bool | None = None  # tri-state: None=unchecked, True/False
 _index_data_dir: str | None = None  # which data_dir the cache was built for
+_tfidf_retriever: Any = None  # TfidfRetriever | None (degradation path, sem embeddings)
+_runtime_docs: list[dict[str, Any]] = []  # docs de add_document, sobrevivem ao reload do disco
 
 
 class ForensicRAG:
@@ -193,7 +195,10 @@ class ForensicRAG:
 
         embedder = self._get_embedder()
         docs = self._load_documents()
-        _documents_cache = docs
+        # Documentos de runtime (add_document) não existem no disco: sem
+        # reanexá-los, o reload os apagava e a ingestão do unified.py virava
+        # no-op na busca seguinte.
+        _documents_cache = docs + _runtime_docs if _runtime_docs else docs
         _index_data_dir = self.data_dir
 
         if not docs:
@@ -241,7 +246,7 @@ class ForensicRAG:
             return []
 
         if not self._ensure_index():
-            return self._keyword_search(query, top_k)
+            return self._ranked_search(query, top_k)
 
         embedder = self._get_embedder()
         try:
@@ -287,6 +292,37 @@ class ForensicRAG:
             for i in top_idx
             if scores[i] > 0.1
         ]
+
+    def _ranked_search(self, query: str, top_k: int = TOP_K) -> list[dict[str, Any]]:
+        """Degradation path: TF-IDF ranking when embeddings are unavailable.
+
+        Sem sentence-transformers, `_ensure_index` devolve False e a busca caía
+        em `_keyword_search`, que conta keywords sem IDF — termos ubícuos
+        dominam e a relevância não ordena. O TF-IDF (scikit-learn, já
+        dependência do projeto) discrimina sem custo de rede nem modelo.
+
+        Cai no keyword puro só se o TF-IDF não produzir nada.
+        """
+        global _documents_cache, _tfidf_retriever
+
+        if not _documents_cache:
+            _documents_cache = self._load_documents()
+
+        try:
+            from core.rag.tfidf_rag import TfidfRetriever
+
+            if _tfidf_retriever is None:
+                _tfidf_retriever = TfidfRetriever()
+            if _tfidf_retriever.fit(_documents_cache):
+                hits = _tfidf_retriever.search(query, top_k=top_k)
+                if hits:
+                    return hits
+        # Fronteira de melhor esforco: scikit-learn ausente ou corpus
+        # degenerado nao pode derrubar a busca; keyword puro segue valendo.
+        except (ImportError, ValueError) as exc:
+            logger.debug("ForensicRAG: TF-IDF indisponivel (%s) — keyword puro", exc)
+
+        return self._keyword_search(query, top_k)
 
     def _keyword_search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:
         """Degradation path: pure keyword overlap search."""
@@ -334,9 +370,18 @@ class ForensicRAG:
     # ── Runtime expansion ──────────────────────────────────────────────
 
     def add_document(self, doc_id: str, text: str, source: str = "runtime"):
-        """Add a document at runtime. Updates FAISS index incrementally if available."""
-        global _embeddings_cache  # _faiss_index é apenas lido aqui (add() no objeto)
-        _documents_cache.append({"id": doc_id, "text": text, "source": source})
+        """Add a document at runtime. Updates FAISS index incrementally if available.
+
+        Registra também em `_runtime_docs` para sobreviver ao reload do disco:
+        sem isso o documento era descartado na busca seguinte e a ingestão de
+        conversas/trades do `unified.py` nunca chegava a ser pesquisável.
+        Upsert por `doc_id` — reingerir o mesmo id não duplica.
+        """
+        global _embeddings_cache, _runtime_docs  # _faiss_index é apenas lido aqui
+        document = {"id": doc_id, "text": text, "source": source}
+        _documents_cache.append(document)
+        _runtime_docs = [d for d in _runtime_docs if d["id"] != doc_id]
+        _runtime_docs.append(document)
 
         embedder = self._get_embedder()
         if embedder is not None and _faiss_index is not None:
