@@ -79,16 +79,18 @@ EXPOSURE_RULES: list[tuple[str, str]] = [
     (r"target 20\d\d", "bond_target_maturity"),
     (r"20\+ year treasury|long[- ]term treasury|long term treasury", "us_treasury_long"),
     (r"u\.s\. long term treasury|long term treasury bond", "us_treasury_long"),
-    (r"short[- ]term corporate bond", "us_corp_bond_short"),
     (r"preferred share", "ca_preferred_share"),
     (r"cash management", "cash_equivalent"),
     (r"canadian aggregate bond", "ca_bond_aggregate"),
-    (r"canadian long term federal bond", "ca_treasury_long"),
+    (r"canadian long[- ]term (federal )?bond", "ca_treasury_long"),
+    (r"select u\.s\..*bond|u\.s\..*short term corporate bond", "us_corp_bond_short"),
     (
-        r"select short term corporate bond|canadian short[- ]term corporate bond",
+        r"canadian short[- ]term corporate bond|select short term corporate bond ladder",
         "ca_corp_bond_short",
     ),
-    (r"canadian corporate bond|short term bond fund|ultra short term bond", "ca_bond_short"),
+    (r"canadian corporate bond", "ca_corp_bond"),
+    (r"short term bond fund|ultra short term bond", "ca_bond_short"),
+    (r"short[- ]term corporate bond", "us_corp_bond_short"),
     (r"global fixed income|global income", "global_bond"),
     # ---- renda fixa EUA (large/agregado)
     (r"long government|treasury", "us_treasury_long"),
@@ -106,7 +108,7 @@ EXPOSURE_RULES: list[tuple[str, str]] = [
     (r"health care|healthcare", "us_healthcare"),
     (r"emerging market", "em_equity"),
     (r"international low volatility", "intl_low_volatility"),
-    (r"international high dividend", "intl_dividend"),
+    (r"international high dividend|developed ex north america high dividend", "intl_dividend"),
     (
         (
             r"international equity|developed ex north america|"
@@ -115,13 +117,18 @@ EXPOSURE_RULES: list[tuple[str, str]] = [
         "intl_developed_equity",
     ),
     (r"innovation", "us_innovation_arkk"),
-    (r"nasdaq", "us_nasdaq100"),
+    (r"nasdaq|\bqqq\b", "us_nasdaq100"),
     (r"dow jones", "us_dow30"),
     (r"s&p 500", "us_sp500"),
+    # ---- portfolios all-in-one (asset allocation), ANTES dos estilos genericos
+    (r"all[- ]equity etf portfolio", "portfolio_all_equity"),
+    (r"growth etf portfolio", "portfolio_growth"),
+    (r"balanced etf portfolio", "portfolio_balanced"),
+    (r"conservative etf portfolio", "portfolio_conservative"),
     # ---- acoes Canada (antes dos estilos genericos de dividendo)
     (r"canadian banks|canadian bank", "ca_banks"),
-    (r"ftse canada|canadian equity|canadian dividend", "ca_equity"),
     (r"canadian low volatility", "ca_low_volatility"),
+    (r"ftse canada|ftse canadian|canadian equity|canadian dividend", "ca_equity"),
     # ---- acoes EUA por estilo
     (r"real estate", "real_estate"),
     (r"russell 2000|small[- ]mid[- ]cap|small[- ]cap|small cap", "us_small_cap"),
@@ -135,11 +142,6 @@ EXPOSURE_RULES: list[tuple[str, str]] = [
     (r"high dividend yield", "us_dividend_yield"),
     (r"dividend equity", "us_dividend_equity"),
     (r"u\.s\. equity", "us_large_cap_broad"),
-    # ---- portfolios all-in-one (asset allocation)
-    (r"all[- ]equity etf portfolio", "portfolio_all_equity"),
-    (r"growth etf portfolio", "portfolio_growth"),
-    (r"balanced etf portfolio", "portfolio_balanced"),
-    (r"conservative etf portfolio", "portfolio_conservative"),
 ]
 
 
@@ -812,14 +814,22 @@ def main() -> int:
             rec["bars_available"] = 0
 
         # ---- friccao -------------------------------------------------------
-        cs_med = cs_p90 = rng = None
+        # MEDIDA PRIMARIA = MEDIA do estimador de Corwin-Schultz, como o proprio
+        # paper especifica. A MEDIANA nao serve de portao: o paper trunca em zero os
+        # dias negativos, entao a mediana colapsa em 0,0000% para 70 dos 108 e o
+        # teste passaria trivialmente para todo mundo (medido, nao suposto).
+        cs_med = cs_mean = cs_p90 = rng = None
         if df is not None and len(df) >= 21:
             recent = df.iloc[-252:]
             cs = corwin_schultz_spread(recent)
-            cs_med, cs_p90 = median(cs), pct(cs, 0.9)
+            if cs:
+                cs_med = median(cs)
+                cs_mean = sum(cs) / len(cs)
+                cs_p90 = pct(cs, 0.9)
             rng = range_proxy(recent)
 
-        cs_pct = cs_med * 100.0 if cs_med is not None else None
+        cs_pct = cs_mean * 100.0 if cs_mean is not None else None
+        cs_med_pct = cs_med * 100.0 if cs_med is not None else None
         cs_p90_pct = cs_p90 * 100.0 if cs_p90 is not None else None
         rng_pct = rng * 100.0 if rng is not None else None
         one_way = (cs_pct / 100.0) * args.order_cad if cs_pct is not None else None
@@ -832,16 +842,22 @@ def main() -> int:
                 "ordem tipica: banca 1000 CAD, risco 1.0-1.5% por trade = 10-15 CAD; "
                 "com stop na faixa de 3-5% do preco a ordem sai ~300 CAD"
             ),
-            "spread_pct_corwin_schultz_median": _r(cs_pct, 4),
+            "spread_pct_corwin_schultz_mean": _r(cs_pct, 4),
+            "spread_pct_corwin_schultz_median": _r(cs_med_pct, 4),
             "spread_pct_corwin_schultz_p90": _r(cs_p90_pct, 4),
             "spread_pct_range_upper_bound": _r(rng_pct, 4),
             "spread_is_estimate": True,
             "spread_estimate_note": (
-                "ESTIMATIVA, nao spread observado de tela. Primario: estimador de "
-                "Corwin & Schultz (2012, J. Finance) sobre high/low dos ultimos 252 "
-                "pregoes -- unico estimador de bid-ask sem dado de quote. Secundario: "
-                "mediana de (high-low)/close, que NAO e o spread e sim o range inteiro "
-                "do dia, servindo so como teto conservador."
+                "ESTIMATIVA, nao spread observado de tela. Primario: MEDIA do estimador "
+                "de Corwin & Schultz (2012, J. Finance) sobre high/low dos ultimos 252 "
+                "pregoes -- unico estimador de bid-ask sem dado de quote, e a estatistica "
+                "que o paper especifica. A MEDIANA tambem vai no JSON mas NAO serve de "
+                "portao: CS trunca em zero os dias negativos, entao a mediana e 0,0000% "
+                "para a maioria dos simbolos e o teste passaria trivialmente. Secundario: "
+                "mediana de (high-low)/close, que NAO e o spread e sim o range inteiro do "
+                "dia -- teto conservador, nao valor. VIES CONHECIDO: CS superestima "
+                "quando a volatilidade diaria e alta, porque o range deixa de ser "
+                "explicado so pelo spread."
             ),
             "friction_pct_one_way": _r(cs_pct, 4),
             "friction_pct_round_trip": _r(cs_pct * 2 if cs_pct is not None else None, 4),
@@ -906,6 +922,28 @@ def main() -> int:
     for c in named:
         ms = c["members"]
         mic = min_intra_corr(ms, corr)
+        fids = {idents[m] for m in ms if idents[m]}
+        weak = len(ms) > 1 and mic is not None and mic < primary_cutoff
+        # duas causas possiveis para coesao baixa -- e preciso dizer QUAL e, sao
+        # coisas diferentes: encadeamento (artefato do metodo) x classe de moeda
+        # do MESMO fundo (fato, cuja serie USD e defasada e nao confirma por preco).
+        if weak and len(fids) < len(ms):
+            cause = "same_fund_currency_classes"
+            note = (
+                f"menor correlacao intra-cluster {mic:.4f} < {primary_cutoff}: o cluster "
+                "junta CLASSES DE MOEDA DO MESMO FUNDO (fato de prospectus). A serie do "
+                "Yahoo para a classe USD e defasada, entao o preco nao confirma o que o "
+                "prospectus garante -- a uniao vale, a correlacao baixa e ruido de dado."
+            )
+        elif weak:
+            cause = "single_linkage_none"
+            note = (
+                f"menor correlacao intra-cluster {mic:.4f} < {primary_cutoff}: o cluster "
+                "nao e coeso, e uma PONTE entre exposicoes distintas. O corte nao os "
+                "separa por causa de um par intermediario."
+            )
+        else:
+            cause, note = None, None
         clusters_out.append(
             {
                 "cluster_id": c["cluster_id"],
@@ -914,17 +952,12 @@ def main() -> int:
                 "representative": c["representative"],
                 "base_label": c["base_label"],
                 "labels_in_cluster": sorted({labels[m] for m in ms}),
-                "fund_identities_in_cluster": sorted({idents[m] for m in ms if idents[m]}),
+                "fund_identities_in_cluster": sorted(fids),
                 "min_intra_correlation": _r(mic, 6),
-                "cohesive": bool(mic is None or mic >= primary_cutoff),
-                "chaining_warning": bool(len(ms) > 2 and mic is not None and mic < primary_cutoff),
-                "chaining_note": (
-                    "coesao abaixo do corte: nem todo par dentro do cluster chega a "
-                    f"{primary_cutoff}. Cluster veio do eixo identidade-de-fundo ou de "
-                    "encadeamento -- nao e uma exposicao unica."
-                    if (len(ms) > 2 and mic is not None and mic < primary_cutoff)
-                    else None
-                ),
+                "cohesive": not weak,
+                "cohesion_warning": weak,
+                "cohesion_warning_cause": cause,
+                "cohesion_note": note,
                 "eligible_members": sorted(m for m in ms if recs[m]["eligible"]),
             }
         )
@@ -1070,8 +1103,10 @@ def main() -> int:
             "friction": (
                 f"Comissao = 0 (lista commission-free) => friccao = spread. Spread "
                 "ESTIMADO por Corwin & Schultz (2012, Journal of Finance) -- usa so "
-                "high/low diarios, mediana dos ultimos 252 pregoes. Regra do protocolo: "
-                f"comissao + spread <= {args.friction_cap}% da ordem."
+                "high/low diarios, MEDIA dos ultimos 252 pregoes (a mediana e 0,0000% "
+                "para a maioria por causa do truncamento em zero do paper e por isso "
+                "NAO serve de portao). Regra do protocolo: comissao + spread <= "
+                f"{args.friction_cap}% da ordem."
             ),
             "spread_is_estimate": (
                 "SIM, ESTIMATIVA. Nao ha NBBO historico em fonte gratuita sem cartao "
@@ -1090,7 +1125,7 @@ def main() -> int:
             ),
             "limits": [
                 "O spread e estimativa de high/low (Corwin-Schultz), nao NBBO observado.",
-                "Single-linkage encadeia -- ver chaining_warning em clusters.",
+                "Coesao intra-cluster abaixo do corte -- ver cohesion_warning_cause.",
                 (
                     "Classes .U da TSX sao pouco negociadas: a serie de preco fica "
                     "defasada e a correlacao com ela despenca mesmo sendo o mesmo fundo "
@@ -1139,11 +1174,12 @@ def main() -> int:
                 "single_linkage_literal_rule": distinct_single,
                 "single_linkage_plus_fund_identity": distinct_single_ident,
                 "fund_identity_only": distinct_ident,
-                "chaining_inflation_single_vs_complete": distinct_single - distinct_complete,
+                "chaining_excess_merges": distinct_complete - distinct_single,
                 "note": (
-                    "single_linkage_literal_rule > complete_linkage_primary: a leitura "
-                    "par-a-par da regra de 0.95 ENCADEIA e funde grupos que nao sao a "
-                    "mesma exposicao. A diferenca mede o tamanho da ilusao de overlap."
+                    "single_linkage_literal_rule < complete_linkage_primary: a leitura "
+                    "par-a-par da regra de 0.95 ENCADEIA e funde grupos que NAO sao a "
+                    "mesma exposicao, SUBestimando o numero de exposicoes distintas. "
+                    "chaining_excess_merges e quantos grupos foram fundidos a mais."
                 ),
             },
             "cross_currency_probe": {
@@ -1204,8 +1240,8 @@ def main() -> int:
     log(f"    single-linkage + identidade de fundo        : {distinct_single_ident}")
     log(f"    identidade de fundo apenas                  : {distinct_ident}")
     log(
-        f"    inflacao por ENCADEAMENTO no single-linkage : "
-        f"{distinct_single - distinct_complete} grupos fundidos indevidamente"
+        f"    ENCADEAMENTO (single-linkage) funde a mais : "
+        f"{distinct_complete - distinct_single} grupos que NAO sao a mesma exposicao"
     )
     log("")
     log("  pares de MESMO indice em moedas diferentes (limite da regra de 0.95):")
@@ -1220,7 +1256,13 @@ def main() -> int:
     for c in sorted(clusters_out, key=lambda x: (-x["size"], x["cluster_id"])):
         ms = c["members"]
         ex = ", ".join(ms[:6]) + (f" ... (+{len(ms) - 6})" if len(ms) > 6 else "")
-        warn = " [CHAIN]" if c["chaining_warning"] else ""
+        warn = ""
+        if c["cohesion_warning"]:
+            warn = (
+                " [CLASSE-MOEDA]"
+                if c["cohesion_warning_cause"] == "same_fund_currency_classes"
+                else " [PONTE]"
+            )
         mi = (
             f"{c['min_intra_correlation']:.3f}"
             if c["min_intra_correlation"] is not None
@@ -1229,10 +1271,13 @@ def main() -> int:
         log(f"  {c['cluster_id']:<28} {c['size']:>3}  {mi:>8}  {ex}{warn}")
     log("")
     log(f"  clusters de 1 simbolo: {sum(1 for c in clusters_out if c['size'] == 1)}")
-    log(
-        f"  clusters com ENCADEAMENTO (min_intra < {primary_cutoff}): "
-        f"{[c['cluster_id'] for c in clusters_out if c['chaining_warning']]}"
-    )
+    log(f"  clusters com coesao abaixo do corte {primary_cutoff} (min_intra < {primary_cutoff}):")
+    for c in clusters_out:
+        if c["cohesion_warning"]:
+            log(
+                f"      {c['cluster_id']:<28} min_intra={c['min_intra_correlation']:.3f} "
+                f"causa={c['cohesion_warning_cause']}"
+            )
     log("")
     log(f"  elegiveis (historico>=1000 E friccao<=0.5%): {len(elig)}/{len(symbols)}")
     log(f"  elegiveis estritos (tambem serie nao defasada): {len(elig_s)}/{len(symbols)}")
