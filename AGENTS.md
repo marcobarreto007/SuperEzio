@@ -94,7 +94,7 @@ Agentes referenciam skills como capacidade atômica. Skills não são agentes �
 - Verifier não é o mesmo que escreveu
 - Savekeeper não salva segredo
 - Explorer mata agente ruim
-- Checkpoint obrigatório em `.f51/checkpoints/latest.json`
+- **Checkpoint NÃO é obrigatório** — obrigação revogada pelo operador em 2026-09-14. Escreve-se quando ele pedir; o registro do trabalho é o git. Os checkpoints que já existem em `.f51/checkpoints/` ficam como histórico, mas **ninguém precisa criar mais um para "fechar" nada**.
 
 ## PROTOCOLO GLOBAL TOTAL: SOBREVIVÊNCIA ($1.000 CAD & TAXA ZERO — EZIO & MIKE)
 

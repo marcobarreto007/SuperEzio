@@ -379,27 +379,50 @@ class NumberClaim:
         return asdict(self)
 
 
+# The row's unit gates the match before any tolerance is applied
+# (2026-09-14): "8%" is a percentage and latest_price=8.20 is a price — the
+# values sit within writing tolerance (±0.5 at zero decimals), but different
+# measures do not validate each other. A percent claim cites a percent or
+# fraction row (the fraction reading converts by 100); a money claim cites a
+# money/quote row; a decimal claim cites any row that is not a percentage.
+_PERCENT_ROW_UNITS = frozenset({"percent", "fraction"})
+_MONEY_ROW_UNITS = frozenset({"money", "quote"})
+
+
+def _unit_compatible(unidade: str, row_unit: str) -> bool:
+    """Whether a claim of ``unidade`` may be validated by a ``row_unit`` row."""
+    if unidade == "percent":
+        return row_unit in _PERCENT_ROW_UNITS
+    if unidade == "money":
+        return row_unit in _MONEY_ROW_UNITS
+    return row_unit not in _PERCENT_ROW_UNITS  # decimal
+
+
 def _match_ledger(
     valor: float, unidade: str, casas: int, ledger: list[dict[str, Any]]
 ) -> dict[str, Any] | None:
     """Find the ledger row a claim may be citing, or None.
 
-    Tolerance comes from how the claim was written, not from a global epsilon:
-    a claim rounds a code number at its own precision ("32%" may cite
-    volatility=0.3187; "$190" may cite 190.5) and may not invent one. The
-    fraction reading of a percentage carries two extra decimals of precision
-    ("8%" is 0.08 — it may not stretch to 0.3187).
+    The row's unit gates the match first: a claim only cites a row of its own
+    measure (see ``_unit_compatible``). Tolerance then comes from how the
+    claim was written, not from a global epsilon: a claim rounds a code
+    number at its own precision ("32%" may cite volatility=0.3187; "$190" may
+    cite 190.5) and may not invent one. The fraction reading of a percentage
+    carries two extra decimals of precision ("8%" is 0.08 — it may not
+    stretch to 0.3187).
     """
     tolerance = max(1e-9, 0.5 * (10.0**-casas))
     for row in ledger:
+        if not _unit_compatible(unidade, str(row["unidade"])):
+            continue
         raw = row["valor"]
         if abs(valor - raw) <= tolerance:
             return row
-        if unidade != "percent":
-            continue
-        if row["unidade"] in _FRACTION_UNITS and abs(valor - raw * 100.0) <= tolerance:
-            return row
-        if abs(valor / 100.0 - raw) <= tolerance / 100.0:
+        if (
+            unidade == "percent"
+            and row["unidade"] in _FRACTION_UNITS
+            and abs(valor - raw * 100.0) <= tolerance
+        ):
             return row
     return None
 

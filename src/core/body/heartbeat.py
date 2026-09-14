@@ -463,6 +463,11 @@ class HeartbeatLoop:
         avalia as barreiras persistidas na abertura. Antes disso TRACK nao tinha
         executor -- so callback externo.
 
+        A caderneta de recomendacoes acompanha o fechador (`ledger=`): o mesmo ciclo
+        rotula o contrafactual das recomendacoes pendentes e alimenta o motor de
+        aprendizado com os desfechos reais (`learning_rows()`). Sem caderneta
+        disponivel, o fechador roda do mesmo jeito -- ela e trilho, nao pre-requisito.
+
         Duas travas de custo, porque isto e I/O de rede dentro do loop de batimento:
           - intervalo proprio (INTERVAL_POSITION_CLOSER), senao o ciclo LIGHT de 60s
             faria um fetch de candles por trade aberto a cada minuto;
@@ -484,9 +489,20 @@ class HeartbeatLoop:
         try:
             from core.trading.position_closer import close_positions, dry_run_from_env
 
+            ledger = None
+            try:
+                from core.trading.recommendation_ledger import get_recommendation_ledger
+
+                ledger = get_recommendation_ledger()
+            except Exception:  # noqa: BLE001 - deliberado: caderneta e trilho; ausencia nao impede o fechador.
+                logger.debug("Heartbeat TRACK (recommendation ledger) unavailable")
+
             loop = asyncio.get_running_loop()
             report = await asyncio.wait_for(
-                loop.run_in_executor(None, partial(close_positions, dry_run=dry_run_from_env())),
+                loop.run_in_executor(
+                    None,
+                    partial(close_positions, dry_run=dry_run_from_env(), ledger=ledger),
+                ),
                 timeout=POSITION_CLOSER_TIMEOUT,
             )
             # Sumario no barramento: as decisoes por trade ja vao para o log do

@@ -114,6 +114,77 @@ def test_percentage_cannot_stretch_to_a_fraction_number() -> None:
     assert not unbound_number_claims("Alocar 32% do capital.", _snapshot())
 
 
+def test_percent_claim_is_not_validated_by_a_price_row() -> None:
+    """Regressão 2026-09-14: "8%" não é validado por latest_price=8.20.
+
+    O primeiro branch do matching comparava o valor bruto contra qualquer
+    linha do razão sem olhar a unidade: com zero casas a tolerância era
+    ±0,5 e o preço 8.20 validava um "8%" de alocação — medidas diferentes
+    não se validam.
+    """
+    snapshot = {
+        "frozen": True,
+        "as_of": FROZEN_AT,
+        "numbers": {
+            "latest_price": {
+                "value": 8.20,
+                "unit": "quote",
+                "formula_id": "math_hub.latest_price",
+            },
+        },
+    }
+    claims = {claim.trecho: claim for claim in number_claims("Alocar 8% do capital.", snapshot)}
+    assert claims["8%"].rastreado is False
+    assert claims["8%"].motivo == "sem_fonte_de_codigo"
+
+    # O caso legítimo continua de pé: com a linha fraction correspondente, o
+    # mesmo "8%" sai rastreado com a fonte do código.
+    snapshot["numbers"]["max_position_pct"] = {
+        "value": 0.08,
+        "unit": "fraction",
+        "formula_id": "execution_policy.max_position_pct",
+    }
+    claims = {claim.trecho: claim for claim in number_claims("Alocar 8% do capital.", snapshot)}
+    assert claims["8%"].rastreado is True
+    assert claims["8%"].fonte == "execution_policy.max_position_pct"
+
+
+def test_money_and_decimal_claims_do_not_validate_percent_rows() -> None:
+    """Análogo money: "8 CAD" não é validado por linha 8.20 de outra medida.
+
+    A tolerância de escrita (±0,5 com zero casas) só vale dentro da mesma
+    grandeza: dinheiro cita dinheiro/preço; uma linha percentual do razão
+    não valida nem dinheiro nem número decimal solto.
+    """
+    snapshot = {
+        "frozen": True,
+        "as_of": FROZEN_AT,
+        "numbers": {
+            "risk_pct": {"value": 8.20, "unit": "percent", "formula_id": "risk.limit"},
+            "crisis_score": {
+                "value": 8.20,
+                "unit": "score",
+                "formula_id": "math_hub.crisis_aggregate",
+            },
+        },
+    }
+    claims = {claim.trecho: claim for claim in number_claims("Entrar com 8 CAD.", snapshot)}
+    assert claims["8 CAD"].rastreado is False
+    assert claims["8 CAD"].motivo == "sem_fonte_de_codigo"
+
+    # E o decimal cai no mesmo portão: "8.00" não valida a linha percentual.
+    only_percent = {
+        "frozen": True,
+        "as_of": FROZEN_AT,
+        "numbers": {"risk_pct": {"value": 8.0, "unit": "percent", "formula_id": "risk.limit"}},
+    }
+    claims = {
+        claim.trecho: claim for claim in number_claims("Risco de 8.00 no indicador.", only_percent)
+    }
+    assert claims["8.00"].rastreado is False
+    assert claims["8.00"].motivo == "sem_fonte_de_codigo"
+
+
 def test_negative_code_number_keeps_its_sign() -> None:
     """Regressão do caso real (MSFT): "-23,38%" é o max_drawdown do código.
 

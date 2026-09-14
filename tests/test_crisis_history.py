@@ -188,7 +188,9 @@ def test_collector_prefers_reference_cache_and_falls_back(
 ) -> None:
     from core.data_collector.collector import DataCollector
 
-    assert reference_available(), "cache necessário para exercitar o caminho primário"
+    if not reference_available():
+        pytest.skip("cache de referência de crise ausente (data/reference é gitignored)")
+
     crisis_input, source = DataCollector._crisis_input_for("United States", "SPY")
     assert source == "ReferenceCache"
     assert crisis_input is not None

@@ -48,6 +48,14 @@ existe para ser REUSADA: o desfecho contrafactual da caderneta de recomendacoes
 copia da regra. `close_positions(..., ledger=...)` faz uma passada pela caderneta
 dentro do mesmo ciclo, com o mesmo cache de candles. A caderneta nasce ao lado do
 journal -- este modulo nao a substitui nem migra nada.
+
+Motor de aprendizado
+--------------------
+O ciclo com caderneta TAMBEM alimenta o motor de aprendizado
+(`OutcomeLearningEngine`) com os desfechos REAIS da caderneta (`learning_rows()`;
+contrafactual nao e aprendizado, e simulacao). Idempotente pelo motor; falha do
+motor e warning -- aprender nunca derruba o fechamento, que e o que mexe em
+dinheiro.
 """
 
 from __future__ import annotations
@@ -134,6 +142,10 @@ class CloserReport:
     # caderneta" -- porque nenhuma foi passada, ou porque a passada falhou (o
     # motivo fica no log; o fechamento segue, que e o que mexe em dinheiro).
     counterfactual_report: dict[str, Any] | None = None
+    # Presente so quando o ciclo alimentou o motor de aprendizado com desfechos
+    # REAIS da caderneta. `None` = caderneta ausente, sem desfechos a aprender ou
+    # motor falhou (motivo no log; o fechamento segue).
+    learning_report: dict[str, Any] | None = None
 
     def _count(self, status: str) -> int:
         return sum(1 for d in self.decisions if d.status == status)
@@ -159,6 +171,7 @@ class CloserReport:
             "skipped": self.skipped,
             "decisions": [d.to_dict() for d in self.decisions],
             "counterfactual_report": self.counterfactual_report,
+            "learning_report": self.learning_report,
         }
 
 
@@ -421,6 +434,65 @@ def evaluate_row(
     return _evaluate_one(normalized, data_hub=data_hub, timeframe=timeframe)
 
 
+def _feed_learning_engine(ledger: Any, *, engine: Any = None) -> dict[str, Any] | None:
+    """Alimenta o motor de aprendizado com os desfechos REAIS da caderneta.
+
+    `ledger.learning_rows()` (default) traz SO desfecho executado pelo dono -- o
+    contrafactual e simulacao, e aprendizado com trade que ninguem fez e o defeito
+    do paper order de novo. O motor e idempotente por construcao: cada `trade_id`
+    vira um `event_id` unico em `processed_outcomes`, e re-processar a mesma linha
+    (todo ciclo re-passa a caderneta inteira) retorna `processed=False` sem tocar
+    nas estatisticas de expert. Mesma forma de
+    `feedback_loop.FeedbackLoop._update_adaptive_from_closed_trades`, que faz isso
+    com o journal; aqui e a vez da caderneta.
+
+    Caderneta sem desfechos nao constroi motor, nao abre banco, nao muda nada:
+    devolve `None`. E o mesmo contrato do resto do diff -- trilho de aprendizado,
+    nunca portao.
+    """
+    from core.trading.outcome_learning import OutcomeConflictError, OutcomeLearningEngine
+
+    rows = ledger.learning_rows()
+    if not rows:
+        return None
+
+    # Sem injecao, o motor de processo: MESMO banco default do `FeedbackLoop`
+    # (data/adaptive_outcomes.sqlite3). Ids `rec-*` da caderneta e `bob-*` do
+    # journal convivem no mesmo ledger sem colisao -- namespaces distintos.
+    engine = engine or OutcomeLearningEngine()
+
+    processed: list[str] = []
+    replayed: list[str] = []
+    conflicts: list[str] = []
+    errors: list[dict[str, str]] = []
+
+    for row in rows:
+        trade_id = str(row.get("trade_id") or "")
+        try:
+            result = engine.process_trade(row)
+            target = processed if result.processed else replayed
+            target.append(result.event_id)
+        except OutcomeConflictError:
+            conflicts.append(trade_id)
+        except (TypeError, ValueError) as exc:
+            errors.append({"trade_id": trade_id, "error": str(exc)[:160]})
+
+    logger.info(
+        "recommendation_ledger_learning processed=%d replayed=%d conflicts=%d errors=%d",
+        len(processed),
+        len(replayed),
+        len(conflicts),
+        len(errors),
+    )
+    return {
+        "processed": processed,
+        "replayed": replayed,
+        "conflicts": conflicts,
+        "errors": errors,
+        "expert_weights": engine.get_normalized_weights(),
+    }
+
+
 def close_positions(
     journal: PaperJournal | None = None,
     *,
@@ -428,6 +500,7 @@ def close_positions(
     dry_run: bool = True,
     timeframe: str = "6M",
     ledger: Any = None,
+    learning_engine: Any = None,
 ) -> CloserReport:
     """Um ciclo do fechador: avalia os trades abertos e fecha os que bateram barreira.
 
@@ -441,6 +514,12 @@ def close_positions(
     fetch por ticker por ciclo, nao dois). Esse passo escreve apenas na caderneta --
     nunca no journal, nunca em posicao -- e por isso nao e gateado por `dry_run`:
     o `dry_run` existe para proteger dinheiro, e nao ha dinheiro no contrafactual.
+
+    Fechada a passada pela caderneta (quando os desfechos acabaram de ser gravados),
+    o ciclo alimenta o motor de aprendizado com os desfechos REAIS dela
+    (`_feed_learning_engine`): contrafactual nao entra, motor idempotente, falha do
+    motor e warning. `learning_engine` (opcional) injeta o motor -- testes e replay;
+    sem injecao, o banco default e o mesmo do `FeedbackLoop`.
     """
     journal = journal or PaperJournal()
     if data_hub is None:
@@ -475,6 +554,7 @@ def close_positions(
         decisions.append(decision)
 
     counterfactual_report = None
+    learning_report = None
     if ledger is not None:
         try:
             counterfactual_report = ledger.label_counterfactuals(
@@ -485,11 +565,19 @@ def close_positions(
         except Exception as exc:  # noqa: BLE001
             logger.warning("Counterfactual labeling failed: %s", str(exc)[:200])
 
+        # Momento natural do aprendizado: os desfechos ACABARAM de ser gravados
+        # acima. Falha do motor nao derruba o ciclo -- mesma fronteira de cima.
+        try:
+            learning_report = _feed_learning_engine(ledger, engine=learning_engine)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Learning engine feed failed: %s", str(exc)[:200])
+
     report = CloserReport(
         dry_run=dry_run,
         evaluated=len(open_trades),
         decisions=decisions,
         counterfactual_report=counterfactual_report,
+        learning_report=learning_report,
     )
     logger.info(
         "position_closer_cycle dry_run=%s evaluated=%d closed=%d would_close=%d skipped=%d",
