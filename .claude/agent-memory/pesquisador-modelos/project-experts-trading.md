@@ -16,8 +16,10 @@ alimentar experts de um sistema de trading.
   spreads de crédito) + **episódios de crise rotulados**. Tem `MIN_DAYS`/`MIN_PAIRS` que
   impedem rodar sem histórico longo — as fórmulas de primeira linha estão **paradas por falta
   de série**, não por falta de código.
-- **`pennylab`** — manipulação, pump-and-dump, penny stocks. Precisa de dataset **rotulado**
-  com ticker + janela temporal.
+- **`pennylab`** — **MUDOU DE FUNÇÃO em 2026-09-14: virou GUARDA** (era caçador de
+  manipulação). Não precisa mais de dataset rotulado com ticker + janela: o objetivo agora
+  é **recusar** papel manipulado no universo de ETFs líquidos da TSX. As fontes são
+  **regulatórias**, não dataset. Ver [[project-pennylab-guarda]].
 - **`technical_neural`** — MLP sobre candles OHLCV, classifica down/sideways/up. Exige
   **≥161 barras por símbolo** e vinha morrendo com 26 barras — ou seja, falta de histórico
   por símbolo é o gargalo real, não falta de dado total.
@@ -31,4 +33,5 @@ melhor — clone/adapte". Aplicada aqui: procurar dado pronto em vez de construi
 gargalo é **profundidade por símbolo** — ao avaliar qualquer dataset novo, checar logo
 barras-por-símbolo e não só linhas totais. Para `crisis`, o HF não tem nada utilizável; o
 caminho é JST + FRED + BIS + Shiller. Para `pennylab`, não existe dataset de penny stock
-rotulado no HF — só material de cripto.
+rotulado no HF — só material de cripto; a base foi construída de **fontes regulatórias
+canadenses** em 2026-09-14 ([[reference-fontes-regulatorias-canada]]).

@@ -20,6 +20,7 @@ from core.evidence.grounding import (
     mismatched_price_symbols,
 )
 from core.evidence.snapshot import bind_answer_to_snapshot
+from core.evidence.snapshot import number_claims as build_number_claims
 from core.paths import resolve_project_path
 
 from ...mission_context import render_mission_context_for_prompt
@@ -930,6 +931,19 @@ def _bind_final_answer(state: dict, content: str) -> str:
     if not is_arch_c3_enabled():
         return content
     return bind_answer_to_snapshot(content, _snapshot_payload(state))
+
+
+def _collect_number_claims(state: dict, content: str) -> list[dict[str, Any]]:
+    """Envelope for every material number in the final answer.
+
+    Each entry is ``{valor, trecho, fonte, calculado_em, rastreado}``: the
+    value, the code calculation that produced it, and when that calculation
+    was frozen. The ledger is the C2 snapshot, so a number with no ledger row
+    comes back ``rastreado=False`` — the model wrote it, no code backs it.
+    """
+    if not is_arch_c3_enabled():
+        return []
+    return [claim.to_dict() for claim in build_number_claims(content, _snapshot_payload(state))]
 
 
 def _trust_unbound_answer(state: dict) -> bool:
@@ -3913,6 +3927,19 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
                 content = _bind_final_answer(state, content)
 
+                # ── Number provenance: the number and the narrative separate
+                # here. Every material number that leaves carries the code
+                # calculation behind it; a number with no ledger row is
+                # recorded as untraced instead of passing as a pipeline fact.
+                claims_report = _collect_number_claims(state, content)
+                untraced = [claim for claim in claims_report if not claim["rastreado"]]
+                if untraced:
+                    logger.warning(
+                        "number_provenance: %d untraced number(s) in final answer: %s",
+                        len(untraced),
+                        ", ".join(str(claim["trecho"]) for claim in untraced[:8]),
+                    )
+
                 # ── Inject portfolio snapshot BEFORE the CHUNK ──
                 pf = _get_portfolio_snapshot(state)
                 if pf:
@@ -3935,10 +3962,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     decision="FINAL_ANSWER",
                     reason=content[:100],
                     agent="bob",
+                    payload={
+                        "number_claims": claims_report,
+                        "untraced_numbers": [claim["trecho"] for claim in untraced],
+                    },
                 )
 
                 return {
                     "final": content,
+                    "number_claims": claims_report,
                     "agent_tool_call": tool_call,
                     "agent_iterations": iterations + 1,
                     "_pending_tool_calls": [],
@@ -3991,6 +4023,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             writer({"type": "CHUNK", "content": content})
             return {
                 "final": content,
+                "number_claims": _collect_number_claims(state, content),
                 "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
                 "agent_iterations": iterations + 1,
                 "_pending_tool_calls": [],

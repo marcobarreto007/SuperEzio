@@ -39,6 +39,15 @@ ficou de fora (ver relatorio): ajustar exige saber que houve split de verdade, e
 deteccao por preco nao distingue um split 2:1 de uma queda real de 50% -- as duas
 invalidam as barreiras persistidas, e fechar em cima de barreira invalida inventaria
 um PnL. A linha fica aberta e o operador decide.
+
+Caderneta de recomendacoes
+--------------------------
+`evaluate_row` e a versao publica da avaliacao de UMA linha, sem escrever nada, e
+existe para ser REUSADA: o desfecho contrafactual da caderneta de recomendacoes
+(`recommendation_ledger.label_counterfactuals`) e rotulado por ela, e nao por uma
+copia da regra. `close_positions(..., ledger=...)` faz uma passada pela caderneta
+dentro do mesmo ciclo, com o mesmo cache de candles. A caderneta nasce ao lado do
+journal -- este modulo nao a substitui nem migra nada.
 """
 
 from __future__ import annotations
@@ -120,6 +129,11 @@ class CloserReport:
     dry_run: bool
     evaluated: int
     decisions: list[CloseDecision] = field(default_factory=list)
+    # Presente so quando o ciclo recebeu uma caderneta de recomendacoes (`ledger=`)
+    # e a rotulagem contrafactual rodou. `None` significa "nao houve passada pela
+    # caderneta" -- porque nenhuma foi passada, ou porque a passada falhou (o
+    # motivo fica no log; o fechamento segue, que e o que mexe em dinheiro).
+    counterfactual_report: dict[str, Any] | None = None
 
     def _count(self, status: str) -> int:
         return sum(1 for d in self.decisions if d.status == status)
@@ -144,6 +158,7 @@ class CloserReport:
             "would_close": self.would_close,
             "skipped": self.skipped,
             "decisions": [d.to_dict() for d in self.decisions],
+            "counterfactual_report": self.counterfactual_report,
         }
 
 
@@ -373,17 +388,59 @@ def _evaluate_one(
     )
 
 
+def evaluate_row(
+    row: Mapping[str, Any],
+    *,
+    data_hub: Any = None,
+    timeframe: str = "6M",
+) -> CloseDecision:
+    """Avalia UMA linha contra as barreiras. NAO escreve nada.
+
+    Publica de proposito, e nao um `_evaluate_one` renomeado por estetica: a
+    caderneta de recomendacoes (`recommendation_ledger.label_counterfactuals`)
+    rotula o desfecho contrafactual com ESTA funcao. Duas implementacoes da
+    barreira tripla divergiriam, e a divergencia apareceria exatamente onde doi --
+    o contrafactual diria uma coisa e o fechamento real, outra.
+
+    Aceita tanto linha do journal (chave `trade_id`) quanto linha da caderneta
+    (chave `recommendation_id`), porque o vocabulario de mercado e o mesmo
+    (ver o docstring de `recommendation_ledger`).
+    """
+    if data_hub is None:
+        from data.data_hub import (
+            hub as data_hub,
+        )
+
+        # Cache de ciclo: quem avalia varias linhas de uma vez (a caderneta) pode
+        # passar o proprio cache e reaproveitar o fetch; aqui o cache cobre so as
+        # chamadas internas desta avaliacao.
+        data_hub = _CandleCache(data_hub)
+    normalized = dict(row)
+    if not normalized.get("trade_id"):
+        normalized["trade_id"] = str(normalized.get("recommendation_id") or "")
+    return _evaluate_one(normalized, data_hub=data_hub, timeframe=timeframe)
+
+
 def close_positions(
     journal: PaperJournal | None = None,
     *,
     data_hub: Any = None,
     dry_run: bool = True,
     timeframe: str = "6M",
+    ledger: Any = None,
 ) -> CloserReport:
     """Um ciclo do fechador: avalia os trades abertos e fecha os que bateram barreira.
 
     `dry_run=True` (default) nao escreve nada: devolve o mesmo veredito com
     `status="would_close"` para o operador conferir antes de armar o fechamento real.
+
+    `ledger` (opcional) e a caderneta de recomendacoes
+    (`recommendation_ledger.RecommendationLedger`). Quando passa uma, este ciclo
+    TAMBEM rotula o desfecho contrafactual das recomendacoes pendentes, pelo mesmo
+    `evaluate_row` que decide os fechamentos e com o MESMO cache de candles (um
+    fetch por ticker por ciclo, nao dois). Esse passo escreve apenas na caderneta --
+    nunca no journal, nunca em posicao -- e por isso nao e gateado por `dry_run`:
+    o `dry_run` existe para proteger dinheiro, e nao ha dinheiro no contrafactual.
     """
     journal = journal or PaperJournal()
     if data_hub is None:
@@ -417,7 +474,23 @@ def close_positions(
             decision = _apply_close(journal, decision)
         decisions.append(decision)
 
-    report = CloserReport(dry_run=dry_run, evaluated=len(open_trades), decisions=decisions)
+    counterfactual_report = None
+    if ledger is not None:
+        try:
+            counterfactual_report = ledger.label_counterfactuals(
+                data_hub=data_hub, timeframe=timeframe
+            ).to_dict()
+        # Fronteira de melhor esforco: a caderneta e trilho de aprendizado; falhar
+        # ao rotular nao pode impedir o fechamento -- que e o que mexe em dinheiro.
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Counterfactual labeling failed: %s", str(exc)[:200])
+
+    report = CloserReport(
+        dry_run=dry_run,
+        evaluated=len(open_trades),
+        decisions=decisions,
+        counterfactual_report=counterfactual_report,
+    )
     logger.info(
         "position_closer_cycle dry_run=%s evaluated=%d closed=%d would_close=%d skipped=%d",
         dry_run,

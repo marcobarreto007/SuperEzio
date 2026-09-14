@@ -131,6 +131,12 @@ class PipelineState(TypedDict, total=False):
     # Agent node
     final: str
 
+    # Number provenance envelope for `final` — one entry per material number
+    # in the answer: {"valor", "trecho", "fonte", "calculado_em",
+    # "rastreado"}. Declared because LangGraph drops node output whose key is
+    # not a channel: an undeclared envelope would never leave the agent node.
+    number_claims: list[dict[str, Any]]
+
     # Explanation
     explanation: str
 

@@ -1,56 +1,34 @@
 {
   "date_local": "2026-09-14",
-  "session": "universo-negociavel-e-corpus-de-aprendizado",
+  "session": "caderneta-proveniencia-e-dados-dos-experts",
   "status": "APPLIED_LOCAL",
-  "objective": "Construir o orgao que faltava (UNIVERSO negociavel efetivo), destravar o elo vermelho (fechador de posicao + labeler de barreira tripla) e consertar a camada de dados. Registra tambem a pesquisa externa do dia e a conclusao desconfortavel sobre o valor do comite.",
-  "predecessor": "github-policy-override-and-learning-loop-investigation",
+  "objective": "Fechar as tres frentes herdadas do checkpoint anterior: caderneta de recomendacao (substitui o paper order ficcao), separacao numero/narrativa (proveniencia C2/C3) e ligacao dos datasets de referencia nos experts neural e crisis.",
+  "predecessor": "universo-negociavel-e-corpus-de-aprendizado",
 
   "entregue": {
-    "universo": {
-      "resultado": "108 simbolos = 84 EXPOSICOES DISTINTAS (corte 0,95, complete-linkage + identidade de fundo). 82 elegiveis (historico >=1000 barras E friccao <=0,5%).",
-      "arquivos": ["config/td_universe_effective.json", "scripts/build_effective_universe.py", "scripts/verify_effective_universe.py"],
-      "verificacao": "9 checagens duras, todas verdes. O verificador recomputa da origem, nao confia no JSON.",
-      "achado_central": "O corte de 0,95 mede MOEDA, nao exposicao: VFV x VOO = 0,9171 (mesmo indice, moedas diferentes) nao funde, enquanto SPY x VOO = 0,9982 funde. Logo 84 ainda esta inflado. Normalizar por USDCAD PIOROU (0,9376 -> 0,9265) e foi registrado como falha, nao entregue como maquinario.",
-      "metodo_spread": "Corwin & Schultz (2012), media de 252 pregoes. E ESTIMATIVA (teto, nao spread de tela). A mediana dava 0,0000% para ~70 dos 108 e produzia um falso 'zero excluidos' — trocada pela media, 3 nomes caem (ARKK, GDX, ETHA).",
-      "excluidos": {"so_historico": 23, "so_friccao": 2, "ambas": 1, "abaixo_de_161_barras": ["TCCB 85", "TSTB 85", "TCOM 84"]}
+    "caderneta_de_recomendacoes": {
+      "arquivos": ["src/core/trading/recommendation_ledger.py", "tests/test_recommendation_ledger.py"],
+      "oque": "Registro do que o SISTEMA recomendou; o dono e o atuador (mark_execution). Contrafactual rotulado pelo MESMO evaluate_row do fechador. Precedencia: desfecho real nunca e sobrescrito por contrafactual (o contrario e guardado em counterfactual para comparacao). Id deterministico = regravar a mesma emissao e no-op.",
+      "vocabulario": "Mesmo do paper_journal de proposito: fechador e motores (outcome_learning, feedback_loop) leem a linha sem tradutor. learning_rows() devolve por default SO desfecho real.",
+      "integracao": "auto_execute_paper grava via record_recommendation_for_trade (best-effort: falha vira warning, nunca derruba a execucao; so entradas buy). position_closer.close_positions(ledger=...) rotula contrafactual no mesmo ciclo, mesmo cache de candles, nao gateado por dry_run (nao ha dinheiro no contrafactual).",
+      "travas": "RLock + lock de arquivo do journal, escrita atomica (tmp+fsync+replace), quarentena de linha corrompida, recusa de truncar a caderneta de producao, pytest nao escreve na caderneta do operador.",
+      "cli": "python -m core.trading.recommendation_ledger list|stats|label|mark"
     },
-    "fechador_e_labeler": {
-      "arquivos": ["src/core/trading/triple_barrier.py", "src/core/trading/holding_period.py", "src/core/trading/position_closer.py"],
-      "fonte": "ml4t/engineer (MIT) como fonte primaria — NAO o mlfinpy, que so avalia close e nao ve toque intrabar. mlfinpy fica creditado como linhagem.",
-      "swing": "5 barras = 7 dias. Derivado do bucket do feedback_loop.py:184-188 (o unico holding period que o repo mede), limite INFERIOR de cada faixa (pessimista).",
-      "decisoes": ["dry-run e o DEFAULT", "um fetch por ticker por ciclo", "split DETECTADO e NAO aplicado — detectar por preco nao distingue split de queda real, e aplicar o fator errado inventaria PnL", "desempate stop-antes-de-alvo"],
-      "bug_achado": "A primeira versao devolvia None antes de varrer as barras: um stop batido ficaria pendurado esperando o prazo. Corrigido com regressao.",
-      "testes": "52 novos · 100 passed nos arquivos tocados"
+    "proveniencia_de_numeros": {
+      "arquivos": ["src/core/evidence/snapshot.py", "src/core/pipeline/nodes/agent.py", "src/core/pipeline/graph.py", "src/core/pipeline/contracts.py", "tests/test_number_provenance.py"],
+      "oque": "Extrator de numeros materiais (money/percent/decimal; sinal, virgula decimal, 'por cento', CAD/USD/BRL/EUR; 'VaR 95%' tratado como parametro de formula, nao claim). number_claims devolve rastreado/fonte/calculado_em por numero da resposta final; bind_answer_to_snapshot usa o mesmo ledger.",
+      "extras": "Percentuais de politica (default_stop_pct, max_position_pct) entram no ledger via extra_numbers no freeze (C2 shadow e C2) — 'stop de 5%' passa a citar a propria config da casa em vez de ler como invencao do modelo.",
+      "canal": "PipelineState.number_claims declarado (LangGraph dropa output cuja chave nao e canal); agente emite nos dois paths de retorno e loga untraced."
     },
-    "datasets": {
-      "technical_neural": "794 tickers OHLCV, CC0, minimo 1.166 barras / mediana 4.198. O card do HF estava ERRADO em 3 pontos — o pior: a ordem das colunas VARIA (87 ordens distintas em 794 arquivos); seguir o card corromperia 97%.",
-      "crisis": "11 series: JST R.6 com a dummy crisisJST (88 episodios, 1870-2008), Shiller CAPE (1871-), FRED (6 series), BIS credit gap, OFR. JST e CC BY-NC-SA (nao-comercial).",
-      "armadilha": "Selecionar pelos maiores arquivos pegou cascas sub-penny com volume ZERO. Lote curado de liquidos: 292 tickers.",
-      "manifesto": "data/reference/MANIFEST.json — fonte, licenca, cobertura por item"
-    },
-    "camada_de_dados": {
-      "alpha_vantage": "O limite e 25/DIA, nao '5 req/min' — esse comentario era INVENCAO. Contador diario implementado (src/data/daily_quota.py), escrita atomica, cota consumida so DEPOIS dos desvios (cache-hit nao gasta).",
-      "finnhub": "403 em TODAS as resolucoes (5/D/W/M/60) — endpoint premium inteiro. Estava em priority 1 e queimava a primeira tentativa de TODA requisicao de candle. Removido da rota.",
-      "stooq": "Confirmado HTTP 404. Provider e teste removidos.",
-      "tmx": "MEDIDO ANTES: 10/10 ETFs .TO ja vem do yfinance (priority 2, keyless, cobre TSX). Promover o tmx daria ZERO e criaria o risco do CDR. NAO MEXIDO — medicao registrada no codigo."
-    },
-    "governanca": {
-      "regra_1": "USAR QUALQUER FONTE — pesquisar, clonar, copiar e implementar. Autorizacao permanente. Unica excecao: gastar dinheiro (free tier sem cartao liberado).",
-      "guard": "Corrigido: linha 1 estava corrompida ('ate da #!/usr/bin/env bash'); padrao de credencial pegava falso positivo em nome de sessao com 'risk-'; hf_ nao era detectado. Verificado em 5 casos.",
-      "git": "data/reference/ destrackeado (825 arquivos, ~121 MB sairam do indice, NADA do disco). .gitignore corrigido. git gc: 43 MB recuperados, 7 .idx orfaos e 1 objeto temporario de 05/09 removidos. fsck exit=0 — o repo nunca esteve estragado."
-    },
-    "pesquisa_externa": {
-      "relatorios": ["labeler de barreira tripla", "fechador de posicao", "sistemas de trading OSS", "assistentes de IA financeira", "dados em tempo real", "datasets por expert"],
-      "achado_desconfortavel": "DeepFund mediu AO VIVO e o DeepSeek-V3 teve prejuizo liquido. PortBench: so 32,5% batem o equal-weight no Sharpe, e o ranking de QA estatico tem correlacao NEGATIVA (rho=-0,49) com o pipeline real. Traducao: a auditoria de 4,95/10 e estatica e nao prediz nada. O desenho do comite e a parte que menos importa.",
-      "tres_ideias_a_copiar": ["numero calculado por codigo / narrativa pelo LLM ('explain-only, never modifies')", "arbitragem por utilidade realizada em vez de voto", "baseline cash/equal-weight carimbado em toda saida"],
-      "teatro": "O debate bull/bear do TradingAgents NAO tem ablation; backtest de 3 meses e 3 acoes; Sharpe 8,21 com ressalva dos proprios autores. Copiar o codigo, nao a confianca."
+    "dados_dos_experts": {
+      "candle_history": "src/core/data_collector/candle_history.py — cache CC0 (data/reference/technical_neural) emendado sob o provider com rescale no ponto de emenda (cache e yfinance divergem ate 4,2% em barras de 5 anos: concatenar cru injetaria retorno fantasma). TechnicalNeuralExpert pedia 140 barras e recebia 106 (insufficient_data, model_id null). Coleta em _collect_candle_history com timeout proprio de 20s, chave 'candles' separada do 'ohlcv' curto.",
+      "crisis_history": "src/core/data_collector/crisis_history.py — BIS credit-to-GDP, Shiller, FRED (BAMLH0A0HYM2, STLFSI4), OFR FSI lidos do cache de referencia; os 12 sensores saem de insufficient_data (MacroDataset devolvia 0 obs EUA e ImportError pyarrow CA). Collector tenta cache primeiro, MacroDataset de reserva."
     }
   },
 
-  "em_andamento": {
-    "base_de_conhecimento": "data/reference/knowledge/ — universe.jsonl (47 KB, 3 agentes escrevendo), crisis.jsonl e pennylab.jsonl em producao. Cada item carrega fonte_url + verificado_em.",
-    "rag": "src/core/rag/tfidf_rag.py criado + tests/test_rag_discrimination.py. Hipoteses a confirmar: o fraud_rag e matcher de SUBSTRING (nao vetorial) e pode nao discriminar com 500 documentos.",
-    "proximas_frentes": ["caderneta de recomendacao (substitui o paper order desligado)", "ligar os dados nos experts (o pipeline ainda pede 6M e o dado esta no disco)", "separacao numero/narrativa"]
+  "reservas_conhecidas": {
+    "match_ledger_tolerancia": "snapshot.py _match_ledger: claim percentual sem casas decimais ('8%') tem tolerancia +-0,5 contra QUALQUER unidade do ledger — falso-positivo de rastreado possivel (ex.: latest_price=8.20 valida um '8%'). Nao bloqueante; follow-up com teste.",
+    "teste_do_cache_derruba": "tests/test_crisis_history.py assert reference_available() DERRUBA (em vez de pular) o teste em arvore sem o cache de 611 MB destrackeado do git (149c6206)."
   },
 
   "invariants": {
@@ -63,16 +41,18 @@
     "derived_daily_loss": "ENFORCED",
     "micro_capital_bankroll": "1000 CAD",
     "position_closer": "DRY_RUN_BY_DEFAULT",
-    "universe": "84 EXPOSURES / 82 ELIGIBLE"
+    "universe": "84 EXPOSURES / 82 ELIGIBLE",
+    "caderneta": "REAL_BEATS_COUNTERFACTUAL"
   },
 
-  "next_step": "Caderneta de recomendacao (o corpus que destrava outcome_learning/feedback_loop/adaptive_agent), ligar os datasets nos experts, e a separacao numero/narrativa.",
+  "next_step": "Fix do _match_ledger (tolerancia por unidade da linha) + skip em vez de assert no teste do cache; alimentar outcome_learning/feedback_loop com learning_rows() da caderneta; CLI exposta ao operador.",
 
   "verification": {
-    "pytest": "2744 passed, 10 skipped, 0 failed (rodado 2x)",
-    "ruff": "All checks passed / 472 files formatted",
-    "fsck": "exit=0",
-    "universe_verifier": "9 checagens duras verdes"
+    "ruff": "check + format limpos",
+    "testes_tocados": "114 passed (rodados pelo revisor nos arquivos novos/modificados)",
+    "pytest_full": "2861 passed, 10 skipped, 1 deselected (619s, exit 0)",
+    "revisor": "aprovado com 2 ressalvas nao bloqueantes (registradas em reservas_conhecidas)",
+    "secrets_scan": "limpo nos 3 modulos novos + 4 testes + memorias de agente"
   },
 
   "still_true": {

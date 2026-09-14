@@ -28,6 +28,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from core.data_collector.candle_history import load_candle_history_safe
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -47,6 +49,10 @@ _CAPABILITY_SENTIMENT = "sentiment"
 _CAPABILITY_SOCIAL = "social"
 _CAPABILITY_MACRO = "macro"
 _CAPABILITY_TECHNICALS = "technicals"
+
+# Deep-history fetch budget: well under the gather's overall timeout so the
+# neural expert's data can never be the reason every section reports a timeout.
+_CANDLE_HISTORY_TIMEOUT = 20.0
 
 # How long to cache each data type (seconds)
 _CACHE_TTL: dict[str, int] = {
@@ -830,6 +836,11 @@ class ProfessionalCollector:
         if include_technicals:
             tasks["technicals"] = asyncio.create_task(self._collect_technicals(ticker))
 
+        # Deep OHLCV history for the causal neural expert.  Independent of every
+        # other section, and the only section the expert reads, so it runs in
+        # the same gather instead of adding a serial round-trip.
+        tasks["candle_history"] = asyncio.create_task(self._collect_candle_history(ticker))
+
         try:
             gathered = await asyncio.wait_for(
                 asyncio.gather(*tasks.values(), return_exceptions=True),
@@ -870,6 +881,15 @@ class ProfessionalCollector:
         except Exception as exc:  # noqa: BLE001
             logger.debug("ohlcv indisponível para %s: %s", ticker, exc)
 
+        # Deep history for the neural expert.  Deliberately a separate key from
+        # "ohlcv": the node reads "candles" first, while MathHub, the chart
+        # renderer and the evidence pack keep reading the shorter "ohlcv" window
+        # they were written for.
+        candle_history = results.get("candle_history", {})
+        candles = candle_history.get("candles", []) if isinstance(candle_history, dict) else []
+        if not isinstance(candles, list):
+            candles = []
+
         data = {
             "analysis_id": analysis_id,
             "ticker": ticker,
@@ -882,12 +902,33 @@ class ProfessionalCollector:
             "macro": results.get("macro", {}),
             "technicals": results.get("technicals", {}),
             "ohlcv": ohlcv,  # For MathHub calculations
+            "candles": candles,  # Long history for TechnicalNeuralExpert
+            "candle_sources": (
+                candle_history.get("sources", []) if isinstance(candle_history, dict) else []
+            ),
             "quality_report": quality_report,
             "mesh_health": self.mesh.health_report(),
             "data_quality": self._overall_quality(quality_report),
         }
         self._attach_evidence_ids(data)
         return data
+
+    async def _collect_candle_history(self, ticker: str) -> dict:
+        """Assemble the longest trustworthy OHLCV series for the neural expert.
+
+        Reference cache first (deep, keyless, offline), provider second.  Runs
+        off-loop because both sources do blocking I/O, and under its own timeout
+        so a slow provider cannot drag the shared gather past ``overall_timeout``
+        and blank every other section with it.
+        """
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(load_candle_history_safe, ticker),
+                timeout=_CANDLE_HISTORY_TIMEOUT,
+            )
+        except TimeoutError:
+            logger.debug("candle history timed out for %s", ticker)
+            return {"error": "candle_history_timeout", "symbol": ticker.upper()}
 
     async def _collect_macro(self, ticker: str) -> dict:
         """Route macro data via DataHub (BoC/Fed)."""

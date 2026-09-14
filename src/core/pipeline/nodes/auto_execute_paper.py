@@ -416,6 +416,10 @@ async def auto_execute_paper(state: dict) -> dict:
 
     # Paper journal audit trail
     journal_entry = _journal_trade(state, result, ticker, action, qty, limit_price, run_id)
+    # Caderneta de recomendacoes: o registro do que o SISTEMA recomendou. Existe
+    # porque o paper order nao corresponde a nada -- nao ha API do TD, e o dono
+    # opera a mao. E dele que o aprendizado come.
+    recommendation_id = _record_recommendation(state, ticker, action, qty, limit_price, run_id)
 
     writer(
         {
@@ -425,6 +429,7 @@ async def auto_execute_paper(state: dict) -> dict:
             "status": "completed",
             "result": result,
             "journal_entry": journal_entry,
+            "recommendation_id": recommendation_id,
         }
     )
 
@@ -433,7 +438,60 @@ async def auto_execute_paper(state: dict) -> dict:
         "paper_exec_ticker": ticker,
         "paper_exec_qty": qty,
         "paper_journal_entry": journal_entry,
+        "recommendation_id": recommendation_id,
     }
+
+
+def _record_recommendation(
+    state: dict,
+    ticker: str,
+    action: str,
+    qty: int,
+    limit_price: float,
+    run_id: str,
+) -> str | None:
+    """Registra a recomendacao na caderneta. Devolve o id, ou None se nao deu.
+
+    ADITIVO E DE MELHOR ESFORCO, de proposito:
+
+    - nao substitui nem altera o `paper_journal` -- o fechador e o `close_trade`
+      dependem dele, e a migracao do paper order e decisao do dono, posterior;
+    - falha ao gravar vira `None` (e um warning no log), nunca excecao: a caderneta
+      e trilho de aprendizado, nao portao. Derrubar a execucao porque o trilho
+      falhou seria trocar um problema de dado por um problema de operacao.
+
+    So recomendacoes de ENTRADA (buy) sao registradas. Um `sell` aqui e sinal de
+    SAIDA de posicao existente e nao tem a forma desta caderneta (entrada + stop +
+    alvo + prazo do proprio trade) -- representar isso exige um modelo de
+    "recomendacao de saida" que nao existe ainda.
+    """
+    if str(action).lower() != "buy":
+        return None
+    try:
+        from core.trading.recommendation_ledger import record_recommendation_for_trade
+
+        barriers = _entry_barriers(ticker, limit_price, action, "swing")
+        learning_context = _extract_learning_context(state, qty, limit_price, action=action)
+        result = record_recommendation_for_trade(
+            ticker=ticker,
+            action=action,
+            qty=qty,
+            entry_price=limit_price,
+            barriers=barriers,
+            rationale=str(state.get("message") or "Recomendacao do pipeline")[:200],
+            expert_source=str(state.get("route") or ""),
+            verdict_at_entry=str(
+                (state.get("trade_order_context") or {}).get("decision") or "auto"
+            ),
+            learning_context=learning_context,
+            expected_holding_period="swing",
+            run_id=run_id,
+        )
+        return result.recommendation_id if result else None
+    # Fronteira de melhor esforco: ver o docstring acima.
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("recommendation_ledger_write_failed", ticker=ticker, error=str(exc)[:200])
+        return None
 
 
 def _extract_thesis_ticker(final: str, state: dict, order_ticker: str) -> str:

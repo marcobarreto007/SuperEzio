@@ -22,6 +22,9 @@ os.environ["SUPEREZIO_DECISION_TRACE_DB"] = str(_PYTEST_OUTPUT / "decision-trace
 os.environ["SUPEREZIO_SENTIMENT_DB"] = str(_PYTEST_OUTPUT / "sentiment.sqlite3")
 os.environ["SUPEREZIO_DATA_DIR"] = str(_PYTEST_OUTPUT / "investor-data")
 os.environ["SUPEREZIO_PAPER_JOURNAL_PATH"] = str(_PYTEST_OUTPUT / "paper-journal.jsonl")
+os.environ["SUPEREZIO_RECOMMENDATION_LEDGER_PATH"] = str(
+    _PYTEST_OUTPUT / "recommendation-ledger.jsonl"
+)
 os.environ["SUPEREZIO_BOB_PAIN_LOG"] = str(_PYTEST_OUTPUT / "bob-pain-log.jsonl")
 
 from helpers import (

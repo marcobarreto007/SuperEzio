@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -99,8 +100,14 @@ def freeze_snapshot(
     pack: dict[str, Any],
     math_report: dict[str, Any] | None,
     run_id: str,
+    extra_numbers: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Project pack facts + MathHub numbers into an immutable snapshot."""
+    """Project pack facts + MathHub numbers into an immutable snapshot.
+
+    ``extra_numbers`` adds code-calculated values the pack does not carry
+    (each ``{name, value, unit, formula_id, provenance, computed_by}``); they
+    enter the ledger only when the name is not already taken.
+    """
     facts = pack.get("facts") if isinstance(pack.get("facts"), dict) else {}
     ticker = str(pack.get("ticker") or "")
     as_of = str(pack.get("created_at") or "")
@@ -150,6 +157,24 @@ def freeze_snapshot(
         )
         if entry is not None:
             numbers[name] = entry
+
+    # Numbers code calculated outside MathHub (execution policy ceilings, for
+    # instance) that a trade answer legitimately cites in prose. Without them
+    # in the ledger, "stop de 5%" reads as a model invention and the bind
+    # rejects an answer that only repeated the house's own configuration.
+    for extra in extra_numbers or ():
+        if not isinstance(extra, dict):
+            continue
+        entry = _number(
+            name=str(extra.get("name") or ""),
+            value=extra.get("value"),
+            unit=str(extra.get("unit") or ""),
+            formula_id=str(extra.get("formula_id") or extra.get("name") or ""),
+            provenance=tuple(extra.get("provenance") or ()),
+            computed_by=str(extra.get("computed_by") or "pipeline"),
+        )
+        if entry is not None and entry["name"] and entry["name"] not in numbers:
+            numbers[entry["name"]] = entry
 
     try:
         pack_sha = pack_digest(pack)
@@ -210,37 +235,218 @@ def _allowed_number_values(snapshot: dict[str, Any]) -> list[float]:
     return allowed
 
 
-def _near_allowed(
-    value: float, allowed: list[float], *, rel: float = 1e-6, abs_tol: float = 1e-6
-) -> bool:
-    for item in allowed:
-        scale = max(abs(item), abs(value), 1.0)
-        if abs(value - item) <= max(abs_tol, rel * scale):
-            return True
-    return False
+# A material claim is money or a percentage — the shapes the answer uses to
+# move capital. Until 2026-09-14 the extractor saw only "$190.50" and "1.23",
+# so "alocar 8% do capital" and "3500 CAD" carried a model-written number
+# through the bind untouched: the model computed it, nothing checked it.
+#
+# The token patterns, in priority order (money wins an overlapping span).
+# The sign belongs to the claim: drawdown, VaR and CVaR are negative in the
+# ledger and negative in prose ("drawdown -23,38%") — without the sign the
+# extractor reads 23,38 and the code number looks like an invention.
+_PERCENT_NUMBER = re.compile(
+    r"(?<![\w.,])(?P<num>[-−]?\d+(?:[.,]\d+)?)\s*(?:%|por\s+cento|per\s+cent)", re.IGNORECASE
+)
+_MONEY_CODE_NUMBER = re.compile(
+    r"(?<![\w.,])(?P<num>[-−]?\d+(?:[.,]\d+)?)\s*(?:CAD|USD|BRL|EUR)\b", re.IGNORECASE
+)
+_MONEY_NUMBER = re.compile(r"(?<![\w.,])(?P<sign>[-−]?)(?:R\$|\$)\s*(?P<num>[-−]?\d+(?:[.,]\d+)?)")
+_DECIMAL_NUMBER = re.compile(r"(?<![\d.,])(?P<num>[-−]?\d+\.\d{2,})(?![\d])")
 
+_TOKEN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (_MONEY_NUMBER, "money"),
+    (_MONEY_CODE_NUMBER, "money"),
+    (_PERCENT_NUMBER, "percent"),
+    (_DECIMAL_NUMBER, "decimal"),
+)
 
-_MONEY_NUMBER = re.compile(r"(?:R\$|\$)\s*(\d+(?:[.,]\d+)?)")
-_DECIMAL_NUMBER = re.compile(r"(?<![\d.,])(\d+\.\d{2,})(?![\d])")
+# Claim mirrors of a number: a percent cited from a fraction-unit number is
+# the same code value the human reads — volatility=0.32 is "32%".
+_FRACTION_UNITS = frozenset({"fraction"})
 
-
-def _candidate_numbers(content: str) -> list[str]:
-    found: list[str] = []
-    for match in _MONEY_NUMBER.finditer(content):
-        found.append(match.group(0).strip())
-    for match in _DECIMAL_NUMBER.finditer(content):
-        token = match.group(1)
-        if token not in found and not any(token in item for item in found):
-            found.append(token)
-    return found
+# "VaR 95%" names the confidence level of the formula, not a value the answer
+# moves capital with: 95 is a parameter inside the ledger row name (var_95).
+# It is skipped only when that row exists — otherwise "VaR 8%" would launder an
+# invented number past the bind.
+_CONFIDENCE_LABEL = re.compile(r"(?i)(?:^|[^\w])(var|cvar|es|ic|confidence|confian[cç]a)\s*$")
 
 
 def _parse_number_token(token: str) -> float | None:
     raw = token.replace("R$", "").replace("$", "").replace(" ", "").replace(",", ".")
+    raw = raw.replace("−", "-")  # typographic minus
+    raw = re.sub(r"(?i)(?:%|por\s*cento|per\s*cent|cad|usd|brl|eur)$", "", raw).strip()
     try:
         return float(raw)
     except ValueError:
         return None
+
+
+def _claimed_token(match: re.Match[str]) -> str:
+    """The number as the text claims it, sign included."""
+    raw = match.group("num")
+    sign = match.groupdict().get("sign") or ""
+    if sign and not raw.startswith(("-", "−")):
+        return sign + raw
+    return raw
+
+
+def _decimals_of(raw: str) -> int:
+    for separator in (".", ","):
+        if separator in raw:
+            return len(raw.split(separator, 1)[1])
+    return 0
+
+
+def _is_confidence_level(
+    content: str, start: int, valor: float, ledger_names: frozenset[str]
+) -> bool:
+    """True for the "95" of "VaR 95%" when the ledger has the row that uses it."""
+    if not ledger_names or valor != int(valor):
+        return False
+    match = _CONFIDENCE_LABEL.search(content[:start])
+    if match is None:
+        return False
+    return f"{match.group(1).lower()}_{int(valor)}" in ledger_names
+
+
+def _material_numbers(
+    content: str, ledger_names: frozenset[str] = frozenset()
+) -> list[tuple[int, str, float, str, int]]:
+    """Material numbers in ``content`` as (offset, trecho, valor, unidade, casas)."""
+    claimed: list[tuple[int, int]] = []
+    found: list[tuple[int, str, float, str, int]] = []
+    for pattern, unidade in _TOKEN_PATTERNS:
+        for match in pattern.finditer(content or ""):
+            if any(start < match.end() and match.start() < end for start, end in claimed):
+                continue
+            raw = _claimed_token(match)
+            valor = _parse_number_token(raw)
+            if valor is None:
+                continue
+            claimed.append((match.start(), match.end()))
+            if unidade == "percent" and _is_confidence_level(
+                content, match.start(), valor, ledger_names
+            ):
+                continue
+            found.append((match.start(), match.group(0).strip(), valor, unidade, _decimals_of(raw)))
+    found.sort(key=lambda item: item[0])
+    return found
+
+
+def number_ledger(snapshot: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """``snapshot.numbers`` as ledger rows: each value plus where it came from."""
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("numbers"), dict):
+        return []
+    as_of = str(snapshot.get("as_of") or "")
+    rows: list[dict[str, Any]] = []
+    for name, item in snapshot["numbers"].items():
+        if not isinstance(item, dict):
+            continue
+        value = item.get("value")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        rows.append(
+            {
+                "numero": str(name),
+                "valor": float(value),
+                "unidade": str(item.get("unit") or ""),
+                "fonte": str(item.get("formula_id") or item.get("computed_by") or name),
+                "calculado_em": str(item.get("as_of") or as_of),
+            }
+        )
+    return rows
+
+
+@dataclass(frozen=True)
+class NumberClaim:
+    """A material number read from prose, bound to the code that calculated it.
+
+    ``rastreado`` is the verdict: True means the value exists in
+    ``snapshot.numbers`` (a code calculation); False means the model wrote it
+    and no code source backs it.
+    """
+
+    valor: float
+    trecho: str
+    unidade: str  # "money" | "percent" | "decimal"
+    rastreado: bool
+    fonte: str  # formula_id of the backing ledger row, "" when untraced
+    numero: str  # ledger row name, "" when untraced
+    calculado_em: str  # snapshot as_of of the backing row
+    motivo: str  # "" | "sem_fonte_de_codigo" | "sem_snapshot_congelado"
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def _match_ledger(
+    valor: float, unidade: str, casas: int, ledger: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Find the ledger row a claim may be citing, or None.
+
+    Tolerance comes from how the claim was written, not from a global epsilon:
+    a claim rounds a code number at its own precision ("32%" may cite
+    volatility=0.3187; "$190" may cite 190.5) and may not invent one. The
+    fraction reading of a percentage carries two extra decimals of precision
+    ("8%" is 0.08 — it may not stretch to 0.3187).
+    """
+    tolerance = max(1e-9, 0.5 * (10.0**-casas))
+    for row in ledger:
+        raw = row["valor"]
+        if abs(valor - raw) <= tolerance:
+            return row
+        if unidade != "percent":
+            continue
+        if row["unidade"] in _FRACTION_UNITS and abs(valor - raw * 100.0) <= tolerance:
+            return row
+        if abs(valor / 100.0 - raw) <= tolerance / 100.0:
+            return row
+    return None
+
+
+def number_claims(content: str, snapshot: dict[str, Any] | None = None) -> list[NumberClaim]:
+    """Every material number in ``content`` with the code source behind it.
+
+    The envelope the pipeline reads: numbers are code-calculated and
+    provenance-tracked, the narrative only carries them. An untraced claim is
+    never promoted to a fact — it comes back ``rastreado=False`` with a
+    ``motivo``.
+    """
+    text = content if isinstance(content, str) else str(content or "")
+    if not text.strip():
+        return []
+    frozen = isinstance(snapshot, dict) and bool(snapshot.get("frozen"))
+    ledger = number_ledger(snapshot if frozen else None)
+    ledger_names = frozenset(row["numero"] for row in ledger)
+    claims: list[NumberClaim] = []
+    for _offset, trecho, valor, unidade, casas in _material_numbers(text, ledger_names):
+        row = _match_ledger(valor, unidade, casas, ledger) if ledger else None
+        if row is not None:
+            motivo = ""
+        elif not frozen:
+            motivo = "sem_snapshot_congelado"
+        else:
+            motivo = "sem_fonte_de_codigo"
+        claims.append(
+            NumberClaim(
+                valor=valor,
+                trecho=trecho,
+                unidade=unidade,
+                rastreado=row is not None,
+                fonte=str(row["fonte"]) if row is not None else "",
+                numero=str(row["numero"]) if row is not None else "",
+                calculado_em=str(row["calculado_em"]) if row is not None else "",
+                motivo=motivo,
+            )
+        )
+    return claims
+
+
+def unbound_number_claims(
+    content: str, snapshot: dict[str, Any] | None = None
+) -> list[NumberClaim]:
+    """The claims the bind refuses: numbers no code calculation backs."""
+    return [claim for claim in number_claims(content, snapshot) if not claim.rastreado]
 
 
 def bind_answer_to_snapshot(content: str, snapshot: dict[str, Any] | None) -> str:
@@ -254,16 +460,9 @@ def bind_answer_to_snapshot(content: str, snapshot: dict[str, Any] | None) -> st
         return text
     if not isinstance(snapshot, dict) or not snapshot.get("frozen"):
         return text
-    allowed = _allowed_number_values(snapshot)
-    if not allowed:
+    if not _allowed_number_values(snapshot):
         return text
-    unbound: list[str] = []
-    for token in _candidate_numbers(text):
-        parsed = _parse_number_token(token)
-        if parsed is None:
-            continue
-        if not _near_allowed(parsed, allowed):
-            unbound.append(token)
+    unbound = [claim.trecho for claim in unbound_number_claims(text, snapshot)]
     if not unbound:
         return text
     unique = list(dict.fromkeys(unbound))

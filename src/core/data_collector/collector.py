@@ -122,13 +122,13 @@ class DataCollector:
         return self._quant
 
     async def _get_crisis_analysis(self, ticker: str) -> dict[str, Any]:
-        """Calcula risco sistêmico usando o MacroDataset (Canadá)."""
+        """Calcula risco sistêmico a partir do cache de referência (série longa).
+
+        O MacroDataset ficava como fonte única e, medido em 2026-09-14, devolvia
+        zero observações para os EUA e levantava ImportError (pyarrow ausente)
+        para o Canadá — os 12 sensores fechavam por ``insufficient_data``.
+        """
         try:
-            from core.rag.macro_dataset import macro_engine
-            from experts.crisis.contracts.schemas import (
-                CrisisInput,
-                MacroObservation,
-            )
             from experts.crisis.expert.crisis_expert import CrisisMathExpert
 
             market = detect_market(ticker)
@@ -136,21 +136,42 @@ class DataCollector:
                 market, "United States"
             )
 
-            observations_raw = macro_engine.query_context(country, top_n=24)
-            observations = [MacroObservation(**o) for o in observations_raw]
-
-            expert = CrisisMathExpert()
-            input_data = CrisisInput(
-                country=country, asset_symbol=ticker, observations=observations
+            input_data, data_source = await asyncio.to_thread(
+                self._crisis_input_for, country, ticker
             )
+            if input_data is None:
+                return {"error": "crisis_input_unavailable", "country": country}
 
-            report = await asyncio.to_thread(expert.analyze, input_data)
+            report = await asyncio.to_thread(CrisisMathExpert().analyze, input_data)
             return {
                 "report": report.model_dump(mode="json"),
-                "data_source": "MacroDataset",
+                "data_source": data_source,
+                "observations": len(input_data.observations),
             }
         except Exception as e:  # noqa: BLE001 — fail-soft deliberado: falha de fonte vira erro isolado e a coleta segue
             return {"error": str(e)}
+
+    @staticmethod
+    def _crisis_input_for(country: str, ticker: str) -> tuple[Any, str | None]:
+        """Cache de referência primeiro; MacroDataset como reserva."""
+        from core.data_collector.crisis_history import build_crisis_input
+
+        built = build_crisis_input(country, asset_symbol=ticker)
+        if built is not None:
+            return built, "ReferenceCache"
+
+        from core.rag.macro_dataset import macro_engine
+        from experts.crisis.contracts.schemas import CrisisInput, MacroObservation
+
+        observations = [
+            MacroObservation(**o) for o in macro_engine.query_context(country, top_n=24)
+        ]
+        if not observations:
+            return None, None
+        return (
+            CrisisInput(country=country, asset_symbol=ticker, observations=observations),
+            "MacroDataset",
+        )
 
     async def _get_quantum_analysis(self) -> dict[str, Any]:
         """Compatibility tombstone for the removed no-input random walk."""

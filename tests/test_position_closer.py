@@ -27,6 +27,7 @@ from core.trading.position_closer import (
     close_positions,
     detect_split_factor,
     dry_run_from_env,
+    evaluate_row,
 )
 
 ENTRY_DATE = "2026-01-01T00:00:00Z"
@@ -487,3 +488,46 @@ def test_track_stage_is_wired_in_the_stage_dispatch():
 
     assert HeartbeatStage.TRACK in LIGHT_STAGES
     assert HeartbeatStage.TRACK in FULL_STAGES
+
+
+def test_evaluate_row_aceita_linha_da_caderneta(journal):
+    """`evaluate_row` e a porta publica: aceita a linha da caderneta (recommendation_id).
+
+    E por ela que o contrafactual da caderneta e rotulado -- mesma regra, mesmo
+    veredito, nenhuma segunda implementacao da barreira tripla.
+    """
+    hub = _FakeHub({"XEQT": _bars((100, 101, 99, 100.5), (100.5, 111, 100.4, 110.2))})
+
+    decision = evaluate_row(
+        {
+            "recommendation_id": "rec-abc123",
+            "ticker": "XEQT",
+            "direction": "long",
+            "entry_date": ENTRY_DATE,
+            "stop_loss_price": 95.0,
+            "take_profit_price": 110.0,
+            "time_horizon_bars": 5,
+        },
+        data_hub=hub,
+    )
+
+    assert decision.trade_id == "rec-abc123"
+    assert decision.status == STATUS_WOULD_CLOSE
+    assert decision.exit_reason == "take_profit"
+    assert decision.exit_price == 110.0
+
+
+def test_evaluate_row_sem_barreira_nao_inventa_desfecho(journal):
+    decision = evaluate_row(
+        {
+            "recommendation_id": "rec-sem-barreira",
+            "ticker": "XEQT",
+            "direction": "long",
+            "entry_date": ENTRY_DATE,
+            "expected_holding_period": "swing",
+        },
+        data_hub=_FakeHub({"XEQT": _bars((100, 101, 99, 100.5), (100.5, 111, 100.4, 110.2))}),
+    )
+
+    assert decision.status == STATUS_SKIPPED
+    assert decision.reason == SKIP_MISSING_BARRIERS

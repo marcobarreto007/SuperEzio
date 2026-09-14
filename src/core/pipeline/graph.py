@@ -87,7 +87,12 @@ def _save_shadow_evidence_pack(
             if not isinstance(snapshot, dict) or not snapshot.get("frozen"):
                 math_report = state.get("math_report")
                 math_report = math_report if isinstance(math_report, dict) else {}
-                snapshot = freeze_snapshot(pack=pack, math_report=math_report, run_id=run_id)
+                snapshot = freeze_snapshot(
+                    pack=pack,
+                    math_report=math_report,
+                    run_id=run_id,
+                    extra_numbers=_policy_percentage_numbers(state),
+                )
             snap_path = save_snapshot(snapshot, dest_dir)
             logger.info(
                 "[evidence.snapshot] C2 shadow snapshot=%s numbers=%s digest=%s",
@@ -97,6 +102,41 @@ def _save_shadow_evidence_pack(
             )
     except Exception as exc:  # noqa: BLE001 — shadow write must not abort the stream
         logger.warning("[evidence.pack] shadow write failed: %s", exc)
+
+
+def _policy_percentage_numbers(state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Code-calculated percentages a trade answer may legitimately cite.
+
+    The snapshot ledger would otherwise carry only MathHub numbers, so a
+    correct sentence ("stop de 5% abaixo da entrada", from the adaptive
+    sizing config) read as a model invention and the bind rejected it. These
+    enter the ledger with the same provenance shape as every other number.
+    """
+    try:
+        from core.trading.execution_policy import adaptive_sizing_config
+
+        config = adaptive_sizing_config(state)
+    except Exception as exc:  # noqa: BLE001 — ledger widening is best effort
+        logger.debug("[evidence.snapshot] policy numbers skipped: %s", exc)
+        return []
+    return [
+        {
+            "name": "default_stop_pct",
+            "value": config.get("default_stop_pct"),
+            "unit": "fraction",
+            "formula_id": "execution_policy.default_stop_pct",
+            "provenance": ("adaptive_config",),
+            "computed_by": "execution_policy",
+        },
+        {
+            "name": "max_position_pct",
+            "value": config.get("max_position_pct"),
+            "unit": "fraction",
+            "formula_id": "execution_policy.max_position_pct",
+            "provenance": ("adaptive_config",),
+            "computed_by": "execution_policy",
+        },
+    ]
 
 
 def _freeze_c2_snapshot(working_state: dict[str, Any], output: dict[str, Any], run_id: str) -> None:
@@ -109,7 +149,12 @@ def _freeze_c2_snapshot(working_state: dict[str, Any], output: dict[str, Any], r
         )
         math_report = working_state.get("math_report")
         math_report = math_report if isinstance(math_report, dict) else {}
-        snapshot = freeze_snapshot(pack=pack, math_report=math_report, run_id=run_id)
+        snapshot = freeze_snapshot(
+            pack=pack,
+            math_report=math_report,
+            run_id=run_id,
+            extra_numbers=_policy_percentage_numbers(working_state),
+        )
         _merge_node_update(working_state, output, {"snapshot": snapshot})
     except Exception as exc:  # noqa: BLE001 — C2 must not change the turn on failure
         logger.warning("[evidence.snapshot] C2 freeze failed: %s", exc)
