@@ -8,6 +8,7 @@ import math
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 _OFFICIAL_PLATFORMS = {"WEBBROKER", "TD_APP", "ADVANCED_DASHBOARD", "TD_ACTIVE_TRADER"}
@@ -25,7 +26,7 @@ def _nonnegative(value: Any, field: str) -> float:
         raise TDCostGateError(f"{field} must be a non-negative number") from exc
     if not math.isfinite(number) or number < 0:
         raise TDCostGateError(f"{field} must be a non-negative number")
-    return round(number, 4)
+    return number
 
 
 def _timestamp(value: Any, field: str) -> datetime:
@@ -106,10 +107,21 @@ def normalize_td_preview_costs(
     eligibility_confirmed = preview.get("commission_free_eligibility_confirmed") is True
     if eligible and commission == 0 and not eligibility_confirmed:
         raise TDCostGateError("zero commission requires explicit eligibility confirmation")
-    if ticket.get("require_commission_free") is True and commission != 0:
+    if commission != 0:
         raise TDCostGateError(
             "TD preview shows a commission but this ticket requires commission-free"
         )
+
+    quantity = _nonnegative(ticket.get("quantity"), "ticket.quantity")
+    limit_price = _nonnegative(ticket.get("limit_price"), "ticket.limit_price")
+    notional = Decimal(str(quantity)) * Decimal(str(limit_price))
+    if notional <= 0:
+        raise TDCostGateError("positive ticket notional is required to verify friction")
+    component_total = sum(
+        Decimal(str(cost)) for cost in (commission, spread, fx, ecn, regulatory, other)
+    )
+    if max(Decimal(str(total)), component_total) > notional * Decimal("0.005"):
+        raise TDCostGateError("total TD preview friction exceeds 0.5% of order notional")
 
     economic = {
         "operator": operator,

@@ -748,13 +748,13 @@
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
-	        var historyTitle = "<span>Caderneta de Recomendações &amp; Teses</span>";
+	        var historyTitle = "<span>Caderneta de Recomendações &amp; Teses</span>"; /* Local audit history */
 	        historyHost.innerHTML = [
 	          '<div class="trade-history-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' + historyTitle + '<strong style="color:#00e5ff;">' + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
 	          '<div class="trade-history-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">' + historyRows.join("") + "</div>",
 	        ].join("");
 	      } else if (offlineMode) {
-	        historyHost.innerHTML = '<div class="cockpit-empty">Caderneta de recomendações ativa. Utilize o botão Sugestão ou o scanner TD para simular ordens LIMIT (sem slippage).</div>';
+	        historyHost.innerHTML = '<div class="cockpit-empty">Caderneta de recomendações ativa. Utilize o botão Sugestão ou o scanner TD para simular ordens LIMIT (sem slippage). Paper journal records are audit evidence, not broker positions (open hypotheses: ' + esc(String(tradeStats.open_hypotheses || 0)) + ').</div>';
 	      } else {
 	        historyHost.innerHTML = '<div class="cockpit-empty">No trade history recorded.</div>';
 	      }

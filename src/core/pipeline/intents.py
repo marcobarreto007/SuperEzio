@@ -1598,10 +1598,6 @@ _PRODUCT_STRATEGY_NOUN_HINTS = (
     "carteira",
     "investimento",
     "investimentos",
-    "dica",
-    "dicas",
-    "ideia",
-    "ideias",
     "alocacao",
     "alocação",
 )

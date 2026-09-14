@@ -967,7 +967,7 @@ def _no_data_market_answer(state: dict) -> str:
     try:
         from ..scan_verdict import data_health_facts
 
-        health = data_health_facts()
+        health = data_health_facts(state.get("scan"))
     # Fronteira de melhor esforco: diagnostico nunca derruba a resposta.
     except Exception:  # noqa: BLE001
         health = ()

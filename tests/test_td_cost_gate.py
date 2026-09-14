@@ -19,6 +19,8 @@ def _ticket(**overrides: object) -> dict[str, object]:
             "source_url": "https://www.td.com/official",
         },
         "require_commission_free": False,
+        "quantity": 5,
+        "limit_price": 100,
     }
     ticket.update(overrides)
     return ticket
@@ -95,6 +97,52 @@ def test_required_commission_free_ticket_blocks_unexpected_commission() -> None:
         normalize_td_preview_costs(
             _ticket(require_commission_free=True),
             _preview(estimated_commission=9.99, total_estimated_cost=10.05),
+            actor="marco",
+            now=NOW,
+        )
+
+
+@pytest.mark.parametrize("required", [False, True, None])
+def test_zero_commission_cannot_be_disabled_by_ticket_flag(required):
+    with pytest.raises(TDCostGateError, match="requires commission-free"):
+        normalize_td_preview_costs(
+            _ticket(require_commission_free=required),
+            _preview(estimated_commission=9.99, total_estimated_cost=10.05),
+            actor="marco",
+            now=NOW,
+        )
+
+
+@pytest.mark.parametrize(("spread", "accepted"), [(2.47, True), (2.48, False)])
+def test_total_friction_includes_all_fees_at_half_percent_boundary(spread, accepted):
+    preview = _preview(estimated_spread=spread, total_estimated_cost=round(spread + 0.03, 2))
+    if accepted:
+        assert normalize_td_preview_costs(_ticket(), preview, actor="marco", now=NOW)
+    else:
+        with pytest.raises(TDCostGateError, match="friction exceeds"):
+            normalize_td_preview_costs(_ticket(), preview, actor="marco", now=NOW)
+
+
+def test_missing_notional_cannot_prove_friction():
+    with pytest.raises(TDCostGateError, match="ticket.quantity"):
+        normalize_td_preview_costs(_ticket(quantity=None), _preview(), actor="marco", now=NOW)
+
+
+def test_rounded_total_does_not_hide_excess_cost_components():
+    with pytest.raises(TDCostGateError, match="friction exceeds"):
+        normalize_td_preview_costs(
+            _ticket(),
+            _preview(estimated_spread=2.47001, total_estimated_cost=2.50),
+            actor="marco",
+            now=NOW,
+        )
+
+
+def test_tiny_commission_is_not_rounded_to_zero():
+    with pytest.raises(TDCostGateError, match="requires commission-free"):
+        normalize_td_preview_costs(
+            _ticket(),
+            _preview(estimated_commission=0.00001, total_estimated_cost=0.06001),
             actor="marco",
             now=NOW,
         )

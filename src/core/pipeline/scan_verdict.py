@@ -6,9 +6,12 @@ Telemetry stays out of CHUNK.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -71,11 +74,13 @@ def _extract_amount(message: str) -> str:
     return raw
 
 
-def data_health_facts() -> tuple[str, ...]:
-    """Fatos de saude dos dados do scan (rotas ativas e chaves ausentes).
+def data_health_facts(scan: dict[str, Any] | None = None) -> tuple[str, ...]:
+    """Fatos de saude dos dados do scan (rotas ativas, medicao real e chaves ausentes).
 
     Transparencia pedida no incidente 2026-09-10: o operador precisa ver que
     faltou insumo (ex.: catalisador sem provedor) em vez de so rejeicao muda.
+    Reporta o que foi REALMENTE medido quando o scan executou; caso contrario,
+    reporta as rotas ativas configuradas sem circuito aberto.
     Somente NOMES de chaves — nunca valores.
     """
     try:
@@ -86,8 +91,30 @@ def data_health_facts() -> tuple[str, ...]:
     # Fronteira de melhor esforco: diagnostico nunca derruba o veredito.
     except Exception:  # noqa: BLE001
         return ()
-    price_active = [str(r.get("name")) for r in price if r.get("configured")]
-    catalyst_active = [str(r.get("name")) for r in catalyst if r.get("configured")]
+
+    open_circuits = set()
+    try:
+        from core.resilience import get_circuit
+
+        for r in (*price, *catalyst):
+            name = str(r.get("name") or "")
+            if name:
+                cb = get_circuit(f"data.{name}")
+                if cb.is_open:
+                    open_circuits.add(name)
+    except Exception:
+        logger.debug("Failed checking circuit breaker states", exc_info=True)
+
+    price_configured = [
+        str(r.get("name"))
+        for r in price
+        if r.get("configured") and str(r.get("name")) not in open_circuits
+    ]
+    catalyst_configured = [
+        str(r.get("name"))
+        for r in catalyst
+        if r.get("configured") and str(r.get("name")) not in open_circuits
+    ]
     missing = sorted(
         {
             str(r.get("required_key"))
@@ -95,10 +122,63 @@ def data_health_facts() -> tuple[str, ...]:
             if r.get("required_key") and not r.get("configured")
         }
     )
+
+    scan_trace = (scan.get("scan_trace") or {}) if isinstance(scan, dict) else {}
+    has_telemetry = bool(
+        scan_trace
+        and (
+            "provider_sources_used" in scan_trace
+            or "price_sources_used" in scan_trace
+            or "catalyst_sources_used" in scan_trace
+        )
+    )
+
+    if has_telemetry:
+        price_used = set(scan_trace.get("price_sources_used") or [])
+        catalyst_used = set(scan_trace.get("catalyst_sources_used") or [])
+        general_used = set(scan_trace.get("provider_sources_used") or [])
+
+        price_route_names = {str(r.get("name")) for r in price}
+        catalyst_route_names = {str(r.get("name")) for r in catalyst}
+
+        measured_price: list[str] = [p for p in price_configured if p in price_used]
+        measured_catalyst: list[str] = [c for c in catalyst_configured if c in catalyst_used]
+
+        if isinstance(scan, dict):
+            items = list(scan.get("candidates") or []) + list(scan.get("rejected") or [])
+            for it in items:
+                prov = it.get("provenance") if isinstance(it, dict) else {}
+                if isinstance(prov, dict):
+                    p_src = prov.get("price", {}).get("source")
+                    if p_src and p_src in price_route_names and p_src not in measured_price:
+                        measured_price.append(p_src)
+                    c_src = prov.get("catalyst", {}).get("source")
+                    if (
+                        c_src
+                        and (c_src in catalyst_route_names or "computed" in c_src)
+                        and c_src not in measured_catalyst
+                    ):
+                        measured_catalyst.append(c_src)
+
+        # Fallback when specific capability traces were not recorded:
+        if not price_used and not measured_price:
+            measured_price = [p for p in price_configured if p in general_used]
+        rejection_sum = scan.get("rejection_summary") or {} if isinstance(scan, dict) else {}
+        if not catalyst_used and not measured_catalyst and not rejection_sum.get("missing_catalyst"):
+            measured_catalyst = [c for c in catalyst_configured if c in general_used]
+
+        price_val = ",".join(sorted(measured_price)) or "none"
+        catalyst_val = ",".join(sorted(measured_catalyst)) or "none"
+    else:
+        price_val = ",".join(price_configured) or "none"
+        catalyst_val = ",".join(catalyst_configured) or "none"
+
     facts = [
-        f"price={','.join(price_active) or 'none'}",
-        f"catalyst={','.join(catalyst_active) or 'none'}",
+        f"price={price_val}",
+        f"catalyst={catalyst_val}",
     ]
+    if open_circuits:
+        facts.append(f"circuits_open={','.join(sorted(open_circuits))}")
     if missing:
         facts.append(f"missing_keys={','.join(missing)}")
     return tuple(facts)
@@ -135,7 +215,7 @@ def build_scan_verdict(state: dict[str, Any]) -> ScanVerdict:
         next_step_pt="Me passe um ticker com preco (ex. VFV.TO, TD.TO) ou consulte oportunidades TD no cockpit.",
         next_step_en="Give me a priced ticker (e.g. VFV.TO, TD.TO) or check TD opportunities in the cockpit.",
         source_errors=errors,
-        data_health=data_health_facts(),
+        data_health=data_health_facts(scan),
     )
 
 

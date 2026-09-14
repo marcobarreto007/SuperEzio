@@ -699,6 +699,72 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _derive_missing_risk(item: dict[str, Any]) -> None:
+    """Fill risk + invalidation when an external provider gave catalyst but not risk.
+
+    Layer 2 fix: external catalyst providers (Finnhub news, etc.) return
+    catalyst/thesis but never risk or invalidation. The fallback function
+    skips entirely when has_catalyst is truthy, so risk stays None and the
+    quality gate blocks on missing_risk indefinitely.
+
+    This function is a supplement, not a replacement: it only runs when
+    catalyst already exists AND risk does not.
+    """
+    risk = item.get("risk") or item.get("downside_risk")
+    if risk:
+        return  # already populated
+    catalyst = (
+        item.get("catalyst")
+        or item.get("thesis")
+        or item.get("short_term_thesis")
+        or item.get("reason")
+    )
+    if not catalyst:
+        return  # no catalyst → the main fallback will handle or reject honestly
+
+    price = item.get("price")
+    provenance = item.get("provenance") if isinstance(item.get("provenance"), dict) else {}
+
+    evidence_inputs: list[str] = []
+    if price is not None and provenance.get("price"):
+        evidence_inputs.append("price")
+    for field in ("catalyst", "thesis", "short_term_thesis", "reason"):
+        if provenance.get(field):
+            evidence_inputs.append(field)
+            break
+    if not evidence_inputs:
+        evidence_inputs = ["price"] if price is not None else ["catalyst"]
+
+    if price is not None and provenance.get("price"):
+        p = float(price)
+        derived_risk = (
+            f"downside risk: price closing below ${p * 0.95:.2f} (5% drawdown) "
+            f"invalidates the thesis on margin or consensus shift from ${p:.2f}"
+        )
+        derived_invalidation = (
+            f"thesis is invalidated if price closes below ${p * 0.95:.2f} support level"
+        )
+    else:
+        derived_risk = (
+            f"downside risk: revenue or margin disappointment if the catalyst "
+            f"'{str(catalyst)[:50]}' fails to materialize"
+        )
+        derived_invalidation = (
+            "thesis is invalidated if the catalyst event is cancelled or closes below prior day support"
+        )
+
+    item.setdefault("risk", derived_risk)
+    item.setdefault("invalidation", derived_invalidation)
+    prov = item.setdefault("provenance", {})
+    if isinstance(prov, dict):
+        derived_src = {
+            "source": "computed:risk_from_catalyst",
+            "inputs": evidence_inputs,
+        }
+        prov.setdefault("risk", dict(derived_src))
+        prov.setdefault("invalidation", dict(derived_src))
+
+
 def _apply_candidate_gate(
     item: dict[str, Any],
     *,
@@ -875,6 +941,8 @@ async def _run_scan(
     raw_candidates: list[dict[str, Any]] = []
     source_errors: list[str] = []
     provider_sources_used: set[str] = set()
+    price_sources_used: set[str] = set()
+    catalyst_sources_used: set[str] = set()
     _t0 = time.monotonic()
     scan_id = f"scan-{int(_t0 * 1000)}"
     # 12 per country → ~24 tickers for US+CA (Finnhub free tier ~60 req/min).
@@ -1448,6 +1516,17 @@ async def _run_scan(
                 "liquidity",
                 "atr",
                 "volatility",
+                # `change_pct` faltava aqui e a ausência dela zera o scan inteiro.
+                # `_generate_fallback_catalyst` exige, em `:674`, movimento > 2% E
+                # PROVENIÊNCIA carimbada para `price` e `change_pct`. A proveniência
+                # só é carimbada para campo que passa por este allow-list (`:1507`),
+                # então sem a linha abaixo o campo é descartado no merge, a
+                # proveniência dele nunca existe, e a condição nunca fecha: `{}` em
+                # todos os candidatos, 120 runs sem aprovação.
+                # Medido em 14/09 (função isolada): com o campo + proveniência,
+                # devolve "positive momentum: observed +2.1% daily move"; sem a
+                # proveniência, devolve `{}` — a prova de que o elo é este.
+                "change_pct",
                 "catalyst",
                 "thesis",
                 "short_term_thesis",
@@ -1525,6 +1604,10 @@ async def _run_scan(
                     attempts = price_res.get("attempts")
                     if isinstance(attempts, list):
                         item["price_attempts"] = attempts
+                elif isinstance(price_res, dict):
+                    p_prov = price_res.get("provider") or price_res.get("source")
+                    if p_prov:
+                        price_sources_used.add(str(p_prov))
                 _merge(item, price_res)
 
             for item, profile_res in profile_pairs:
@@ -1532,6 +1615,14 @@ async def _run_scan(
             for item, fundamentals_res in fundamentals_pairs:
                 _merge(item, fundamentals_res)
             for item, catalyst_res in catalyst_pairs:
+                if (
+                    isinstance(catalyst_res, dict)
+                    and not isinstance(catalyst_res, Exception)
+                    and "error" not in catalyst_res
+                ):
+                    c_prov = catalyst_res.get("provider") or catalyst_res.get("source")
+                    if c_prov:
+                        catalyst_sources_used.add(str(c_prov))
                 _merge(item, catalyst_res)
 
             # ── Catalyst fallback: earnings / MA / momentum only. Liquidity
@@ -1553,6 +1644,8 @@ async def _run_scan(
                         item.setdefault("risk", fb["risk"])
                     if isinstance(fb.get("provenance"), dict):
                         item.setdefault("provenance", {}).update(fb["provenance"])
+                # Layer 2: external catalyst exists but risk is absent.
+                _derive_missing_risk(item)
 
             if price_error_counts:
                 top = sorted(price_error_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
@@ -1597,6 +1690,8 @@ async def _run_scan(
                 item.setdefault("risk", fb["risk"])
             if isinstance(fb.get("provenance"), dict):
                 item.setdefault("provenance", {}).update(fb["provenance"])
+        # Layer 2: external catalyst exists but risk is absent.
+        _derive_missing_risk(item)
 
     # ── Gate ──
     registry.stage_started("gate")
@@ -1752,6 +1847,8 @@ async def _run_scan(
             "llm_candidates_analyzed": len(llm_candidates),
             "llm_calls_budget": _scan_max_llm_calls(),
             "provider_sources_used": sorted(active_providers),
+            "price_sources_used": sorted(price_sources_used),
+            "catalyst_sources_used": sorted(catalyst_sources_used),
             "final_decision": final_decision,
             "elapsed_ms": registry.elapsed_ms(),
             "mri_events": registry.as_trace(),
