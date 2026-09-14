@@ -1,0 +1,37 @@
+{
+  "date_local": "2026-09-13",
+  "session": "meta-labeling-triple-barrier",
+  "status": "APPLIED_LOCAL",
+  "objective": "Implementação do modelo de Meta-Labeling e Triple Barrier Method (Marcos López de Prado) para calibração probabilística pré-broker, sizing fracionário contínuo e abstenção seletiva (fail-closed) na banca de $1.000 CAD e mandate de taxa zero.",
+  "predecessor": "micro-capital-zero-commission-protocol",
+  "invariants": {
+    "github": "DISK ONLY",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "c1_c4": "active",
+    "zero_commission_mandate": "ENFORCED",
+    "meta_labeling_gate": "ENFORCED"
+  },
+  "files": [
+    "src/core/trading/meta_labeling.py",
+    "src/core/trading/__init__.py",
+    "src/core/trading/execution_policy.py",
+    "src/core/pipeline/nodes/tool_executor.py",
+    "tests/test_meta_labeling.py",
+    "tests/test_execution_policy.py",
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "rollback": "git revert local",
+  "next_step": "Freshness Gate de tempo real (Sprint 5) e validação de ponta a ponta.",
+  "verification": {
+    "ruff": "All checks passed!",
+    "pytest_meta_labeling": "6 passed in 1.76s",
+    "pytest_execution_policy": "8 passed in 1.81s"
+  },
+  "still_true": {
+    "github": "DISK ONLY",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY"
+  }
+}
