@@ -64,9 +64,13 @@ def judge_block_reason(state: Mapping[str, Any]) -> str | None:
 MICRO_CAPITAL_MAX_RISK_PCT = 0.015
 
 # Assimetria positiva minima exigida (CLAUDE.md regra 7: alvo >= 2,5:1 o stop).
-# NOTA: core/trading/meta_labeling.py usa 2.0 para o mesmo conceito — a
-# divergencia esta reportada ao operador, nao resolvida em silencio aqui.
+# Fonte unica do numero: core/trading/meta_labeling.py (MIN_ASYMMETRY_RATIO)
+# foi alinhado a este 2.5, o mesmo que o protocolo escrito exige.
 MICRO_CAPITAL_MIN_ASYMMETRY = 2.5
+
+# Quantos stop-outs cheios no MESMO dia (UTC) encerram o dia no kill switch.
+# Derivado do protocolo, nao escolhido: ver kill_switch._derived_daily_loss_limit.
+DAILY_LOSS_LIMIT_TRADE_MULTIPLE = 3
 
 
 def micro_capital_survival_block_reason(
@@ -76,18 +80,21 @@ def micro_capital_survival_block_reason(
     limit_price: float | None = None,
     stop_loss_price: float | None = None,
     take_profit_price: float | None = None,
+    qty: float | None = None,
     order_type: str = "LIMIT",
 ) -> str | None:
     """Enforce the strict $1,000 CAD micro-capital survival rules (Ezio & MIKE global mandate).
 
     1. ZERO COMMISSION: Only commission-free instruments (TD 108 ETFs or confirmed zero-commission quota).
-    2. STRICT RISK LIMIT: Max risk <= 1.5% of equity ($15 on $1,000 CAD).
+    2. STRICT RISK LIMIT: total order risk (|entry - stop| x qty) <= 1.5% of
+       equity ($15 on $1,000 CAD). The budget is per TRADE, so the comparison
+       must use the whole order, not the risk of a single share.
     3. NO MARKET ORDERS: Only LIMIT orders permitted to avoid catastrophic slippage.
     4. MINIMUM ASYMMETRY: take profit >= 2.5x the stop distance. Trades 1:1 are
        forbidden, so a missing target is a missing proof and blocks.
 
-    Everything is fail-closed: absent prices or an unknown equity block the
-    order instead of silently skipping the check.
+    Everything is fail-closed: absent prices, an unknown equity or a missing
+    share count block the order instead of silently skipping the check.
     """
     clean_type = str(order_type or "LIMIT").strip().upper()
     if clean_type in {"MKT", "MARKET"}:
@@ -109,15 +116,23 @@ def micro_capital_survival_block_reason(
             "micro-capital survival protocol requires zero commission"
         )
 
-    # Risk per share check against the risk budget DERIVED FROM EQUITY
-    # (1.5% of the configured bankroll), not a hardcoded $15.
-    # CAVEAT reported to the operator: this compares risk PER SHARE with the
-    # risk budget PER TRADE. They are different quantities — without the share
-    # count this gate cannot measure the order's total risk, so a 10-share
-    # order at $10 risk/share passes here while risking $100 (10% of a $1,000
-    # bankroll). Deriving the number keeps today's comparison (no regression)
-    # and removes the magic constant; fixing the concept needs `qty`.
+    # Total-risk check against the budget DERIVED FROM EQUITY (1.5% of the
+    # configured bankroll), never a hardcoded $15. The budget is PER TRADE, so
+    # the gate compares the risk of the WHOLE ORDER (|entry - stop| x qty):
+    # 10 shares at $10 of risk each is $100 of risk — 10% of a $1,000 bankroll,
+    # not the $10 a per-share comparison would have seen. Without `qty` the
+    # order's risk is unknowable, so fail closed instead of assuming one share.
     if limit_price is not None and stop_loss_price is not None:
+        try:
+            shares = float(qty) if qty is not None else 0.0
+        except (TypeError, ValueError):
+            shares = 0.0
+        if not math.isfinite(shares) or shares <= 0:
+            return (
+                "risk_unknown: qty missing or non-positive, cannot measure the order's "
+                "total risk against the micro-capital trade risk budget"
+            )
+
         from core.mission_context import get_mission_equity
 
         equity = state.get("paper_equity") or get_mission_equity()
@@ -128,9 +143,11 @@ def micro_capital_survival_block_reason(
             )
         max_risk_budget = float(equity) * MICRO_CAPITAL_MAX_RISK_PCT
         risk_per_share = abs(limit_price - stop_loss_price)
-        if risk_per_share > max_risk_budget:
+        total_risk = risk_per_share * shares
+        if total_risk > max_risk_budget:
             return (
-                f"risk_per_share_too_wide: risk per share ${risk_per_share:.2f} exceeds "
+                f"risk_exceeds_budget: total risk ${total_risk:.2f} ({shares:g} shares x "
+                f"${risk_per_share:.2f}/share) exceeds "
                 f"micro-capital trade risk budget of ${max_risk_budget:.2f} CAD "
                 f"({MICRO_CAPITAL_MAX_RISK_PCT * 100:.1f}% of ${float(equity):.2f})"
             )

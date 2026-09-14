@@ -215,6 +215,52 @@ def test_kill_switch_stays_inactive_with_a_known_equity():
     assert switch.state.peak_equity == 1000.0
 
 
+# ══════════════════════════════════════════════════════════════════════
+# ITEM 2b — o limite de perda DIARIA e derivado do protocolo, nao 50% da banca
+# ══════════════════════════════════════════════════════════════════════
+
+
+def test_daily_loss_limit_is_derived_from_the_bankroll():
+    """3 stop-outs cheios (3 x 1,5% de $1.000) = $45, nao os $500 antigos.
+
+    $500 era metade da banca: o switch so acordava depois de o dia ja ter
+    destruido 50% do capital, o oposto de "preservacao absoluta".
+    """
+    from core.trading.kill_switch import KillSwitch
+
+    switch = KillSwitch(initial_equity=1000.0)
+
+    assert switch.daily_loss_limit == pytest.approx(45.0)
+    assert switch.daily_loss_limit == pytest.approx(3 * 0.015 * get_mission_equity())
+
+
+def test_daily_loss_limit_trips_on_the_third_full_stop_out():
+    from core.trading.kill_switch import KillSwitch, KillSwitchReason
+
+    switch = KillSwitch(initial_equity=1000.0)
+
+    assert switch.record_trade(-15.0) is False
+    assert switch.record_trade(-15.0) is False
+    assert switch.record_trade(-15.0) is True  # $45 acumulados no dia
+    assert switch.state.reason == KillSwitchReason.DAILY_LOSS_LIMIT
+
+
+def test_daily_loss_limit_explicit_value_still_wins():
+    """A derivacao e o default; um numero explicito do chamador nao e ignorado."""
+    from core.trading.kill_switch import KillSwitch
+
+    assert KillSwitch(daily_loss_limit=500.0, initial_equity=1000.0).daily_loss_limit == 500.0
+
+
+def test_daily_loss_limit_is_zero_when_equity_is_unknown():
+    """Sem banca nao existe orcamento diario legitimo: tolerancia zero."""
+    from core.trading.kill_switch import KillSwitch
+
+    switch = KillSwitch(initial_equity=None)
+
+    assert switch.daily_loss_limit == 0.0
+
+
 def test_get_kill_switch_activates_when_mission_equity_is_unknown(monkeypatch, tmp_path):
     """O singleton global tambem nasce ativo quando a banca e desconhecida."""
     from core.trading import kill_switch as kill_switch_module
@@ -255,6 +301,7 @@ def test_risk_budget_moves_with_equity_and_is_not_a_hardcoded_fifteen():
         limit_price=100.0,
         stop_loss_price=70.0,  # $30 de risco por acao
         take_profit_price=190.0,  # 3:1
+        qty=1,  # risco TOTAL da ordem = $30, o orcamento inteiro de $2.000
         order_type="LIMIT",
     )
 
@@ -270,11 +317,12 @@ def test_risk_budget_still_blocks_above_1_5_pct_of_a_thousand():
         limit_price=100.0,
         stop_loss_price=84.99,  # $15.01 de risco por acao
         take_profit_price=200.0,
+        qty=1,
         order_type="LIMIT",
     )
 
     assert reason is not None
-    assert "risk_per_share_too_wide" in reason
+    assert "risk_exceeds_budget" in reason
     assert "15.00" in reason  # o orcamento derivado, nao a constante solta
 
 

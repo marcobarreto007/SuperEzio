@@ -12,6 +12,31 @@ from typing import Any
 from core.trading.workflow_store import TradeWorkflowStore, resolve_workflow_db_path
 
 
+def _derived_daily_loss_limit(initial_equity: float | None) -> float:
+    """Limite de perda DIARIA acumulada derivado do protocolo, nao escolhido.
+
+    Conta: CLAUDE.md regra 7 arrisca 1.0%-1.5% do equity por trade e trata
+    "preservacao de capital" como prioridade absoluta. O limite diario e a
+    leitura conservadora desse teto: aceitar o topo do intervalo (1,5%) em
+    DAILY_LOSS_LIMIT_TRADE_MULTIPLE stop-outs cheios no mesmo dia UTC.
+
+        3 x 1,5% x $1.000 = $45 CAD/dia  (era 500.0 = 50% da banca)
+
+    Banca desconhecida nao vira banca chutada: sem equity nao existe orcamento
+    diario legitimo, entao o limite e 0.0 — tolerancia zero. O switch ja nasce
+    ativo com EQUITY_UNKNOWN nesse caso, este numero apenas nao afrouxa nada.
+    """
+    if initial_equity is None:
+        return 0.0
+
+    from core.trading.execution_policy import (
+        DAILY_LOSS_LIMIT_TRADE_MULTIPLE,
+        MICRO_CAPITAL_MAX_RISK_PCT,
+    )
+
+    return abs(float(initial_equity)) * MICRO_CAPITAL_MAX_RISK_PCT * DAILY_LOSS_LIMIT_TRADE_MULTIPLE
+
+
 class KillSwitchReason(Enum):
     DAILY_LOSS_LIMIT = "daily_loss_limit"
     MAX_DRAWDOWN = "max_drawdown"
@@ -47,7 +72,11 @@ class KillSwitch:
 
     def __init__(
         self,
-        daily_loss_limit: float = 500.0,
+        # None = "derive do protocolo" (3 x 1,5% do equity). Era 500.0 cravado,
+        # isto e, 50% da banca de $1.000 — incompativel com preservacao de
+        # capital. Passar um numero explicito continua valendo (testes,
+        # cenarios de operador) e vence a derivacao.
+        daily_loss_limit: float | None = None,
         max_drawdown_pct: float = 0.10,
         max_consecutive_losses: int = 5,
         # 10000.0 continua sendo o default de CLASSE, visivel na assinatura e
@@ -58,6 +87,8 @@ class KillSwitch:
         store: TradeWorkflowStore | None = None,
         state_key: str = "global_kill_switch",
     ):
+        if daily_loss_limit is None:
+            daily_loss_limit = _derived_daily_loss_limit(initial_equity)
         self.daily_loss_limit = abs(daily_loss_limit)
         self.max_drawdown_pct = max_drawdown_pct
         self.max_consecutive_losses = max_consecutive_losses

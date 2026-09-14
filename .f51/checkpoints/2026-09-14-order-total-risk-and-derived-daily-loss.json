@@ -1,0 +1,38 @@
+{
+  "date_local": "2026-09-14",
+  "session": "order-total-risk-and-derived-daily-loss",
+  "status": "APPLIED_LOCAL",
+  "objective": "Cálculo de risco total da ordem (|entry - stop| x qty <= 1.5% equity) no micro_capital_survival_block_reason eliminando bypass por share única; limite diário de perda do KillSwitch derivado do protocolo (3 x 1.5% x equity = $45 CAD/dia na banca de $1.000 em vez de $500 hardcoded); alinhamento do MIN_ASYMMETRY_RATIO para 2.5 no meta_labeling; e cobertura E2E completa no test_auto_full_analysis.",
+  "predecessor": "micro-capital-truth-and-reference-data",
+  "invariants": {
+    "github": "DISK ONLY",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY",
+    "c1_c4": "active",
+    "zero_commission_mandate": "ENFORCED",
+    "meta_labeling_gate": "ENFORCED",
+    "equity_truth": "DERIVED_OR_FAIL_CLOSED",
+    "total_order_risk": "ENFORCED",
+    "derived_daily_loss": "ENFORCED"
+  },
+  "files": [
+    "src/core/pipeline/nodes/tool_executor.py",
+    "src/core/trading/execution_policy.py",
+    "src/core/trading/kill_switch.py",
+    "src/core/trading/meta_labeling.py",
+    "tests/test_auto_full_analysis.py",
+    "tests/test_execution_policy.py",
+    "tests/test_micro_capital_protocol_truth.py"
+  ],
+  "rollback": "git revert local",
+  "next_step": "Freshness Gate de tempo real (Sprint 5) e validação de ponta a ponta.",
+  "verification": {
+    "ruff": "All checks passed! 7 files checked/formatted",
+    "pytest_core_suite": "70 passed in 51.82s"
+  },
+  "still_true": {
+    "github": "DISK ONLY",
+    "live_execution": "FROZEN",
+    "paper_topology": "LOOPBACK_ONLY"
+  }
+}

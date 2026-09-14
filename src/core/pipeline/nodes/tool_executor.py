@@ -498,12 +498,16 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     except (TypeError, ValueError):
         take_profit_price = None
 
+    # requested_qty (nao o qty ja capado pelo sizer, que so roda depois): o
+    # orcamento de risco e por TRADE, entao o gate mede a ordem como ela foi
+    # pedida. Medir o capado deixaria passar risco que o operador nao pediu.
     survival_block = micro_capital_survival_block_reason(
         state,
         symbol,
         limit_price=limit_price,
         stop_loss_price=stop_loss_price,
         take_profit_price=take_profit_price,
+        qty=requested_qty,
         order_type=str(args.get("order_type", "LIMIT")),
     )
     if survival_block:

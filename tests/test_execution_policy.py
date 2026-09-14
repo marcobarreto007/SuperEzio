@@ -90,6 +90,7 @@ def test_micro_capital_survival_allows_commission_free_etf():
         limit_price=500.0,
         stop_loss_price=495.0,
         take_profit_price=515.0,
+        qty=1,
         order_type="LIMIT",
     )
     assert reason is None
@@ -121,6 +122,7 @@ def test_micro_capital_survival_allows_non_free_stock_with_td_easy_trade_quota()
         limit_price=10.0,
         stop_loss_price=9.5,
         take_profit_price=11.5,  # 3:1
+        qty=1,
         order_type="LIMIT",
     )
     assert reason is None
@@ -137,6 +139,7 @@ def test_micro_capital_survival_allows_three_to_one_asymmetry():
             limit_price=100.0,
             stop_loss_price=95.0,  # $5 stop
             take_profit_price=115.0,  # $15 target = 3:1
+            qty=1,
             order_type="LIMIT",
         )
         is None
@@ -153,6 +156,7 @@ def test_micro_capital_survival_blocks_insufficient_asymmetry():
         limit_price=100.0,
         stop_loss_price=95.0,  # $5 stop
         take_profit_price=107.5,  # $7.50 target = 1.5:1
+        qty=1,
         order_type="LIMIT",
     )
     assert reason is not None
@@ -170,6 +174,7 @@ def test_micro_capital_survival_fails_closed_without_take_profit():
         "SPY",
         limit_price=100.0,
         stop_loss_price=95.0,
+        qty=1,
         order_type="LIMIT",
     )
     assert reason is not None
@@ -215,7 +220,89 @@ def test_micro_capital_survival_blocks_excessive_risk_spread():
         "SPY",
         limit_price=500.0,
         stop_loss_price=475.0,  # $25 risk per share
+        qty=1,
         order_type="LIMIT",
     )
     assert reason is not None
-    assert "risk_per_share_too_wide" in reason
+    assert "risk_exceeds_budget" in reason
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Risco por TRADE, nao por acao: o orcamento e 1,5% da banca e a ordem
+# inteira (|entrada - stop| x qty) tem que caber nele.
+# ══════════════════════════════════════════════════════════════════════
+
+
+def test_micro_capital_survival_allows_order_that_fits_the_trade_budget():
+    """10 acoes a $1 de risco = $10 de risco total, dentro dos $15 de $1.000."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {"paper_equity": 1000.0},
+        "SPY",
+        limit_price=100.0,
+        stop_loss_price=99.0,  # $1 de risco por acao
+        take_profit_price=103.0,  # 3:1
+        qty=10,  # $10 de risco total <= $15
+        order_type="LIMIT",
+    )
+
+    assert reason is None
+
+
+def test_micro_capital_survival_blocks_total_risk_over_budget():
+    """O cenario que passava indevidamente: 10 x $10 = $100 = 10% da banca.
+
+    Antes o gate comparava apenas o risco POR ACAO ($10) com o orcamento de
+    risco POR TRADE ($15) e liberava uma ordem que arriscava dez vezes mais.
+    """
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {"paper_equity": 1000.0},
+        "SPY",
+        limit_price=100.0,
+        stop_loss_price=90.0,  # $10 de risco por acao
+        take_profit_price=130.0,  # 3:1
+        qty=10,  # $100 de risco total >> $15
+        order_type="LIMIT",
+    )
+
+    assert reason is not None
+    assert "risk_exceeds_budget" in reason
+    assert "100.00" in reason  # o risco TOTAL, nao o por acao
+    assert "15.00" in reason
+
+
+def test_micro_capital_survival_fails_closed_without_qty():
+    """Sem qty nao existe risco de ordem mensuravel: bloqueia, nao assume 1 acao."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {"paper_equity": 1000.0},
+        "SPY",
+        limit_price=100.0,
+        stop_loss_price=99.0,
+        take_profit_price=103.0,
+        order_type="LIMIT",
+    )
+
+    assert reason is not None
+    assert "risk_unknown" in reason
+
+
+def test_micro_capital_survival_fails_closed_with_non_positive_qty():
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    for bad_qty in (0, -5):
+        reason = micro_capital_survival_block_reason(
+            {"paper_equity": 1000.0},
+            "SPY",
+            limit_price=100.0,
+            stop_loss_price=99.0,
+            take_profit_price=103.0,
+            qty=bad_qty,
+            order_type="LIMIT",
+        )
+        assert reason is not None, bad_qty
+        assert "risk_unknown" in reason

@@ -27,7 +27,10 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DEFAULT_META_LABEL_THRESHOLD = 0.55
-MIN_ASYMMETRY_RATIO = 2.0
+# Minimo normativo do protocolo escrito: CLAUDE.md:33 exige alvo de no minimo
+# 2,5:1 sobre o stop. Estava 2.0 aqui e divergia do gate de execucao
+# (execution_policy.MICRO_CAPITAL_MIN_ASYMMETRY); alinhado a 2,5.
+MIN_ASYMMETRY_RATIO = 2.5
 TARGET_ASYMMETRY_RATIO = 2.5
 
 
@@ -263,7 +266,8 @@ def evaluate_meta_labeling_gate(
             rejection_reason=str(exc),
         )
 
-    # If asymmetry is below strict survival minimum (2.0:1), fail immediately
+    # If asymmetry is below the strict survival minimum (2.5:1, CLAUDE.md:33),
+    # fail immediately — 1:1-ish trades are forbidden by the protocol.
     if barriers.asymmetry_ratio < MIN_ASYMMETRY_RATIO:
         return MetaLabelResult(
             allowed=False,

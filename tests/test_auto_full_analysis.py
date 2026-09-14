@@ -496,19 +496,28 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
     # Risk is always derived from entry price and the default stop (5% -> 95.0).
     # qty=100 would land exactly on the $500 auto-approve boundary and fall
     # through to broker submission, so qty=200 keeps the pending path covered.
+    #
+    # SPY (TD commission-free ETF) e nao PLUG: o protocolo de micro-capital
+    # proibe ativo com comissao, entao o ticker do fixture tem que vir do
+    # universo de 108 ETFs livres. paper_equity tambem e explicito porque
+    # agora o gate mede o risco TOTAL da ordem ($5/share x 200 = $1.000)
+    # contra 1,5% da banca — que precisa caber para o teste chegar no
+    # approval gate. O alvo de 3:1 existe porque alvo ausente e bloqueio.
     result = await tool_executor_module._submit_paper_order(
         {
             "run_id": "approval-pending-test",
             "ticket_allowed": True,
+            "paper_equity": 100_000.0,
             "neural_decision": _ready_neural_decision(),
         },
         {
-            "ticker": "PLUG",
+            "ticker": "SPY",
             "action": "buy",
             "qty": 200,
             "order_type": "LMT",
             "limit_price": 100.0,
             "stop_loss_price": 94.99,
+            "take_profit_price": 115.0,
         },
     )
 
@@ -536,24 +545,29 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
             "neural_decision": _ready_neural_decision(),
         },
         {
-            "ticker": "PLUG",
+            "ticker": "SPY",
             "action": "buy",
-            "qty": 1000,
+            # qty=200: pedido maior que o teto do sizer (100) para provar o
+            # cap, e ainda assim dentro do orcamento de risco do protocolo
+            # ($5/share x 200 = $1.000 <= 1,5% de $100.000). Com 1000 o gate
+            # de micro-capital bloquearia a ordem antes do approval gate.
+            "qty": 200,
             "order_type": "LMT",
             "limit_price": 100.0,
             "stop_loss_price": 94.99,
+            "take_profit_price": 115.0,
         },
     )
 
     assert result["submit_paper_order_error"].startswith("approval_pending:apr-")
-    assert result["position_sizing"]["requested_qty"] == 1000
+    assert result["position_sizing"]["requested_qty"] == 200
     assert result["position_sizing"]["approved_qty"] == 100
     assert result["position_sizing"]["capped"] is True
-    # risk_amount now calculated on REQUESTED qty (1000), not capped qty (100).
+    # risk_amount now calculated on REQUESTED qty (200), not capped qty (100).
     # The args stop_loss_price (94.99) is intentionally ignored — stop is always
     # derived from entry price and the default stop (5% -> 95.0), so risk is
-    # (100 - 95.0) * 1000 = 5000, NOT (100 - 94.99) * 1000 = 5010.
-    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5000.0)
+    # (100 - 95.0) * 200 = 1000, NOT (100 - 94.99) * 200 = 1002.
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(1000.0)
 
 
 @pytest.mark.asyncio
@@ -660,11 +674,14 @@ async def test_submit_paper_order_applies_adaptive_stop_and_position_cap(monkeyp
             "neural_decision": _ready_neural_decision(),
         },
         {
-            "ticker": "PLUG",
+            "ticker": "SPY",
             "action": "buy",
             "qty": 200,
             "order_type": "LMT",
             "limit_price": 100.0,
+            # stop derivado 97.0 ($3/share) -> alvo 3,33:1, acima do 2,5:1.
+            # Risco total $600 dentro dos 1,5% de $100.000.
+            "take_profit_price": 110.0,
         },
     )
 
@@ -672,6 +689,130 @@ async def test_submit_paper_order_applies_adaptive_stop_and_position_cap(monkeyp
     assert result["paper_approval_request"]["stop_loss_price"] == pytest.approx(97.0)
     assert result["paper_approval_request"]["risk_amount"] == pytest.approx(600.0)
     assert result["position_sizing"]["approved_qty"] == 50
+
+
+@pytest.mark.asyncio
+async def test_submit_paper_order_blocks_ten_by_ten_total_risk(monkeypatch):
+    """10 acoes a $10 de risco = $100, 10% da banca de $1.000: bloqueado.
+
+    Prova que o `qty` chega ao gate pelo caminho de producao. O teste de
+    unidade em tests/test_execution_policy.py cobre a conta; este cobre o
+    encanamento — se alguem parar de passar o qty no tool_executor, a ordem
+    volta a passar com apenas o risco POR ACAO ($10 <= $15) sendo comparado.
+    """
+    from core.trading.kill_switch import reset_kill_switch_for_test
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    reset_kill_switch_for_test()
+
+    result = await tool_executor_module._submit_paper_order(
+        {
+            "run_id": "total-risk-test",
+            "ticket_allowed": True,
+            # Banca do protocolo: $1.000 CAD -> orcamento de $15 por trade.
+            "paper_equity": 1000.0,
+            "adaptive_config": {"stop_loss_pct": 0.10},  # stop derivado -> 90.0
+            "neural_decision": _ready_neural_decision(),
+        },
+        {
+            "ticker": "SPY",
+            "action": "buy",
+            "qty": 10,
+            "order_type": "LMT",
+            "limit_price": 100.0,
+            "take_profit_price": 130.0,  # 3:1 sobre o stop de 90.0
+        },
+    )
+
+    assert result["submit_paper_order_error"].startswith("micro_capital_survival:")
+    assert "risk_exceeds_budget" in result["submit_paper_order_error"]
+    assert "100.00" in result["submit_paper_order_error"]  # risco TOTAL da ordem
+    assert "15.00" in result["submit_paper_order_error"]  # o orcamento derivado
+
+
+@pytest.mark.asyncio
+async def test_submit_paper_order_blocks_ticker_outside_the_free_universe(monkeypatch):
+    """PLUG (acao comum, com comissao no TD) e recusado pelo protocolo de taxa zero.
+
+    Os tres testes de aprovacao acima usavam PLUG antes de o protocolo existir;
+    este teste trava o comportamento de proposito em vez de deixar o ticker
+    proibido voltar por descuido. Se a consulta ao manifesto dos 108 ETFs
+    quebrar, este teste cai junto.
+    """
+    from core.trading.kill_switch import reset_kill_switch_for_test
+    from core.trading.td_universe import is_commission_free
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    reset_kill_switch_for_test()
+    assert is_commission_free("PLUG") is False
+
+    result = await tool_executor_module._submit_paper_order(
+        {
+            "run_id": "commission-free-block-test",
+            "ticket_allowed": True,
+            "paper_equity": 100_000.0,
+            "neural_decision": _ready_neural_decision(),
+        },
+        {
+            "ticker": "PLUG",
+            "action": "buy",
+            "qty": 10,
+            "order_type": "LMT",
+            "limit_price": 100.0,
+            "take_profit_price": 115.0,
+        },
+    )
+
+    assert result["submit_paper_order_error"].startswith(
+        "micro_capital_survival:zero_commission_violation"
+    )
+
+
+@pytest.mark.asyncio
+async def test_auto_execute_paper_blocks_and_does_not_size_when_equity_is_unknown(
+    monkeypatch, tmp_path
+):
+    """Equity desconhecido => a ordem nao executa, com motivo auditavel.
+
+    O caminho cobria `paper_exec_blocked: equity_unknown` sem nenhum teste:
+    era o unico ponto do no onde a banca ausente parava a ordem. As bordas
+    pesadas do no (idempotencia em disco e o F51 trade gate) entram isoladas
+    por uma linha cada, apontando para tmp_path / devolvendo ALLOW — o que o
+    teste prova e a decisao, nao a infra delas.
+    """
+    import importlib
+    from types import SimpleNamespace
+
+    import core.pipeline.f51_trade_gate as trade_gate_module
+
+    # `core.pipeline.nodes.auto_execute_paper` resolve para a FUNCAO reexportada
+    # no __init__ do pacote; o modulo de verdade vem pelo importlib.
+    aep_module = importlib.import_module("core.pipeline.nodes.auto_execute_paper")
+
+    monkeypatch.setenv("SUPEREZIO_DEDUP_DIR", str(tmp_path))
+    monkeypatch.setattr(aep_module, "get_stream_writer", lambda: lambda _event: None)
+    monkeypatch.setattr(
+        trade_gate_module,
+        "evaluate_trade_gate",
+        lambda **_kwargs: SimpleNamespace(status="ALLOW"),
+    )
+    monkeypatch.setattr("core.mission_context.get_mission_equity", lambda *a, **k: None)
+
+    result = await aep_module.auto_execute_paper(
+        {
+            "run_id": "auto-execute-equity-unknown-test",
+            "message": "comprar 10 SPY a 100.00",
+            "submit_paper_order_result": {"symbol": "SPY", "qty": 10, "action": "buy"},
+            "neural_decision": _ready_neural_decision(),
+        }
+    )
+
+    assert result["paper_exec_blocked"] == "equity_unknown"
+    # Nao houve dimensionamento nem submissao: o unico destino e o bloqueio.
+    assert "position_sizing" not in result
+    assert "submit_paper_order_result" not in result
 
 
 def test_default_market_scan_contract_gates_paper_submission_tool(monkeypatch):
