@@ -484,11 +484,26 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     # the approval_gate auto-approval threshold (risk <= $500) without a human.
     stop_loss_price = float(limit_price * (1 - sizing_config["default_stop_pct"]))
 
+    # Take profit: ao contrario do stop, o alvo NAO define o risco maximo —
+    # um alvo mais largo nao aumenta a perda, so facilita a assimetria. Por
+    # isso a proposta do modelo e aceita como ENTRADA do gate de 2,5:1, sem
+    # nunca substituir o stop derivado acima. Quem decide e o gate: se o alvo
+    # nao provar 2,5:1 (ou nao vier), a ordem para — e a proibicao de trade
+    # 1:1 do protocolo que exige isso.
+    raw_take_profit = args.get("take_profit_price", args.get("take_profit"))
+    if raw_take_profit is None:
+        raw_take_profit = args.get("target_price")
+    try:
+        take_profit_price = float(raw_take_profit) if raw_take_profit is not None else None
+    except (TypeError, ValueError):
+        take_profit_price = None
+
     survival_block = micro_capital_survival_block_reason(
         state,
         symbol,
         limit_price=limit_price,
         stop_loss_price=stop_loss_price,
+        take_profit_price=take_profit_price,
         order_type=str(args.get("order_type", "LIMIT")),
     )
     if survival_block:
@@ -500,6 +515,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         side=action,
         entry_price=limit_price,
         stop_loss_price=stop_loss_price,
+        take_profit_price=take_profit_price,
     )
     if meta_block:
         return {"submit_paper_order_error": f"meta_labeling:{meta_block}"}
@@ -532,9 +548,13 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 from core.mission_context import get_mission_equity
                 from core.trading.position_sizer import PositionSizer
 
-                paper_equity = float(
+                raw_equity = (
                     state.get("paper_equity") or state.get("equity") or get_mission_equity()
                 )
+                if raw_equity is None:
+                    # Nao se dimensiona em cima de banca desconhecida.
+                    raise ValueError("equity_unknown")
+                paper_equity = float(raw_equity)
                 open_positions = int(
                     state.get("open_positions") or state.get("positions_count") or 0
                 )
@@ -553,6 +573,15 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                     "max_notional_value": size.max_notional_value,
                     "capped": requested_qty > size.shares or size.capped,
                     "reason": size.size_reason,
+                }
+            # A ordem aqui ainda nao foi submetida (esta PENDING), entao o
+            # fallback e informativo: o motivo real ("equity_unknown") precisa
+            # aparecer, nunca um tamanho calculado em cima de chute.
+            except ValueError as exc:
+                pos_sizing = {
+                    "requested_qty": requested_qty,
+                    "approved_qty": 0,
+                    "reason": str(exc) or "sizer_unavailable",
                 }
             # Fallback deliberado: sizer indisponível não bloqueia a submissão pendente.
             except Exception:  # noqa: BLE001
@@ -575,9 +604,19 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         from core.mission_context import get_mission_equity
         from core.trading.position_sizer import PositionSizer
 
-        paper_equity = float(
-            state.get("paper_equity") or state.get("equity") or get_mission_equity()
-        )
+        raw_equity = state.get("paper_equity") or state.get("equity") or get_mission_equity()
+        if raw_equity is None:
+            # Fail-closed: aqui o sizing DECIDE a ordem. Sem banca conhecida
+            # nao ha tamanho legitimo a calcular, entao a ordem nao passa.
+            return {
+                "submit_paper_order_error": "position_sizer_blocked:equity_unknown",
+                "position_sizing": {
+                    "requested_qty": requested_qty,
+                    "approved_qty": 0,
+                    "reason": "equity_unknown",
+                },
+            }
+        paper_equity = float(raw_equity)
         open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
         size = PositionSizer(equity=paper_equity, **sizing_config).size(
             entry_price=limit_price,

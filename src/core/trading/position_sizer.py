@@ -21,8 +21,10 @@ class PositionSizer:
     """Calculates position size based on account equity and risk parameters.
 
     Rules:
-    - Default 2% of equity risked per trade (max_risk_pct=0.02); operator
-      guidance range is 1-2% per trade.
+    - Default 1.5% of equity risked per trade (max_risk_pct=0.015), the top of
+      the operator's mandate range of 1.0-1.5% per trade (CLAUDE.md rule 7,
+      "Risco Maximo por Trade: 1.0% a 1.5% do equity" = $10-$15 CAD on $1,000).
+      Subir de 2% para 1.5% alinha o dimensionamento ao teto do protocolo.
     - NOTE: this is NOT the Canada Money Gate limit. The gate uses
       settings.superezio_money_gate_max_risk_pct (default 0.5%, hard cap 2%)
       — see src/core/config/settings.py.
@@ -34,7 +36,7 @@ class PositionSizer:
     def __init__(
         self,
         equity: float,
-        max_risk_pct: float = 0.02,
+        max_risk_pct: float = 0.015,
         max_position_pct: float = 0.10,
         max_open_positions: int = 3,
         min_notional: float = 50.0,

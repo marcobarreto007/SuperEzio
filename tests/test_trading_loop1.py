@@ -17,7 +17,9 @@ class TestPositionSizerInit:
 
         s = PositionSizer(equity=10000)
         assert s.equity == 10000
-        assert s.max_risk_pct == 0.02
+        # 1,5% = teto da faixa do protocolo de sobrevivencia ($10-$15 numa
+        # banca de $1.000), nao mais o 2% antigo.
+        assert s.max_risk_pct == 0.015
         assert s.max_position_pct == 0.10
         assert s.max_open_positions == 3
         assert s.min_notional == 50.0

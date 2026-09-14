@@ -82,12 +82,14 @@ def test_judge_block_reason_veto_blocks():
 def test_micro_capital_survival_allows_commission_free_etf():
     from core.trading.execution_policy import micro_capital_survival_block_reason
 
-    # SPY is in TD 108 commission-free ETF list -> allowed
+    # SPY is in TD 108 commission-free ETF list -> allowed.
+    # The target is now part of the contract: 500/495/515 = 3:1 asymmetry.
     reason = micro_capital_survival_block_reason(
         {},
         "SPY",
         limit_price=500.0,
         stop_loss_price=495.0,
+        take_profit_price=515.0,
         order_type="LIMIT",
     )
     assert reason is None
@@ -118,9 +120,75 @@ def test_micro_capital_survival_allows_non_free_stock_with_td_easy_trade_quota()
         "SOME_RANDOM_STOCK",
         limit_price=10.0,
         stop_loss_price=9.5,
+        take_profit_price=11.5,  # 3:1
         order_type="LIMIT",
     )
     assert reason is None
+
+
+def test_micro_capital_survival_allows_three_to_one_asymmetry():
+    """3:1 passes the protocol's 2.5:1 minimum."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    assert (
+        micro_capital_survival_block_reason(
+            {},
+            "SPY",
+            limit_price=100.0,
+            stop_loss_price=95.0,  # $5 stop
+            take_profit_price=115.0,  # $15 target = 3:1
+            order_type="LIMIT",
+        )
+        is None
+    )
+
+
+def test_micro_capital_survival_blocks_insufficient_asymmetry():
+    """1.5:1 is exactly the 1:1-ish trade CLAUDE.md rule 7 forbids."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=100.0,
+        stop_loss_price=95.0,  # $5 stop
+        take_profit_price=107.5,  # $7.50 target = 1.5:1
+        order_type="LIMIT",
+    )
+    assert reason is not None
+    assert "insufficient_asymmetry" in reason
+    assert "1.50:1" in reason
+    assert "2.5:1" in reason
+
+
+def test_micro_capital_survival_fails_closed_without_take_profit():
+    """A missing target is a missing proof, not a pass — trades 1:1 are banned."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=100.0,
+        stop_loss_price=95.0,
+        order_type="LIMIT",
+    )
+    assert reason is not None
+    assert "asymmetry_unknown" in reason
+
+
+def test_micro_capital_survival_fails_closed_without_stop():
+    """A missing stop leaves the ratio undefined — block, never assume."""
+    from core.trading.execution_policy import micro_capital_survival_block_reason
+
+    reason = micro_capital_survival_block_reason(
+        {},
+        "SPY",
+        limit_price=100.0,
+        take_profit_price=115.0,
+        order_type="LIMIT",
+    )
+    assert reason is not None
+    assert "asymmetry_unknown" in reason
 
 
 def test_micro_capital_survival_blocks_market_order():

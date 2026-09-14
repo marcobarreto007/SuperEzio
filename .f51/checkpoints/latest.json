@@ -1,33 +1,40 @@
 {
   "date_local": "2026-09-13",
-  "session": "meta-labeling-triple-barrier",
+  "session": "micro-capital-truth-and-reference-data",
   "status": "APPLIED_LOCAL",
-  "objective": "Implementação do modelo de Meta-Labeling e Triple Barrier Method (Marcos López de Prado) para calibração probabilística pré-broker, sizing fracionário contínuo e abstenção seletiva (fail-closed) na banca de $1.000 CAD e mandate de taxa zero.",
-  "predecessor": "micro-capital-zero-commission-protocol",
+  "objective": "Eliminação de equity inventado ($10k hardcoded -> $1000 CAD fail-closed), derivação dinâmica do teto de risco (1.5%), assimetria obrigatória R:R >= 2.5:1 com take-profit obrigatório, e introdução do reference_data determinístico para renda fixa BR (IR, IOF, FGC).",
+  "predecessor": "meta-labeling-triple-barrier",
   "invariants": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN",
     "paper_topology": "LOOPBACK_ONLY",
     "c1_c4": "active",
     "zero_commission_mandate": "ENFORCED",
-    "meta_labeling_gate": "ENFORCED"
+    "meta_labeling_gate": "ENFORCED",
+    "equity_truth": "DERIVED_OR_FAIL_CLOSED"
   },
   "files": [
-    "src/core/trading/meta_labeling.py",
-    "src/core/trading/__init__.py",
-    "src/core/trading/execution_policy.py",
+    "config/mission_context.json",
+    "config/reference/br_tax_and_fgc.json",
+    "src/core/mission_context.py",
+    "src/core/pipeline/nodes/auto_execute_paper.py",
+    "src/core/pipeline/nodes/guardrail_hub.py",
     "src/core/pipeline/nodes/tool_executor.py",
-    "tests/test_meta_labeling.py",
+    "src/core/trading/execution_policy.py",
+    "src/core/trading/kill_switch.py",
+    "src/core/trading/position_sizer.py",
+    "src/core/trading/reference_data.py",
     "tests/test_execution_policy.py",
-    "CLAUDE.md",
-    "AGENTS.md"
+    "tests/test_micro_capital_protocol_truth.py",
+    "tests/test_reference_data.py",
+    "tests/test_trading_loop1.py"
   ],
   "rollback": "git revert local",
   "next_step": "Freshness Gate de tempo real (Sprint 5) e validação de ponta a ponta.",
   "verification": {
-    "ruff": "All checks passed!",
-    "pytest_meta_labeling": "6 passed in 1.76s",
-    "pytest_execution_policy": "8 passed in 1.81s"
+    "ruff": "All checks passed! 12 files checked/formatted",
+    "pytest_micro_capital_suite": "83 passed in 3.93s",
+    "pytest_meta_labeling": "6 passed in 1.85s"
   },
   "still_true": {
     "github": "DISK ONLY",

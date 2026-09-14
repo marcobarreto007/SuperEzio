@@ -538,8 +538,17 @@ class GuardrailHub:
             return self._result(status="skipped", reason="missing_entry_price")
         from core.mission_context import get_mission_equity
 
-        equity = float(state.get("paper_equity") or get_mission_equity())
-        size = PositionSizer(equity=equity).size(entry_price=price)
+        equity = state.get("paper_equity") or get_mission_equity()
+        if equity is None:
+            # Guardrail fail-closed: sem banca conhecida nao se dimensiona
+            # posicao. REVIEW (nunca ALLOW) mantem a ordem dependendo de humano
+            # em vez de passar com tamanho chutado.
+            return self._result(
+                decision="REVIEW",
+                confidence=0.0,
+                reason="equity_unknown: no paper_equity in state and no equity in mission_context",
+            )
+        size = PositionSizer(equity=float(equity)).size(entry_price=price)
         return self._result(
             decision="ALLOW" if size.shares > 0 else "REVIEW",
             reason=size.size_reason,

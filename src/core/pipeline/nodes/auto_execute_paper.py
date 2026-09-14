@@ -279,6 +279,20 @@ async def auto_execute_paper(state: dict) -> dict:
     from core.mission_context import get_mission_equity
 
     paper_equity = get_mission_equity()
+    if paper_equity is None:
+        # Fail-closed: sem banca configurada nao existe tamanho legitimo de
+        # posicao. A ordem para aqui em vez de ser dimensionada por um numero
+        # inventado, e o motivo fica auditavel no journal.
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "skipped",
+                "reason": "equity_unknown",
+            }
+        )
+        return {"paper_exec_blocked": "equity_unknown"}
     sizing_config = _adaptive_sizing_config(state)
 
     try:
@@ -629,9 +643,18 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
             existing_pct = data.get("pct_of_equity", 0)
             from core.mission_context import get_mission_equity
 
-            new_total_pct = existing_pct + (
-                position_value / data.get("equity", get_mission_equity()) * 100
-            )
+            # `or` em vez de data.get(chave, default): o default so era
+            # avaliado quando a chave FALTAVA, entao um "equity": null no
+            # snapshot virava divisao por None e o motivo real se perdia.
+            concentration_equity = data.get("equity") or get_mission_equity()
+            if concentration_equity is None:
+                # Sem divisor nao ha checagem de concentracao possivel. Este
+                # gate e best-effort por decisao do projeto (nao bloqueia), mas
+                # o desconhecido fica explicito e barulhento em vez de morrer
+                # como TypeError no except abaixo.
+                logger.warning("concentration gate skipped for %s: equity_unknown", ticker)
+                return False
+            new_total_pct = existing_pct + (position_value / concentration_equity * 100)
             if new_total_pct > 50:
                 get_stream_writer()(
                     {

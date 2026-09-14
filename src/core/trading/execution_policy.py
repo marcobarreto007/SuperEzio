@@ -58,12 +58,24 @@ def judge_block_reason(state: Mapping[str, Any]) -> str | None:
     return None
 
 
+# Teto de risco por trade do Protocolo Global de Sobrevivencia (CLAUDE.md
+# regra 7: "Risco Maximo por Trade: 1.0% a 1.5% do equity"). O topo do
+# intervalo e o limite aplicado, derivado da banca em vez da constante $15.
+MICRO_CAPITAL_MAX_RISK_PCT = 0.015
+
+# Assimetria positiva minima exigida (CLAUDE.md regra 7: alvo >= 2,5:1 o stop).
+# NOTA: core/trading/meta_labeling.py usa 2.0 para o mesmo conceito — a
+# divergencia esta reportada ao operador, nao resolvida em silencio aqui.
+MICRO_CAPITAL_MIN_ASYMMETRY = 2.5
+
+
 def micro_capital_survival_block_reason(
     state: Mapping[str, Any],
     symbol: str,
     *,
     limit_price: float | None = None,
     stop_loss_price: float | None = None,
+    take_profit_price: float | None = None,
     order_type: str = "LIMIT",
 ) -> str | None:
     """Enforce the strict $1,000 CAD micro-capital survival rules (Ezio & MIKE global mandate).
@@ -71,6 +83,11 @@ def micro_capital_survival_block_reason(
     1. ZERO COMMISSION: Only commission-free instruments (TD 108 ETFs or confirmed zero-commission quota).
     2. STRICT RISK LIMIT: Max risk <= 1.5% of equity ($15 on $1,000 CAD).
     3. NO MARKET ORDERS: Only LIMIT orders permitted to avoid catastrophic slippage.
+    4. MINIMUM ASYMMETRY: take profit >= 2.5x the stop distance. Trades 1:1 are
+       forbidden, so a missing target is a missing proof and blocks.
+
+    Everything is fail-closed: absent prices or an unknown equity block the
+    order instead of silently skipping the check.
     """
     clean_type = str(order_type or "LIMIT").strip().upper()
     if clean_type in {"MKT", "MARKET"}:
@@ -92,14 +109,53 @@ def micro_capital_survival_block_reason(
             "micro-capital survival protocol requires zero commission"
         )
 
-    # Risk per share check against max risk amount (1.5% of equity = $15 on $1000)
+    # Risk per share check against the risk budget DERIVED FROM EQUITY
+    # (1.5% of the configured bankroll), not a hardcoded $15.
+    # CAVEAT reported to the operator: this compares risk PER SHARE with the
+    # risk budget PER TRADE. They are different quantities — without the share
+    # count this gate cannot measure the order's total risk, so a 10-share
+    # order at $10 risk/share passes here while risking $100 (10% of a $1,000
+    # bankroll). Deriving the number keeps today's comparison (no regression)
+    # and removes the magic constant; fixing the concept needs `qty`.
     if limit_price is not None and stop_loss_price is not None:
+        from core.mission_context import get_mission_equity
+
+        equity = state.get("paper_equity") or get_mission_equity()
+        if equity is None:
+            return (
+                "equity_unknown_for_survival_validation: no paper_equity in state and "
+                "no bankroll configured in mission_context"
+            )
+        max_risk_budget = float(equity) * MICRO_CAPITAL_MAX_RISK_PCT
         risk_per_share = abs(limit_price - stop_loss_price)
-        if risk_per_share > 15.0:
+        if risk_per_share > max_risk_budget:
             return (
                 f"risk_per_share_too_wide: risk per share ${risk_per_share:.2f} exceeds "
-                "micro-capital trade risk budget of $15.00 CAD"
+                f"micro-capital trade risk budget of ${max_risk_budget:.2f} CAD "
+                f"({MICRO_CAPITAL_MAX_RISK_PCT * 100:.1f}% of ${float(equity):.2f})"
             )
+
+    # Minimum asymmetry (CLAUDE.md rule 7). Runs last so the risk-per-share
+    # reason keeps winning when both are violated.
+    if limit_price is None or stop_loss_price is None:
+        return (
+            "asymmetry_unknown: entry/stop missing, cannot prove the >= "
+            f"{MICRO_CAPITAL_MIN_ASYMMETRY}:1 minimum required by the survival protocol"
+        )
+    if take_profit_price is None:
+        return (
+            "asymmetry_unknown: take profit missing, cannot prove the >= "
+            f"{MICRO_CAPITAL_MIN_ASYMMETRY}:1 minimum required by the survival protocol"
+        )
+    stop_distance = abs(limit_price - stop_loss_price)
+    if stop_distance <= 0:
+        return "asymmetry_unknown: zero stop distance, ratio undefined"
+    ratio = abs(take_profit_price - limit_price) / stop_distance
+    if ratio < MICRO_CAPITAL_MIN_ASYMMETRY:
+        return (
+            f"insufficient_asymmetry: R:R {ratio:.2f}:1 is below the "
+            f"{MICRO_CAPITAL_MIN_ASYMMETRY}:1 minimum (target too close to entry)"
+        )
 
     return None
 

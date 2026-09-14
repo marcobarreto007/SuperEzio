@@ -18,6 +18,9 @@ class KillSwitchReason(Enum):
     CONSECUTIVE_LOSSES = "consecutive_losses"
     MANUAL = "manual"
     VOLATILITY_SPIKE = "volatility_spike"
+    # Banca inicial desconhecida (mission_context sem banca configurada). Sem
+    # equity de referencia nao ha como medir drawdown, entao o switch ja ativa.
+    EQUITY_UNKNOWN = "equity_unknown"
 
 
 @dataclass
@@ -47,7 +50,10 @@ class KillSwitch:
         daily_loss_limit: float = 500.0,
         max_drawdown_pct: float = 0.10,
         max_consecutive_losses: int = 5,
-        initial_equity: float = 10000.0,
+        # 10000.0 continua sendo o default de CLASSE, visivel na assinatura e
+        # usado por chamadas standalone/teste. None e o sinal explicito de
+        # "banca desconhecida" — hoje so get_mission_equity() o produz.
+        initial_equity: float | None = 10000.0,
         *,
         store: TradeWorkflowStore | None = None,
         state_key: str = "global_kill_switch",
@@ -57,6 +63,12 @@ class KillSwitch:
         self.max_consecutive_losses = max_consecutive_losses
         self._store = store
         self._state_key = state_key
+        # Banca desconhecida nao vira banca chutada: o switch nasce ativo
+        # (fail-closed) em vez de medir drawdown contra um numero inventado.
+        # _history precisa existir ANTES do activate() abaixo, que registra o
+        # evento — mover esta linha de volta para o fim quebra o __init__.
+        self._history: list[dict[str, Any]] = []
+        self.equity_unknown = initial_equity is None
         persisted = self._store.load_system_state(state_key) if self._store is not None else None
         if persisted is not None:
             reason = persisted.get("reason")
@@ -64,11 +76,12 @@ class KillSwitch:
             self.state = KillSwitchState(**persisted)
         else:
             self.state = KillSwitchState(
-                peak_equity=initial_equity,
+                peak_equity=float(initial_equity) if initial_equity is not None else 0.0,
                 last_reset_utc=datetime.now(UTC).date().isoformat(),
             )
             self._persist()
-        self._history: list[dict[str, Any]] = []
+            if self.equity_unknown:
+                self.activate(KillSwitchReason.EQUITY_UNKNOWN)
 
     def _persist(self) -> None:
         if self._store is None:

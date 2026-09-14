@@ -254,7 +254,7 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
         lines.append(f"- Mode: {paper_trading.get('mode', 'paper_simulation')}")
         lines.append(f"- Paper equity: {paper_trading.get('equity', 'unknown')}")
         lines.append(f"- Max position: {paper_trading.get('max_position_pct', 10)}% of equity")
-        lines.append(f"- Max risk per trade: {paper_trading.get('max_risk_per_trade_pct', 2)}%")
+        lines.append(f"- Max risk per trade: {paper_trading.get('max_risk_per_trade_pct', 1.5)}%")
         for rule in paper_trading.get("rules", []):
             lines.append(f"- RULE: {rule}")
     lines.append("")
@@ -380,40 +380,58 @@ def mission_health_summary(path: str | Path | None = None) -> dict[str, Any]:
     }
 
 
-def get_mission_equity(path: str | Path | None = None) -> float:
-    """Retorna o equity do broker ou paper trading configurado no mission_context.json.
+def get_mission_equity(path: str | Path | None = None) -> float | None:
+    """Retorna o equity configurado no mission_context.json, ou None se nao houver dado.
 
-    Default para 10000.0 se nao encontrado ou se houver erro.
+    Segue o precedente de src/core/math/financial_engine.py (commit d3095ea2):
+    "nao sei" e None, nunca um numero inventado. A banca e uma decisao do
+    operador gravada em config/mission_context.json — este modulo nao tem
+    autoridade para escolher uma no lugar dele. O antigo fallback devolvia
+    10000.0 em silencio, o que dimensionava posicao em cima de chute e nao
+    rastreava de onde o numero veio.
+
+    None e um sinal, nao um erro: cada chamador decide a politica. Guardrails
+    devem recusar (fail-closed); caminhos que exigem numero devem ficar
+    barulhentos em vez de dimensionar.
     """
     data = load_mission_context(path)
     if not data:
-        return 10000.0
+        return None
 
     situation = data.get("current_situation", {})
     if not isinstance(situation, dict):
-        return 10000.0
+        return None
 
-    # 1. Tentar ler do paper_trading
+    # 1. Banca declarada pelo operador em paper_trading.equity (ex: "1000.00 CAD").
     try:
         pt = situation.get("paper_trading", {})
         if isinstance(pt, dict):
             eq_str = pt.get("equity")
             if eq_str:
-                # Ex: "10000.00 USD"
-                return float(str(eq_str).split()[0])
-    # Conjunto pequeno: apenas a conversao float() pode falhar aqui.
-    except (ValueError, TypeError):
+                # Ex: "1000.00 CAD" -> 1000.0. " " (so espaco) -> [] -> IndexError.
+                value = float(str(eq_str).split()[0])
+                if value > 0:
+                    return value
+    # Conjunto pequeno: conversao float() e o split() de uma string vazia.
+    except (ValueError, TypeError, IndexError):
         pass
 
-    # 2. Tentar ler do broker.ibkr.account_equity
+    # 2. Equity do broker — SOMENTE com conexao estabelecida de fato.
+    # Com o broker offline (connection="offline") esse campo e ficcao: ler
+    # um numero dele seria o mesmo chute de antes, apenas disfarcado de
+    # dado de broker. A conexao precisa ser explicitamente "connected*".
     try:
         ibkr = situation.get("broker", {}).get("ibkr", {})
         if isinstance(ibkr, dict):
-            eq_str = ibkr.get("account_equity")
-            if eq_str:
-                return float(eq_str)
+            connection = str(ibkr.get("connection") or "").strip().lower()
+            if connection.startswith("connected"):
+                eq_str = ibkr.get("account_equity")
+                if eq_str:
+                    value = float(eq_str)
+                    if value > 0:
+                        return value
     # Conjunto pequeno: apenas a conversao float() pode falhar aqui.
     except (ValueError, TypeError):
         pass
 
-    return 10000.0
+    return None
