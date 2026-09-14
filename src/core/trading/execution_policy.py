@@ -104,6 +104,37 @@ def micro_capital_survival_block_reason(
     return None
 
 
+def meta_labeling_block_reason(
+    state: Mapping[str, Any],
+    symbol: str,
+    *,
+    side: str = "BUY",
+    entry_price: float,
+    stop_loss_price: float | None = None,
+    take_profit_price: float | None = None,
+    threshold: float = 0.55,
+) -> str | None:
+    """Evaluate candidate trade assertiveness through the López de Prado Meta-Labeler.
+
+    Returns None if trade is approved by the Meta-Labeler (P >= threshold).
+    Returns rejection string if trade is rejected / abstained (P < threshold).
+    """
+    from core.trading.meta_labeling import evaluate_meta_labeling_gate
+
+    result = evaluate_meta_labeling_gate(
+        state,
+        symbol,
+        side=side,
+        entry_price=entry_price,
+        stop_loss_price=stop_loss_price,
+        take_profit_price=take_profit_price,
+        threshold=threshold,
+    )
+    if not result.allowed:
+        return result.rejection_reason or f"meta_labeling_abstain:{result.code}"
+    return None
+
+
 def evaluate_neural_execution_gate(state: Mapping[str, Any], action: str) -> dict[str, Any]:
     """Validate that an autonomous order is backed by a usable neural forecast.
 

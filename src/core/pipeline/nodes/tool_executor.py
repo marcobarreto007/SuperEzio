@@ -441,6 +441,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         evaluate_neural_execution_gate,
         expert_consensus_block_reason,
         judge_block_reason,
+        meta_labeling_block_reason,
         micro_capital_survival_block_reason,
     )
 
@@ -492,6 +493,16 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     )
     if survival_block:
         return {"submit_paper_order_error": f"micro_capital_survival:{survival_block}"}
+
+    meta_block = meta_labeling_block_reason(
+        state,
+        symbol,
+        side=action,
+        entry_price=limit_price,
+        stop_loss_price=stop_loss_price,
+    )
+    if meta_block:
+        return {"submit_paper_order_error": f"meta_labeling:{meta_block}"}
 
     # ── Approval gate FIRST (before position sizing) ──
     # The gate must evaluate the REQUESTED risk, not the capped risk,

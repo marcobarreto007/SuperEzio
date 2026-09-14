@@ -27,6 +27,12 @@ from .broker import (
     SimulatedBroker,
 )
 from .kill_switch import KillSwitch, KillSwitchReason, KillSwitchState
+from .meta_labeling import (
+    BarrierProfile,
+    MetaLabelResult,
+    build_barriers,
+    evaluate_meta_labeling_gate,
+)
 from .position_sizer import PositionSize, PositionSizer
 from .reward import RewardComponents, RewardFunction, TradeOutcome
 
@@ -35,6 +41,7 @@ __all__ = [
     "ApprovalGate",
     "ApprovalRequest",
     "ApprovalStatus",
+    "BarrierProfile",
     "BrokerAdapter",
     "EmailAlerter",
     "EmailConfig",
@@ -43,6 +50,7 @@ __all__ = [
     "KillSwitchReason",
     "KillSwitchState",
     "LogAlerter",
+    "MetaLabelResult",
     "Order",
     "OrderSide",
     "OrderStatus",
@@ -55,5 +63,7 @@ __all__ = [
     "SimulatedBroker",
     "TradeOutcome",
     "approval_request_to_dict",
+    "build_barriers",
+    "evaluate_meta_labeling_gate",
     "get_approval_gate",
 ]

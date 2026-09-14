@@ -98,6 +98,7 @@ Regra inviolável de soberania financeira (parceria Ezio ↔ MIKE):
 - **Mandato de Taxa Zero**: Operações de trading estritamente limitadas aos 108 ETFs sem comissão do TD (`config/td_direct_commission_free_etfs.json`) ou cota auditada de 100 free trades do TD Easy Trade. Nenhuma ordem com corretagem $> 0$ é permitida. Fricção total $\le 0.5\%$.
 - **Risco Máximo por Trade**: $1.0\%$ a $1.5\%$ do equity ($10 a $15 CAD). Stop Loss obrigatório antes do envio.
 - **Assimetria Obrigatória (R:R)**: Razão Retorno/Risco mínima de $2.5:1$ a $3:1$. Proibido arriscar $15 para buscar $15.
+- **Meta-Labeling (López de Prado)**: Calibração probabilística pré-broker via Triple Barrier. Trade com $P(\text{Sucesso}) < 0.55$ é sumariamente rejeitado por ABSTAIN (PASS).
 - **Execução Sem Slippage**: Apenas ordens limitadas (LIMIT). Ordens a mercado (MARKET) são terminantemente bloqueadas.
 - **Pacto MIKE ↔ Ezio**: Qualquer proposta gerada pelo Ezio ou comandada via MIKE (`:8009`) fora destes parâmetros é rejeitada por fail-closed.
 
