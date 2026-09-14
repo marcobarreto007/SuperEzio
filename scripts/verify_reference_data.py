@@ -84,7 +84,6 @@ def main() -> int:
     ok = [r for r in res if "barras_validas" in r]
     bad = [r for r in res if "barras_validas" not in r]
     ordens = {r["ordem_colunas"] for r in ok}
-    barras = [r["barras_validas"] for r in ok]
 
     liq = [r for r in ok if r["lote"] == "curado_liquido"]
     tam = [r for r in ok if r["lote"] == "tamanho"]
@@ -108,7 +107,7 @@ def main() -> int:
         }
 
     verif = {
-        "verificado_em": dt.date.today().isoformat(),
+        "verificado_em": dt.datetime.now(tz=dt.UTC).date().isoformat(),
         "arquivos": len(files),
         "arquivos_ok": len(ok),
         "arquivos_com_erro": [{"ticker": r.get("ticker"), "erro": r.get("erro")} for r in bad],

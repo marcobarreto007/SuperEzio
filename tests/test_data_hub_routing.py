@@ -18,15 +18,6 @@ def test_market_price_route_order() -> None:
     assert ordered.index("yfinance") < ordered.index("twelve_data")
 
 
-def test_finnhub_has_candles_and_news_capabilities() -> None:
-    hub = DataHub(register_defaults=True)
-    finn = next(r for r in hub.list_routes() if r["name"] == "finnhub")
-    assert "candles" in finn["capabilities"]
-    assert "fundamentals" in finn["capabilities"]
-    assert "news" in finn["capabilities"]
-    assert finn["priority"] == 1
-
-
 def test_is_usable_result_rejects_empty_dict() -> None:
     """Empty dict {} must NOT be treated as a usable provider result.
 
@@ -207,3 +198,41 @@ def test_keyless_news_routes_precede_news_scout_crawl() -> None:
     ranked = [r.name for r in hub.resolve("news")]
     assert ranked.index("google_news_ca") < ranked.index("yahoo_conversation")
     assert ranked.index("yahoo_conversation") < ranked.index("news_scout")
+
+
+def test_data_hub_filters_market_for_twelve_data() -> None:
+    """Moved here from tests/test_stooq_provider.py when the Stooq provider was
+    deleted (stooq.com returns HTTP 404 on every endpoint, 2026-09-14)."""
+    from data.data_hub import DataHub
+    from data.twelve_data import TwelveDataProvider
+
+    hub = DataHub(register_defaults=False)
+    method = TwelveDataProvider.get_price
+    filtered = hub._kwargs_for_method(method, {"market": "United States"})
+    assert filtered == {}
+
+
+def test_finnhub_route_has_no_candles_capability() -> None:
+    """Finnhub /stock/candle is a premium endpoint — removed from the route.
+
+    Measured live 2026-09-14 with the configured key: resolutions 5, 60, D, W
+    and M all return HTTP 403 "You don't have access to this resource.". The
+    route sat at priority 1 for candles, so every candle request burned its
+    first attempt on a guaranteed 403 before falling through to the next
+    provider. There is no resolution that works on the free tier, so the
+    capability is gone rather than remapped (same class of bug as the old
+    "1D -> 5" mapping, which asked for the paid intraday tier).
+    """
+    hub = DataHub(register_defaults=True)
+    finn = next(r for r in hub.list_routes() if r["name"] == "finnhub")
+    assert "candles" not in finn["capabilities"]
+    assert "candles" not in hub.routes["finnhub"].methods
+    # The rest of the route is untouched.
+    assert "fundamentals" in finn["capabilities"]
+    assert "news" in finn["capabilities"]
+    assert finn["priority"] == 1
+    # Candles still resolve through keyless/keyed providers that do serve them.
+    candle_routes = [r.name for r in hub.resolve("candles")]
+    assert "finnhub" not in candle_routes
+    assert "yfinance" in candle_routes
+    assert "twelve_data" in candle_routes

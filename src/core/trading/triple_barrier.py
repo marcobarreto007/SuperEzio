@@ -319,14 +319,13 @@ def evaluate_triple_barrier(
     -------
     `BarrierTouch` quando houve desfecho, ou `None` quando AINDA NAO HA o que
     decidir: nenhuma barra na janela, ou nenhum toque horizontal E a barreira
-    vertical ainda nao venceu.
+    vertical ainda nao venceu. `None` significa "continua aberto", nunca "erro" --
+    segue o padrao do projeto de nao inventar default quando falta dado
+    (`financial_engine.py`: sem dado => None).
 
-    Toque horizontal e avaliado nas barras DISPONIVEIS, sem esperar o prazo: um stop
+    Toque horizontal e procurado nas barras DISPONIVEIS, sem esperar o prazo: um stop
     tocado na barra 1 fecha na barra 1. Faltando barra para completar o horizonte, o
     que fica indeterminado e apenas o desfecho por PRAZO.
-    `None` aqui significa "continua aberto", nunca "erro" -- segue o padrao do
-    projeto de nao inventar default quando falta dado
-    (`financial_engine.py`: sem dado => None).
 
     Levanta
     -------

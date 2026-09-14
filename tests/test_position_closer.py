@@ -318,6 +318,24 @@ def test_missing_barriers_are_reported_not_guessed(journal):
     assert journal.list_open()
 
 
+def test_candles_are_fetched_once_per_ticker_per_cycle(journal):
+    """Varios trades no mesmo ETF custam UM fetch por ciclo, nao um por trade."""
+    for index in range(3):
+        _open_trade(
+            journal,
+            trade_id=f"t-{index}",
+            stop=90.0,
+            target=120.0,
+            horizon=1,
+        )
+    hub = _FakeHub({"XEQT": _bars((100.0, 104.0, 98.0, 100.0))})
+
+    report = close_positions(journal, data_hub=hub, dry_run=True)
+
+    assert report.evaluated == 3
+    assert hub.calls == ["XEQT"]  # uma busca para os tres trades
+
+
 def test_missing_market_data_is_reported(journal):
     _open_trade(journal)
     hub = _FakeHub({})

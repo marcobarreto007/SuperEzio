@@ -10,6 +10,14 @@ Free tier endpoints used:
     GET /stock/metric        — 10-day average volume (when available)
     GET /calendar/earnings   — upcoming earnings (drives 2-week catalyst)
 
+NOT free: GET /stock/candle. Measured 2026-09-14 with this key — every
+resolution (5, 60, D, W, M) returns HTTP 403 "You don't have access to this
+resource.". The endpoint is premium whole, so it is no longer registered as a
+capability of the hub's finnhub route (see data_hub: finnhub has no
+"candles"). ``FinnhubProvider.get_candles`` is kept for direct callers but
+cannot succeed on a free key; candles resolve via twelve_data / yfinance /
+akshare.
+
 Free tier limit is 60 calls/min, which is sufficient for the market scan
 candidate gate (≤30 tickers × 3 capabilities per scan).
 """
@@ -502,6 +510,12 @@ class FinnhubProvider:
     # ─────────────────────────────────────────────────────────────────
     # Candles (OHLCV)
     # ─────────────────────────────────────────────────────────────────
+    # SuperEzio timeframe -> Finnhub resolution. The old header here claimed
+    # "free tier: D/W/M resolutions" and mapped 1D->"5" / 1W->"60" — intraday
+    # is premium, and (measured 2026-09-14) so is D/W/M: /stock/candle returns
+    # 403 for all of them on a free key. The map is kept only so the method
+    # below stays callable if the plan ever changes; it is NOT reachable
+    # through the hub (finnhub has no "candles" capability).
     _CANDLE_RESOLUTION: ClassVar[dict[str, str]] = {
         "1D": "5",
         "1W": "60",
@@ -529,7 +543,13 @@ class FinnhubProvider:
         market: str | None = None,
         **_: Any,
     ) -> dict[str, Any]:
-        """OHLCV via Finnhub /stock/candle (free tier: D/W/M resolutions)."""
+        """OHLCV via Finnhub /stock/candle — PREMIUM endpoint.
+
+        Not a free-tier path: every resolution returns HTTP 403 on a free key
+        (measured 2026-09-14). The hub no longer routes "candles" here; this
+        method is reached only by direct callers. Use Twelve Data, yfinance or
+        AKShare for candles.
+        """
         resolution = self._CANDLE_RESOLUTION.get(timeframe, "D")
         days = self._CANDLE_LOOKBACK_DAYS.get(timeframe, 190)
         end = datetime.now(UTC)

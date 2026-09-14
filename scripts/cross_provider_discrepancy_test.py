@@ -28,7 +28,9 @@ PROVIDERS_CONFIG = [
     {"name": "twelve_data", "candles": True, "key": "TWELVE_DATA_API_KEY"},
     {"name": "alpha_vantage", "candles": True, "key": "ALPHA_VANTAGE_API_KEY"},
     {"name": "yfinance", "candles": True, "key": None},
-    {"name": "stooq", "candles": False, "key": None},
+    # stooq REMOVIDO 2026-09-14: stooq.com devolve HTTP 404 em todos os
+    # endpoints (confirmado ao vivo — endpoint de CSV e a home). Provider
+    # apagado; a rota já tinha saído do hub em 2026-07-20 pelo mesmo motivo.
 ]
 PROVIDER_TIMEOUT = 30
 
@@ -92,10 +94,6 @@ def _get_provider(pname: str):
             from src.data.yfinance_provider import YFinanceProvider
 
             return YFinanceProvider()
-        elif pname == "stooq":
-            from src.data.stooq_provider import StooqProvider
-
-            return StooqProvider()
     except Exception:  # noqa: BLE001 — instanciação de provider falhou (dep ausente/chave inválida) → pula o provider
         return None
 
@@ -106,7 +104,7 @@ def _price(pname: str, prov, sym: str) -> dict:
             return prov.get_quote(sym)
         elif pname == "twelve_data":
             return prov.get_price(sym)
-        elif pname == "yfinance" or pname == "stooq":
+        elif pname == "yfinance":
             return prov.get_price(sym, market="US")
     except Exception as e:  # noqa: BLE001 — falha do provider vira dict de erro no relatório; o teste nunca quebra
         return {"error": f"exc:{e}"}
@@ -120,8 +118,6 @@ def _candles(pname: str, prov, sym: str, tf="1M") -> dict:
             return prov.get_ohlcv(sym, timeframe=tf)
         elif pname == "yfinance":
             return prov.get_candles(sym, timeframe=tf, market="US")
-        elif pname == "stooq":
-            return {"error": "no_candles"}
     except Exception as e:  # noqa: BLE001 — falha do provider vira dict de erro no relatório; o teste nunca quebra
         return {"error": f"exc:{e}"}
 

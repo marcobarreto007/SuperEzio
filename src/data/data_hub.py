@@ -21,6 +21,8 @@ from typing import Any
 
 from core.resilience import get_circuit
 
+from . import daily_quota
+
 ProviderFactory = Callable[[], Any]
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,30 @@ _DATAHUB_CACHE_CAPABILITIES = frozenset(_DATAHUB_CACHE_TTL_BY_CAPABILITY)
 # Proactive pacing (seconds between calls to the same provider). Reactive
 # backoff (circuit breaker) alone let the first burst burn the free tier
 # (TwelveData 8 req/min exhausted during the 2026-08-22 scan).
+#
+# This axis is requests-per-MINUTE only. It cannot express a daily budget:
+# any interval at all still allows an unbounded number of calls per day. The
+# alpha_vantage entry below used to read "5 req/min free tier" — wrong. The
+# free tier is 25 requests per DAY (alphavantage.co/support, "25 API requests
+# per day", confirmed 2026-09-14), so 12 s of pacing let a scan fire ~300
+# calls/hour and burn the whole day's quota in minutes. The binding limit for
+# Alpha Vantage is now the daily counter in _PROVIDER_DAILY_QUOTA; the 12 s
+# interval stays as a burst smoother so the 25 allowed calls are spread out
+# instead of landing in one second.
 _PROVIDER_MIN_INTERVAL_S = {
     "twelve_data": 8.0,
     "finnhub": 1.0,
-    "alpha_vantage": 12.0,  # 5 req/min free tier
+    "alpha_vantage": 12.0,
+}
+
+# Daily request budgets per provider (requests per UTC day). A provider listed
+# here is skipped — falling through to the next route in the chain — once the
+# counter reaches the limit, instead of being called and hoping for an error.
+# Counter state lives in data/cache/provider_daily_quota.json (see
+# data.daily_quota). Only providers whose quota is a hard daily cap belong
+# here; per-minute tiers stay in _PROVIDER_MIN_INTERVAL_S.
+_PROVIDER_DAILY_QUOTA = {
+    "alpha_vantage": 25,  # free tier: 25 requests/day (alphavantage.co/support)
 }
 
 # Capability aliases: a route offering any of the listed capabilities satisfies
@@ -309,6 +331,16 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="finnhub",
+                # "candles" REMOVED 2026-09-14: Finnhub moved /stock/candle
+                # behind the premium plan. Measured against the live endpoint
+                # with this key, every resolution returns HTTP 403
+                # ("You don't have access to this resource.") — tested 5, 60,
+                # D, W and M, all alike. The route was priority 1 for candles,
+                # so every candle request in the system spent its first
+                # attempt on a guaranteed 403 before falling through. Not a
+                # bug to fix by choosing another resolution: the endpoint is
+                # premium whole.
+                # Candles resolve through twelve_data / yfinance / akshare.
                 capabilities=(
                     "price",
                     "market_price",
@@ -316,7 +348,6 @@ class DataHub:
                     "profile",
                     "fundamentals",
                     "short_term_catalyst",
-                    "candles",
                     "news",
                 ),
                 factory=lambda: _make_finnhub_provider(self._get_key("FINNHUB_API_KEY")),
@@ -327,7 +358,6 @@ class DataHub:
                     "profile": "get_profile",
                     "fundamentals": "get_fundamentals",
                     "short_term_catalyst": "get_short_term_catalyst",
-                    "candles": "get_candles",
                     "news": "get_news",
                 },
                 priority=1,
@@ -416,6 +446,16 @@ class DataHub:
         # never outrank finnhub/yfinance/alpha_vantage/twelve_data for the
         # general price chain (2026-08-30: yfinance is the keyless fallback
         # before paced Twelve/Alpha routes).
+        #
+        # Priority re-checked 2026-09-14 — deliberately left at 25. Route
+        # order for price is finnhub (1) -> yfinance (2) -> alpha_vantage (3)
+        # -> twelve_data (12) -> tmx (25), and yfinance is keyless, free and
+        # covers TSX/TSXV. Measured: hub.route("price", "<X>.TO") for the ten
+        # Canadian ETFs of config/td_direct_commission_free_etfs.json
+        # (VEQT, VBAL, VGRO, VCN, VDY, VFV, TEC, TDB, TBNK, TQCD) returned
+        # source="yfinance" 10/10 — none fell through to twelve_data or
+        # alpha_vantage. Promoting tmx buys nothing for the .TO path, and a
+        # global promotion would let bare US symbols resolve to the TSX CDR.
         self.register_provider(
             ProviderRoute(
                 name="tmx",
@@ -772,6 +812,22 @@ class DataHub:
                 )
                 continue
 
+            # ── Daily budget gate ──
+            # A provider capped per DAY (not per minute) is skipped once its
+            # counter is spent: calling it and hoping for a "rate limit" error
+            # wastes a request that the provider has already counted on its
+            # side. Skipping is a normal fallback — the chain continues.
+            daily_limit = _PROVIDER_DAILY_QUOTA.get(route.name)
+            if daily_limit is not None and daily_quota.is_exhausted(route.name, daily_limit):
+                attempts.append({"provider": route.name, "error": "daily_quota_exhausted"})
+                logger.warning(
+                    "[DATA_HUB] %s: %s skipped — daily quota exhausted (%d req/day)",
+                    capability,
+                    route.name,
+                    daily_limit,
+                )
+                continue
+
             # Proactive pacing: sleep the remainder before hitting a provider
             # whose free tier is measured in requests/minute. The caller runs
             # this in a worker thread, so a paced call does not block the loop.
@@ -781,6 +837,12 @@ class DataHub:
                 if since < min_interval:
                     time.sleep(min_interval - since)
                 self._last_call[route.name] = time.monotonic()
+
+            if daily_limit is not None:
+                # Counted only now: every branch above can still skip the
+                # route, a cache hit never reaches this loop, and a skipped
+                # route must not spend quota.
+                daily_quota.consume(route.name)
 
             try:
                 call_kwargs = self._kwargs_for_method(method, kwargs)

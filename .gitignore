@@ -93,6 +93,7 @@ journal/dead_letter/
 runtime/questrade_profile/
 temp_gguf_workspace/
 lora_finance_pt/
+data/reference/.work/
 
 # Environment
 .env

@@ -231,6 +231,30 @@ def _find_start_index(bars: Sequence[Mapping[str, Any]], entry_date: Any) -> int
     return None
 
 
+class _CandleCache:
+    """Uma busca de candles por ticker dentro do MESMO ciclo do fechador.
+
+    O protocolo opera um universo pequeno de ETFs, entao varios trades abertos podem
+    estar no mesmo ticker. Sem cache seria uma chamada de rede identica por trade, e o
+    timeout do heartbeat (`POSITION_CLOSER_TIMEOUT`) estouraria antes de fechar
+    qualquer coisa -- falha silenciosa, porque um ciclo que nao fecha nada se parece
+    com um ciclo sem nada para fechar.
+
+    Cache de CICLO, nao de processo: preco de mercado envelhece, e o proximo ciclo
+    (5 minutos depois) tem que enxergar candle novo.
+    """
+
+    def __init__(self, hub: Any):
+        self._hub = hub
+        self._cache: dict[tuple[str, str], Any] = {}
+
+    def get_candles(self, symbol: str, timeframe: str = "6M") -> Any:
+        key = (symbol, timeframe)
+        if key not in self._cache:
+            self._cache[key] = self._hub.get_candles(symbol, timeframe)
+        return self._cache[key]
+
+
 def _candles_from(data_hub: Any, ticker: str, timeframe: str) -> list[Mapping[str, Any]]:
     """Candles do DataHub, ou lista vazia quando o provider devolve erro."""
     result = data_hub.get_candles(ticker, timeframe)
@@ -366,6 +390,9 @@ def close_positions(
         from data.data_hub import (
             hub as data_hub,
         )
+
+    # Um fetch por ticker por ciclo, mesmo com varios trades no mesmo ETF.
+    data_hub = _CandleCache(data_hub)
 
     open_trades = journal.list_open()
     decisions: list[CloseDecision] = []
