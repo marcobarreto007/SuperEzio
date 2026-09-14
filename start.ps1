@@ -118,6 +118,16 @@ Write-Host ""
 
 if ($apiUp) {
     Log "API healthy on port $ApiPort" "Green"
+    
+    # Bridge MIKE <-> Ezio (:8009)
+    $bridgeStart = Join-Path $ScriptDir "bridge\start.ps1"
+    if (Test-Path -LiteralPath $bridgeStart) {
+        try {
+            & $bridgeStart -HealthTimeoutMinutes 1
+        } catch {
+            Log "Bridge em standby: $($_.Exception.Message)" "Yellow"
+        }
+    }
 } else {
     if (-not $apiProcess.HasExited) { $apiProcess | Stop-Process -Force }
     Log "ERROR: API did not become healthy within $HealthTimeoutMinutes minutes." "Red"
@@ -129,10 +139,11 @@ Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
 Write-Host "  SuperEzio is running" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "  AI   : configured external APIs" -ForegroundColor White
-Write-Host "  API  : http://127.0.0.1:$ApiPort" -ForegroundColor White
-Write-Host "  UI   : http://127.0.0.1:$ApiPort" -ForegroundColor White
-Write-Host "  Logs : $LogsDir" -ForegroundColor Gray
+Write-Host "  AI     : configured external APIs" -ForegroundColor White
+Write-Host "  API    : http://127.0.0.1:$ApiPort" -ForegroundColor White
+Write-Host "  UI     : http://127.0.0.1:$ApiPort" -ForegroundColor White
+Write-Host "  Bridge : http://127.0.0.1:8009" -ForegroundColor White
+Write-Host "  Logs   : $LogsDir" -ForegroundColor Gray
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
 

@@ -49,9 +49,11 @@ if (Test-Path -LiteralPath $recordPath) {
     Write-Host "No managed API process is recorded."
 }
 
-# Give the socket a moment to be released before deciding the port is taken.
-$deadline = (Get-Date).AddSeconds(5)
-while ($stopped -and (Get-Date) -lt $deadline -and (Test-SuperEzioPort -Port $ApiPort)) { Start-Sleep -Milliseconds 250 }
+# Stop Bridge MIKE <-> Ezio (:8009)
+$bridgeStop = Join-Path $PSScriptRoot "bridge\stop.ps1"
+if (Test-Path -LiteralPath $bridgeStop) {
+    try { & $bridgeStop } catch {}
+}
 
 $owner = Get-SuperEzioPortOwner -Port $ApiPort
 if (-not $owner) {
