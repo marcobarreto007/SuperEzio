@@ -795,7 +795,7 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
 - Resolution: este update registra R41-R49 e o TASK_BOARD recebeu a entrada de hoje.
 - Status: Resolved 2026-08-21.
 
-### INV-R50 - Suite heart vermelha pos-commit 1c7edb83 [MEDIUM 2026-09-16 -> ACTIVE]
+### INV-R50 - Suite heart vermelha pos-commit 1c7edb83 [MEDIUM 2026-09-16 -> PARCIALMENTE MITIGADO]
 
 - Classification: test suite / modulo heart.
 - Risk: test_heart_event_book.py nao coleta (importa core.heart.edgar_atom e nyse_halts
@@ -804,8 +804,11 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
   commit 1c7edb83 como bloqueador documentado.
 - Verification: medido 2026-09-16 — full run nao coleta (75s); sem event_book, maxfail=5
   para em 5 falhas de browser; alvo attribution+paths: 2 failed, 4 passed.
-- Mitigation: Tarefa 5 do spine (criar edgar_atom/nyse_halts, migrar testes para ET).
-- Status: Active 2026-09-16.
+- Resolution parcial: 1550053e implementa core.heart.nyse_halts + event_book.ingest_many
+  e recorta o import de edgar_atom — coleta destravada. Medido apos: 2 failed, 10 passed
+  (event_book + nyse_halts + attribution + paths). Residual: as 2 falhas de fuso UTC/ET
+  em test_heart_attribution.py (migrar os testes para ET).
+- Status: Parcialmente mitigado 2026-09-16; residual Active ate migrar attribution para ET.
 
 ### INV-R51 - Testes browser falham por falta de navegador Playwright [LOW 2026-09-16 -> ACTIVE]
 

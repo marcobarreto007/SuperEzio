@@ -20,7 +20,7 @@
   },
 
   "reservas_conhecidas": {
-    "heart_suite_vermelha": "test_heart_event_book.py nao coleta (importa core.heart.edgar_atom e nyse_halts que nao existem — Tarefa 5 do spine); test_heart_attribution.py tem 2 falhas de fuso UTC/ET (testes carimbam UTC, codigo converte para America/New_York). Herdado de 9c6ce6eb, registrado no commit 1c7edb83.",
+    "heart_suite_vermelha": "RESOLVIDO o erro de coleta: core.heart.nyse_halts + event_book.ingest_many implementados (1550053e) e test_heart_event_book usa o fixture da espinha. Restam 2 falhas de fuso UTC/ET em test_heart_attribution.py (testes carimbam UTC, codigo converte para America/New_York) — Tarefa 5 do spine parcial.",
     "browser_sem_playwright": "5 testes browser falham por falta de navegador Playwright no ambiente (banner 'playwright install'): test_browser_smoke_final_answer (3) e test_client_portfolio_browser (2). maxfail=5 interrompe o full run.",
     "lock_path_temporario": "requirements-lock.txt regenerado com constraint temporario da maquina (C:\\Users\\marco\\AppData\\Local\\Temp\\constraints_nobcrypt.txt) em centenas de linhas de comentario — regenerar sem o constraint.",
     "poll_5s_sem_teste": "poll do bridge 30s->5s sem teste dedicado (regra 4: mudanca de comportamento vem com teste).",
@@ -41,15 +41,15 @@
     "caderneta": "REAL_BEATS_COUNTERFACTUAL"
   },
 
-  "next_step": "Tarefa 5 do spine: criar core.heart.edgar_atom + core.heart.nyse_halts (ou recortar os testes ate existirem), migrar testes de attribution para ET; playwright install no venv; regenerar requirements-lock.txt sem o constraint temporario; teste para o poll 5s do bridge.",
+  "next_step": "Migrar os testes de attribution para ET (fecha a Tarefa 5 do spine); criar core.heart.edgar_atom quando o caminho EDGAR voltar ao escopo; playwright install no venv; regenerar requirements-lock.txt sem o constraint temporario; teste para o poll 5s do bridge.",
 
   "verification": {
-    "ruff": "check limpo — 'All checks passed!' (src + tests)",
+    "ruff": "check limpo — 'All checks passed!' (src + tests, incluindo src/core/heart)",
     "pytest_full": "NAO COLETA: ModuleNotFoundError core.heart.edgar_atom em tests/test_heart_event_book.py (75s, 2983 itens coletados antes do erro)",
     "pytest_sem_event_book": "5 failed (browser/Playwright), 858 passed, 1 skipped, 1 deselected — maxfail=5 parou em 262s",
-    "pytest_heart_alvo": "2 failed (fuso UTC/ET em test_heart_attribution.py), 4 passed (attribution+paths, 2.11s)",
+    "pytest_heart_pos_tarefa5": "2 failed (fuso UTC/ET em test_heart_attribution.py), 10 passed (event_book + nyse_halts + attribution + paths, 2.29s)",
     "secrets_scan": "limpo — 3 subagentes varreram os diffs e data/: nenhuma credencial/chave",
-    "working_tree": "limpo apos commit"
+    "working_tree": "limpo apos commits 1c7edb83, 22f7673b e 1550053e"
   },
 
   "still_true": {
