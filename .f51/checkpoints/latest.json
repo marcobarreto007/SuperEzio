@@ -1,34 +1,30 @@
 {
-  "date_local": "2026-09-14",
-  "session": "caderneta-proveniencia-e-dados-dos-experts",
+  "date_local": "2026-09-16",
+  "session": "commit-e-salva-tudo-2026-09-16",
   "status": "APPLIED_LOCAL",
-  "objective": "Fechar as tres frentes herdadas do checkpoint anterior: caderneta de recomendacao (substitui o paper order ficcao), separacao numero/narrativa (proveniencia C2/C3) e ligacao dos datasets de referencia nos experts neural e crisis.",
-  "predecessor": "universo-negociavel-e-corpus-de-aprendizado",
+  "objective": "Committar o working tree completo (3 frentes: migracao Python 3.12 + deps regularizadas, executor de pesquisa do bridge Mike, ML de eventos) e registrar o estado no checkpoint.",
+  "predecessor": "caderneta-proveniencia-e-dados-dos-experts",
 
   "entregue": {
-    "caderneta_de_recomendacoes": {
-      "arquivos": ["src/core/trading/recommendation_ledger.py", "tests/test_recommendation_ledger.py"],
-      "oque": "Registro do que o SISTEMA recomendou; o dono e o atuador (mark_execution). Contrafactual rotulado pelo MESMO evaluate_row do fechador. Precedencia: desfecho real nunca e sobrescrito por contrafactual (o contrario e guardado em counterfactual para comparacao). Id deterministico = regravar a mesma emissao e no-op.",
-      "vocabulario": "Mesmo do paper_journal de proposito: fechador e motores (outcome_learning, feedback_loop) leem a linha sem tradutor. learning_rows() devolve por default SO desfecho real.",
-      "integracao": "auto_execute_paper grava via record_recommendation_for_trade (best-effort: falha vira warning, nunca derruba a execucao; so entradas buy). position_closer.close_positions(ledger=...) rotula contrafactual no mesmo ciclo, mesmo cache de candles, nao gateado por dry_run (nao ha dinheiro no contrafactual).",
-      "travas": "RLock + lock de arquivo do journal, escrita atomica (tmp+fsync+replace), quarentena de linha corrompida, recusa de truncar a caderneta de producao, pytest nao escreve na caderneta do operador.",
-      "cli": "python -m core.trading.recommendation_ledger list|stats|label|mark"
-    },
-    "proveniencia_de_numeros": {
-      "arquivos": ["src/core/evidence/snapshot.py", "src/core/pipeline/nodes/agent.py", "src/core/pipeline/graph.py", "src/core/pipeline/contracts.py", "tests/test_number_provenance.py"],
-      "oque": "Extrator de numeros materiais (money/percent/decimal; sinal, virgula decimal, 'por cento', CAD/USD/BRL/EUR; 'VaR 95%' tratado como parametro de formula, nao claim). number_claims devolve rastreado/fonte/calculado_em por numero da resposta final; bind_answer_to_snapshot usa o mesmo ledger.",
-      "extras": "Percentuais de politica (default_stop_pct, max_position_pct) entram no ledger via extra_numbers no freeze (C2 shadow e C2) — 'stop de 5%' passa a citar a propria config da casa em vez de ler como invencao do modelo.",
-      "canal": "PipelineState.number_claims declarado (LangGraph dropa output cuja chave nao e canal); agente emite nos dois paths de retorno e loga untraced."
-    },
-    "dados_dos_experts": {
-      "candle_history": "src/core/data_collector/candle_history.py — cache CC0 (data/reference/technical_neural) emendado sob o provider com rescale no ponto de emenda (cache e yfinance divergem ate 4,2% em barras de 5 anos: concatenar cru injetaria retorno fantasma). TechnicalNeuralExpert pedia 140 barras e recebia 106 (insufficient_data, model_id null). Coleta em _collect_candle_history com timeout proprio de 20s, chave 'candles' separada do 'ohlcv' curto.",
-      "crisis_history": "src/core/data_collector/crisis_history.py — BIS credit-to-GDP, Shiller, FRED (BAMLH0A0HYM2, STLFSI4), OFR FSI lidos do cache de referencia; os 12 sensores saem de insufficient_data (MacroDataset devolvia 0 obs EUA e ImportError pyarrow CA). Collector tenta cache primeiro, MacroDataset de reserva."
+    "commit_1c7edb83": {
+      "titulo": "feat(ops,bridge,ml): Python 3.12, deps regularizadas, pesquisa do Mike e ML de eventos",
+      "arquivos": "25 files changed, +1734/-201",
+      "frentes": {
+        "env_312": "requires-python >=3.12 (pyproject + bridge/start.ps1 + config.ps1 + launcher/check com texto novo + ruff py312); entram financedatabase, akshare, xlrd, openpyxl (ja importadas no codigo); saem aiohttp, statsmodels, pandas-ta, mem0ai (sem uso); bcrypt<4.1 conserta passlib; contrato testado por test_runtime_environment_contract.py (requirements.txt == project.dependencies)",
+        "bridge": "poll do MIKE 30s->5s (bridge/config.py + bridge/events.toml em lockstep); task.submit do Mike passa a executar pesquisa via pipeline (session bridge:mike), paper/trade seguem freeze; doc docs/architecture/MIKE_EZIO_CONTINUITY.md (recibo duravel, sem replay automatico)",
+        "ml_eventos": "src/core/ml/event_dataset.py + event_experiment.py + scripts/prepare_event_ml_input.py + run_event_ml.py (ML de eventos avulso, nao-heart) com 4 testes",
+        "dados": "append operacional: bob_pain_log +40 linhas, conversation_memory +5, mangala_daily novo scan (degradado: OpenBB fora na janela)",
+        "lint_heart": "ruff I001/PLR0402 corrigidos em tests/test_heart_event_book.py e test_heart_paths.py (gate de Stop consertado)"
+      }
     }
   },
 
   "reservas_conhecidas": {
-    "match_ledger_tolerancia": "snapshot.py _match_ledger: claim percentual sem casas decimais ('8%') tem tolerancia +-0,5 contra QUALQUER unidade do ledger — falso-positivo de rastreado possivel (ex.: latest_price=8.20 valida um '8%'). Nao bloqueante; follow-up com teste.",
-    "teste_do_cache_derruba": "tests/test_crisis_history.py assert reference_available() DERRUBA (em vez de pular) o teste em arvore sem o cache de 611 MB destrackeado do git (149c6206)."
+    "heart_suite_vermelha": "test_heart_event_book.py nao coleta (importa core.heart.edgar_atom e nyse_halts que nao existem — Tarefa 5 do spine); test_heart_attribution.py tem 2 falhas de fuso UTC/ET (testes carimbam UTC, codigo converte para America/New_York). Herdado de 9c6ce6eb, registrado no commit 1c7edb83.",
+    "browser_sem_playwright": "5 testes browser falham por falta de navegador Playwright no ambiente (banner 'playwright install'): test_browser_smoke_final_answer (3) e test_client_portfolio_browser (2). maxfail=5 interrompe o full run.",
+    "lock_path_temporario": "requirements-lock.txt regenerado com constraint temporario da maquina (C:\\Users\\marco\\AppData\\Local\\Temp\\constraints_nobcrypt.txt) em centenas de linhas de comentario — regenerar sem o constraint.",
+    "poll_5s_sem_teste": "poll do bridge 30s->5s sem teste dedicado (regra 4: mudanca de comportamento vem com teste).",
+    "decision_trace_rotulo": "src/agent_server/main.py grava execution=human_td_direct_investing fixo mesmo em run de pesquisa — rotulo enganoso no rastreio, sem efeito de execucao."
   },
 
   "invariants": {
@@ -45,14 +41,15 @@
     "caderneta": "REAL_BEATS_COUNTERFACTUAL"
   },
 
-  "next_step": "Fix do _match_ledger (tolerancia por unidade da linha) + skip em vez de assert no teste do cache; alimentar outcome_learning/feedback_loop com learning_rows() da caderneta; CLI exposta ao operador.",
+  "next_step": "Tarefa 5 do spine: criar core.heart.edgar_atom + core.heart.nyse_halts (ou recortar os testes ate existirem), migrar testes de attribution para ET; playwright install no venv; regenerar requirements-lock.txt sem o constraint temporario; teste para o poll 5s do bridge.",
 
   "verification": {
-    "ruff": "check + format limpos",
-    "testes_tocados": "114 passed (rodados pelo revisor nos arquivos novos/modificados)",
-    "pytest_full": "2861 passed, 10 skipped, 1 deselected (619s, exit 0)",
-    "revisor": "aprovado com 2 ressalvas nao bloqueantes (registradas em reservas_conhecidas)",
-    "secrets_scan": "limpo nos 3 modulos novos + 4 testes + memorias de agente"
+    "ruff": "check limpo — 'All checks passed!' (src + tests)",
+    "pytest_full": "NAO COLETA: ModuleNotFoundError core.heart.edgar_atom em tests/test_heart_event_book.py (75s, 2983 itens coletados antes do erro)",
+    "pytest_sem_event_book": "5 failed (browser/Playwright), 858 passed, 1 skipped, 1 deselected — maxfail=5 parou em 262s",
+    "pytest_heart_alvo": "2 failed (fuso UTC/ET em test_heart_attribution.py), 4 passed (attribution+paths, 2.11s)",
+    "secrets_scan": "limpo — 3 subagentes varreram os diffs e data/: nenhuma credencial/chave",
+    "working_tree": "limpo apos commit"
   },
 
   "still_true": {

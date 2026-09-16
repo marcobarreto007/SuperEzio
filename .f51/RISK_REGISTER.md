@@ -794,3 +794,32 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
   a definicao de pronto do projeto.
 - Resolution: este update registra R41-R49 e o TASK_BOARD recebeu a entrada de hoje.
 - Status: Resolved 2026-08-21.
+
+### INV-R50 - Suite heart vermelha pos-commit 1c7edb83 [MEDIUM 2026-09-16 -> ACTIVE]
+
+- Classification: test suite / modulo heart.
+- Risk: test_heart_event_book.py nao coleta (importa core.heart.edgar_atom e nyse_halts
+  inexistentes — Tarefa 5 do spine) e test_heart_attribution.py tem 2 falhas de fuso UTC/ET.
+  Definicao de pronto (pytest -q inteiro) nao fecha. Herdado de 9c6ce6eb; registrado no
+  commit 1c7edb83 como bloqueador documentado.
+- Verification: medido 2026-09-16 — full run nao coleta (75s); sem event_book, maxfail=5
+  para em 5 falhas de browser; alvo attribution+paths: 2 failed, 4 passed.
+- Mitigation: Tarefa 5 do spine (criar edgar_atom/nyse_halts, migrar testes para ET).
+- Status: Active 2026-09-16.
+
+### INV-R51 - Testes browser falham por falta de navegador Playwright [LOW 2026-09-16 -> ACTIVE]
+
+- Classification: ambiente de teste.
+- Risk: test_browser_smoke_final_answer (3) e test_client_portfolio_browser (2) falham com
+  banner "playwright install"; com maxfail=5 o full run corta a cobertura em 858 passed.
+- Mitigation: playwright install no .venv do projeto.
+- Status: Active 2026-09-16.
+
+### INV-R52 - Path temporario de constraint no requirements-lock.txt [LOW 2026-09-16 -> ACTIVE]
+
+- Classification: reprodutibilidade / artefato.
+- Risk: lock regenerado com constraint da maquina (AppData\Local\Temp\constraints_nobcrypt.txt)
+  em centenas de linhas de comentario; quebra reproducao em outra maquina.
+- Mitigation: regenerar com uv pip compile --python-version 3.12 sem o constraint
+  (bcrypt<4.1 ja esta no pyproject.toml).
+- Status: Active 2026-09-16.
