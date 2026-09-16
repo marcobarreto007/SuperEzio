@@ -18,7 +18,7 @@ if ($ApiPort -lt 1 -or $ApiPort -gt 65535) { throw "SUPEREZIO_PORT must be betwe
 function Resolve-SuperEzioPythonExecutable {
     param([Parameter(Mandatory = $true)][string]$Command, [string[]]$Arguments = @())
     try {
-        $probe = & $Command @Arguments -c "import sys; print(sys.executable); raise SystemExit(0 if sys.version_info >= (3, 11) else 42)" 2>&1
+        $probe = & $Command @Arguments -c "import sys; print(sys.executable); raise SystemExit(0 if sys.version_info >= (3, 12) else 42)" 2>&1
         if ($LASTEXITCODE -ne 0) { return $null }
         $exe = ($probe | Select-Object -First 1).ToString().Trim()
         if ($exe -and (Test-Path -LiteralPath $exe)) { return (Resolve-Path -LiteralPath $exe).Path }
@@ -30,7 +30,7 @@ function Get-SuperEzioPython {
     $candidates = @(
         @{ Command = (Join-Path $SuperEzioRoot ".venv\Scripts\python.exe"); Arguments = @() },
         @{ Command = "python"; Arguments = @() },
-        @{ Command = "py"; Arguments = @("-3.11") },
+        @{ Command = "py"; Arguments = @("-3.12") },
         @{ Command = "py"; Arguments = @("-3") }
     )
     foreach ($candidate in $candidates) {

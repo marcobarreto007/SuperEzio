@@ -47,7 +47,7 @@ if ($alreadyRunning) {
 }
 
 if (-not $PythonExe -or -not (Test-Path -LiteralPath $PythonExe)) {
-    Write-Host "  [ERRO] .venv nao encontrado em $venvPy e Python 3.11 nao esta no PATH." -ForegroundColor Red
+    Write-Host "  [ERRO] .venv nao encontrado em $venvPy e Python 3.12 nao esta no PATH." -ForegroundColor Red
     Write-Host "  Instale com: pip install -e `".[dev]`"" -ForegroundColor Yellow
     Write-Host "  Nao esta operacional." -ForegroundColor Red
     exit 1

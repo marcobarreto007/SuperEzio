@@ -30,7 +30,7 @@ DEFAULT_COMMAND_PATH = "/control/commands"
 # Canal de publicacao no MIKE: rota que JA existe (autonomy.py:829).
 MIKE_SEND_PATH = "/v1/notifications/send"
 
-DEFAULT_POLL_INTERVAL_S = 30.0
+DEFAULT_POLL_INTERVAL_S = 5.0
 DEFAULT_HTTP_TIMEOUT_S = 5.0
 DEFAULT_COMMAND_TIMEOUT_S = 10.0
 

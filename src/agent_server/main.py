@@ -303,6 +303,81 @@ def _stop_sentiment_services(app: FastAPI) -> None:
         monitor.stop()
 
 
+def _bind_bridge_research_executor(app: FastAPI) -> None:
+    """task.submit do Mike = pesquisa. Nao e ordem. Paper/trade continuam freeze."""
+
+    def executor(run_id: str, message: str, session_id: str) -> None:
+        asyncio.get_running_loop().create_task(
+            _drain_bridge_research(app, run_id, message, session_id)
+        )
+
+    app.state.task_executor = executor
+    logger.info(
+        "[%s] Bridge research executor wired (Mike research, not an order)",
+        AGENT_NAME,
+    )
+
+
+async def _drain_bridge_research(
+    app: FastAPI, run_id: str, message: str, session_id: str
+) -> None:
+    from core.pipeline.task_queue import get_task_queue
+
+    tq = get_task_queue()
+    pipeline = getattr(app.state, "pipeline", None)
+    chunks: list[str] = []
+    try:
+        if pipeline is None or not hasattr(pipeline, "stream_events"):
+            raise RuntimeError("pipeline_unavailable")
+        async for event in pipeline.stream_events(
+            message,
+            session_id=session_id or "bridge:mike",
+            memory_mode="relevant_all",
+            rigor="strict",
+        ):
+            if not isinstance(event, dict):
+                continue
+            event_type = event.get("type")
+            if event_type == "MATH_REPORT":
+                app.state.last_math_report = event
+            elif event_type == "EXPERT_DONE":
+                experts = list(getattr(app.state, "last_expert_verdicts", []))
+                experts.append(event)
+                app.state.last_expert_verdicts = experts[-12:]
+            elif event_type == "TRINITY_DELIBERATION":
+                app.state.last_trinity_report = event
+            elif event_type == "CHUNK":
+                chunks.append(str(event.get("content") or ""))
+        answer = "".join(chunks).strip()
+        app.state.last_decision_trace = {
+            "user_query": message,
+            "detected_intent": "bridge_research",
+            "route_used": "mike_bridge",
+            "run_id": run_id,
+            "final_content_length": len(answer),
+            "answer_preview": answer[:2000],
+            "execution": "human_td_direct_investing",
+        }
+        tq.complete(run_id, result=answer)
+        logger.info(
+            "[%s] Bridge research done run_id=%s chars=%s",
+            AGENT_NAME,
+            run_id,
+            len(answer),
+        )
+    except asyncio.CancelledError:
+        tq.cancel(run_id)
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "[%s] Bridge research failed run_id=%s: %s",
+            AGENT_NAME,
+            run_id,
+            str(exc)[:200],
+        )
+        tq.complete(run_id, result={"error": str(exc)[:300]})
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import sys
@@ -356,6 +431,7 @@ async def lifespan(app: FastAPI):
     gateway = create_gateway()
     app.state.pipeline = build_graph(gateway=gateway)
     logger.info("[%s] Pipeline graph ready.", AGENT_NAME)
+    _bind_bridge_research_executor(app)
 
     # === AUTH DB INITIALIZATION ===
     from .auth import AuthDB
@@ -572,12 +648,9 @@ def _register_public_routes(app: FastAPI) -> None:
     # sem dependencia de router, entao estender as rotas ja construidas preserva
     # o contrato. Sem isto o POST /control/commands responde 404.
     #
-    # NAO registramos app.state.task_executor de proposito (12/09/2026): sem ele
-    # o kind `task.submit` devolve 409 `executor_not_wired` e faz rollback da
-    # fila, em vez de executar. O `/task/submit` do Ezio e um StreamingResponse
-    # de pipeline, nao um callable de fundo — adapta-lo para rodar sob o plano de
-    # controle mexe no caminho do dinheiro e merece passo proprio, com teste.
-    # Os outros tres kinds (task.cancel, feedback, bob.ibkr.recover) funcionam.
+    # task_executor e ligado no lifespan, depois do pipeline: task.submit do
+    # Mike e PESQUISA (stream_events). Nao e trade.execute nem paper.approve.
+    # Os outros tres kinds (task.cancel, feedback, bob.ibkr.recover) ja funcionam.
     app.router.routes.extend(control_router.routes)
 
 

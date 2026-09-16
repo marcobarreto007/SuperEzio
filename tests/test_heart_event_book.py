@@ -7,10 +7,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
-from core.heart.event_book import EventBook, MarketEvent
 from core.heart.edgar_atom import parse_edgar_atom
 from core.heart.nyse_halts import parse_nyse_halts_csv
+
+from core.heart.event_book import EventBook, MarketEvent
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "heart"
 

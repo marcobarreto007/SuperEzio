@@ -22,7 +22,7 @@
 version = 1
 updated_at = "2026-09-11"
 default_policy = "unclassified"
-snapshot_poll_interval_s = 30
+snapshot_poll_interval_s = 5
 plan = "docs/architecture/MIKE_EZIO_BRIDGE.md"
 route_sources = [
   "src/agent_server/endpoints.py",

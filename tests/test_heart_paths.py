@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from core.heart.paths import PathDecision, PathSpec, SPINE_PATH
+from core.heart.paths import SPINE_PATH, PathDecision, PathSpec
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "heart" / "spine"
 

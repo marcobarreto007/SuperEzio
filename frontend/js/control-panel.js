@@ -239,7 +239,7 @@
         criar("span", "cp-fonte__aviso", "CANAL DE CONTROLE EM STANDBY — Porta :8009")
       );
       alvo.appendChild(
-        criar("span", "cp-fonte__dica", "Bridge MIKE ↔ Ezio aguardando inicializacao (scripts/start-bridge.ps1). O console do MIKE esta ativo em :8083.")
+        criar("span", "cp-fonte__dica", "Bridge MIKE ↔ Ezio aguardando inicializacao (bridge/start.ps1). Consulte o console do MIKE em :8083.")
       );
     } else if (situacao === "ilegivel") {
       alvo.appendChild(

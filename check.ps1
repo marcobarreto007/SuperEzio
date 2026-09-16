@@ -85,7 +85,7 @@ if ($PythonExe) {
         Fail "SuperEzio package not importable." "Run: $PythonExe -m pip install -e ."
     }
 } else {
-    Fail "Python 3.11+ not found." "Install Python 3.12.x 64-bit and add it to PATH."
+    Fail "Python 3.12+ not found." "Install Python 3.12.x 64-bit and add it to PATH."
 }
 
 Write-Host "--- Hardware ---" -ForegroundColor White
