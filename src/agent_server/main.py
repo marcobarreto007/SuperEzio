@@ -39,6 +39,7 @@ from .auth import (
 )
 from .control_endpoints import router as control_router
 from .endpoints import router as a2a_router
+from .heart_endpoints import router as heart_router
 
 # Load local environment before reading runtime configuration.
 # Priority: OS env > .env.local > .env
@@ -652,6 +653,7 @@ def _register_public_routes(app: FastAPI) -> None:
     # Mike e PESQUISA (stream_events). Nao e trade.execute nem paper.approve.
     # Os outros tres kinds (task.cancel, feedback, bob.ibkr.recover) ja funcionam.
     app.router.routes.extend(control_router.routes)
+    app.router.routes.extend(heart_router.routes)
 
 
 _register_public_routes(app)

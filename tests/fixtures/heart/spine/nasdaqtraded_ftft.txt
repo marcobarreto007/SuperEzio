@@ -1,0 +1,2 @@
+Nasdaq Traded|Symbol|Security Name|Listing Exchange|Market Category|ETF|Round Lot Size|Test Issue|Financial Status|CQS Symbol|NASDAQ Symbol|NextShares
+Y|FTFT|Future FinTech Group Inc.|Q|N|N|100|N||FTFT|FTFT|N

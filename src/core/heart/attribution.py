@@ -112,12 +112,17 @@ def _event_symbol(event: MarketEvent | Any) -> str | None:
 
 
 def _event_tier(event: MarketEvent | Any) -> int:
-    event_type = _event_field(event, "event_type").upper()
+    event_type = _event_field(event, "event_type")
+    event_type_u = event_type.upper()
     source = _event_field(event, "source").lower()
 
-    if event_type in {"LULD", "HALT", "TRADING_HALT"} or "halt" in source:
+    if (
+        event_type == "nyse.luld_pause"
+        or event_type_u in {"LULD", "HALT", "TRADING_HALT"}
+        or "halt" in source
+    ):
         return _TIER_LULD_HALT
-    if event_type in {"8-K", "4", "FORM 4", "SC 13D", "SC 13G", "13D", "13G"}:
+    if event_type_u in {"8-K", "4", "FORM 4", "SC 13D", "SC 13G", "13D", "13G"}:
         return _TIER_SEC_FILING
     if source.startswith("business_wire") or source == "business_wire":
         return _TIER_BUSINESS_WIRE

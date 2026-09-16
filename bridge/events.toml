@@ -29,6 +29,7 @@ route_sources = [
   "src/agent_server/main.py",
   "src/agent_server/auth.py",
   "src/agent_server/control_endpoints.py",
+  "src/agent_server/heart_endpoints.py",
 ]
 classes = ["command", "poll", "stream", "internal", "deny", "static"]
 event_envelope = ["event_type", "seq", "ts", "source", "payload", "snapshot_id"]
@@ -133,3 +134,4 @@ forbidden_families = [
 "POST /trade/manual/{ticket_id}/entered" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2900", note = "atestações de fato do mundo (§5)" }
 "POST /trade/manual/{ticket_id}/broker-confirm" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/endpoints.py:2920", note = "atestações de fato do mundo (§5)" }
 "GET /bob/heal" = { class = "deny", snapshot = false, mutable = true, bridge_calls = false, emits = [], source = "src/agent_server/main.py:619", note = "auto-cura muta o corpo do Bob; fora do contrato de comando" }
+"GET /api/heart/ranking" = { class = "internal", snapshot = false, mutable = false, bridge_calls = false, emits = [], source = "src/agent_server/heart_endpoints.py:35", note = "Heart spine ranking; not a bridge poll surface" }

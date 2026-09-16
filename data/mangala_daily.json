@@ -1,38 +1,38 @@
 {
-  "scanned_at": "2026-09-16T19:42:20.935914+00:00",
+  "scanned_at": "2026-09-16T20:14:02.051496+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "TLRY",
-      "price": 3.9,
-      "volume": 3254916,
-      "name": "TLRY",
-      "score": 41,
-      "signal": "MEH",
+      "ticker": "KODK",
+      "price": 9.41,
+      "volume": 542534,
+      "name": "KODK",
+      "score": 37,
+      "signal": "PASS",
       "factors": {
         "volume": 5,
-        "whale": 25,
-        "momentum": 0,
-        "rsi": 3,
+        "whale": 0,
+        "momentum": 12,
+        "rsi": 12,
         "catalyst": 8
       },
-      "whale_status": "FORTE",
-      "whale_score": 80,
-      "pump_risk": "SEM_DADOS",
-      "pump_score": null,
+      "whale_status": "SEM_DADOS",
+      "whale_score": null,
+      "pump_risk": "ALERT",
+      "pump_score": 69,
       "data_status": "PARTIAL",
       "flip_plan": {
-        "entry": 3.93,
-        "target_5pct": 4.13,
-        "stop_3pct": 3.81,
+        "entry": 9.42,
+        "target_5pct": 9.89,
+        "stop_3pct": 9.14,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T19:42:13.751623+00:00"
+      "scanned_at": "2026-09-16T20:14:02.050497+00:00"
     },
     {
       "ticker": "SNDL",
-      "price": 1.36,
-      "volume": 1110631,
+      "price": 1.38,
+      "volume": 1469043,
       "name": "SNDL",
       "score": 28,
       "signal": "PASS",
@@ -49,17 +49,17 @@
       "pump_score": null,
       "data_status": "NO_DATA",
       "flip_plan": {
-        "entry": 1.36,
-        "target_5pct": 1.43,
-        "stop_3pct": 1.32,
+        "entry": 1.38,
+        "target_5pct": 1.45,
+        "stop_3pct": 1.34,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T19:42:20.935914+00:00"
+      "scanned_at": "2026-09-16T20:13:53.940842+00:00"
     },
     {
       "ticker": "RIG",
-      "price": 5.51,
-      "volume": 39396683,
+      "price": 5.54,
+      "volume": 43612708,
       "name": "RIG",
       "score": 21,
       "signal": "PASS",
@@ -76,17 +76,17 @@
       "pump_score": null,
       "data_status": "NO_DATA",
       "flip_plan": {
-        "entry": 5.52,
-        "target_5pct": 5.8,
-        "stop_3pct": 5.35,
+        "entry": 5.54,
+        "target_5pct": 5.82,
+        "stop_3pct": 5.37,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T19:41:52.275891+00:00"
+      "scanned_at": "2026-09-16T20:13:27.741254+00:00"
     },
     {
       "ticker": "NIO",
       "price": 3.59,
-      "volume": 18733569,
+      "volume": 21409278,
       "name": "NIO",
       "score": 21,
       "signal": "PASS",
@@ -103,39 +103,39 @@
       "pump_score": null,
       "data_status": "NO_DATA",
       "flip_plan": {
-        "entry": 3.6,
-        "target_5pct": 3.78,
-        "stop_3pct": 3.49,
+        "entry": 3.58,
+        "target_5pct": 3.76,
+        "stop_3pct": 3.47,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T19:41:59.549325+00:00"
+      "scanned_at": "2026-09-16T20:13:33.876443+00:00"
     },
     {
-      "ticker": "BB",
-      "price": 7.64,
-      "volume": 8665040,
-      "name": "BB",
-      "score": 18,
+      "ticker": "TLRY",
+      "price": 3.93,
+      "volume": 3701964,
+      "name": "TLRY",
+      "score": 21,
       "signal": "PASS",
       "factors": {
-        "volume": 0,
-        "whale": 0,
-        "momentum": 5,
-        "rsi": 5,
+        "volume": 5,
+        "whale": 5,
+        "momentum": 0,
+        "rsi": 3,
         "catalyst": 8
       },
-      "whale_status": "SEM_DADOS",
-      "whale_score": null,
+      "whale_status": "FRACO",
+      "whale_score": 20,
       "pump_risk": "SEM_DADOS",
       "pump_score": null,
-      "data_status": "NO_DATA",
+      "data_status": "PARTIAL",
       "flip_plan": {
-        "entry": 7.64,
-        "target_5pct": 8.02,
-        "stop_3pct": 7.41,
+        "entry": 3.93,
+        "target_5pct": 4.13,
+        "stop_3pct": 3.81,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T19:42:06.245104+00:00"
+      "scanned_at": "2026-09-16T20:13:47.794010+00:00"
     }
   ]
 }
