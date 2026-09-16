@@ -1,0 +1,74 @@
+{
+  "id": "super-ezio-heart",
+  "version": 1,
+  "updated": "2026-09-15",
+  "repo": "C:/Users/marco/Desktop/SuperEzio",
+  "spec": "docs/superpowers/specs/2026-09-15-modulo-coracao-roadmap.md",
+  "model": "composer-2.5-fast",
+  "model_rule": "Sempre que criares ou lançares subagentes do coração (Task/Agent), passa model=composer-2.5-fast. Bom e barato. Nunca herdar o modelo caro da sessão-mãe para estas 6 peças.",
+  "ml_is_secondary": false,
+  "ml_role": "O ML não é anexo do painel. É o gestor que separa, cura e pesa caminhos. Com dezenas de milhares de nomes e um rio de eventos, alguém tem de decidir o que sobrevive e com que peso — esse alguém é a Peça 5 (heart-p5-ml), com river.expert, selecção dentro da dobra e probabilidade calibrada. As peças 0–4 alimentam; o ML decide.",
+  "launch": {
+    "subagent_type_field": "name",
+    "model": "composer-2.5-fast",
+    "max_parallel_safe": ["heart-p0-ingest", "heart-p1-archive"],
+    "never_parallel_with_unclosed_deps": ["heart-p3-cause", "heart-p4-panel", "heart-p5-ml"]
+  },
+  "agents": [
+    {
+      "name": "heart-p0-ingest",
+      "piece": 0,
+      "title": "Gravador cru",
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p0-p2-ingest.md",
+      "markdown": ".claude/agents/heart-p0-ingest.md",
+      "cursor_markdown": ".cursor/agents/heart-p0-ingest.md",
+      "owns": ["src/core/heart/http.py", "src/core/heart/feeds.py", "src/core/heart/identities.py", "src/core/heart/raw_recorder.py", "src/core/heart/poller.py", "scripts/run_heart_ingest.py"]
+    },
+    {
+      "name": "heart-p1-archive",
+      "piece": 1,
+      "title": "Universo e arquivo as-traded",
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p1-archive.md",
+      "markdown": ".claude/agents/heart-p1-archive.md",
+      "cursor_markdown": ".cursor/agents/heart-p1-archive.md",
+      "owns": ["src/core/heart/universe.py", "src/core/heart/listings.py", "src/core/heart/corporate_actions.py", "src/core/heart/yahoo_chart.py", "src/core/heart/bar_store.py", "src/core/heart/feature_nightly.py", "src/core/heart/freeze_manifest.py"]
+    },
+    {
+      "name": "heart-p2-events",
+      "piece": 2,
+      "title": "Livro de eventos",
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p0-p2-ingest.md",
+      "markdown": ".claude/agents/heart-p2-events.md",
+      "cursor_markdown": ".cursor/agents/heart-p2-events.md",
+      "owns": ["src/core/heart/event_book.py", "src/core/heart/nyse_halts.py", "src/core/heart/edgar_atom.py"]
+    },
+    {
+      "name": "heart-p3-cause",
+      "piece": 3,
+      "title": "Atribuição de causa",
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p3-p4-cause-panel.md",
+      "markdown": ".claude/agents/heart-p3-cause.md",
+      "cursor_markdown": ".cursor/agents/heart-p3-cause.md",
+      "owns": ["src/core/heart/attribution.py", "src/core/heart/clusters.py", "src/core/heart/corrections.py"]
+    },
+    {
+      "name": "heart-p4-panel",
+      "piece": 4,
+      "title": "Painel de ranking",
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p3-p4-cause-panel.md",
+      "markdown": ".claude/agents/heart-p4-panel.md",
+      "cursor_markdown": ".cursor/agents/heart-p4-panel.md",
+      "owns": ["src/core/heart/ranking.py", "src/agent_server/heart_endpoints.py", "frontend/heart.html", "frontend/js/heart_panel.js"]
+    },
+    {
+      "name": "heart-p5-ml",
+      "piece": 5,
+      "title": "Gestor de caminhos — cura e peso",
+      "first_class": true,
+      "plan": "docs/superpowers/plans/2026-09-15-heart-p5-ml.md",
+      "markdown": ".claude/agents/heart-p5-ml.md",
+      "cursor_markdown": ".cursor/agents/heart-p5-ml.md",
+      "owns": ["src/core/heart/labels.py", "src/core/heart/ml/"]
+    }
+  ]
+}

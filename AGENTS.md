@@ -15,7 +15,7 @@ Ainda proibido: `git push`, abrir pull request, `git remote add/set-url origin`,
 credencial própria em texto claro.
 - Commits locais OBRIGATÓRIOS após cada mudança mínima
 
-## Exército Versionado (23 agentes)
+## Exército Versionado (23 agentes de produto + 6 do Coração)
 
 ### Delivery (5 candidatos)
 | Agente | Classe | Missão |
@@ -71,6 +71,18 @@ credencial própria em texto claro.
 | Agente | Classe | Missão |
 |--------|--------|--------|
 | `revisor` | Verifier | Revisa o diff pré-commit, somente leitura |
+
+### Coração SuperEzio (6) — roster `docs/superpowers/agents/heart-roster.json`
+Modelo obrigatório ao lançar: **composer-2.5-fast**. O ML (`heart-p5-ml`) é de primeira classe: cura e pesa caminhos; não é anexo.
+
+| Agente | Peça | Missão |
+|--------|------|--------|
+| `heart-p0-ingest` | 0 | Gravador cru dos wires irrecuperáveis |
+| `heart-p1-archive` | 1 | Universo TD + OHLCV as-traded + CA |
+| `heart-p2-events` | 2 | Livro de eventos (NYSE LULD, SEC, wires) |
+| `heart-p3-cause` | 3 | Junção movimento↔evento com clusters |
+| `heart-p4-panel` | 4 | Aba de ranking no FastAPI SuperEzio |
+| `heart-p5-ml` | 5 | Gestor que escolhe caminhos e dá peso |
 
 ## Comandos
 

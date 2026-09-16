@@ -1,0 +1,7 @@
+[
+  {"session_date": "2026-09-09", "open": 10.0, "high": 10.0, "low": 10.0, "close": 10.0, "volume": 1000},
+  {"session_date": "2026-09-10", "open": 10.2, "high": 10.2, "low": 10.2, "close": 10.2, "volume": 1000},
+  {"session_date": "2026-09-11", "open": 10.1, "high": 10.1, "low": 10.1, "close": 10.1, "volume": 1000},
+  {"session_date": "2026-09-14", "open": 8.0, "high": 8.0, "low": 8.0, "close": 8.0, "volume": 1000},
+  {"session_date": "2026-09-15", "open": 8.2, "high": 8.2, "low": 8.2, "close": 8.2, "volume": 1000}
+]

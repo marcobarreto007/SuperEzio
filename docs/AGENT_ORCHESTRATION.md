@@ -42,10 +42,18 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ├── market-data-puller.md        # Mercado — folha de dados (read-only, anti-injeção)
 ├── market-thesis-writer.md      # Mercado — único Write-holder (tese em runtime/reports/)
 ├── market-thesis-auditor.md     # Mercado — auditoria pass/fail (read-only)
+├── heart-p0-ingest.md           # Coração P0 — gravador cru (composer-2.5-fast)
+├── heart-p1-archive.md          # Coração P1 — universo + as-traded
+├── heart-p2-events.md           # Coração P2 — livro de eventos
+├── heart-p3-cause.md            # Coração P3 — atribuição
+├── heart-p4-panel.md            # Coração P4 — painel ranking
+├── heart-p5-ml.md               # Coração P5 — gestor de caminhos (primeira classe)
 └── deprecated/                  # Cemitério de agentes
 ```
 
-O **Captain** é o único agente **residente**. Os outros 22 são one-shot disparados por ele ou pela sessão.
+O **Captain** é o único agente **residente**. Os outros de produto são one-shot disparados por ele ou pela sessão.
+Os 6 `heart-*` são o exército permanente do módulo Coração; lançar sempre com `model: composer-2.5-fast`.
+Roster JSON: `docs/superpowers/agents/heart-roster.json`.
 O trio `market-*` segue o padrão de separação de poderes dos templates oficiais da Anthropic
 (data-puller → builder → auditor) — ver `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md`.
 O Captain executa o ciclo selecionado pelo risco:

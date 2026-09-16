@@ -1,0 +1,32 @@
+---
+description: Coração SuperEzio — 6 subagentes permanentes, Composer 2.5, ML de primeira classe
+alwaysApply: true
+---
+
+# Coração SuperEzio — subagentes permanentes
+
+Quando o trabalho tocar o módulo Coração (universo TD, wires, livro de eventos, atribuição, painel de ranking, ML de caminhos), **não improvises generalPurpose**.
+
+## Roster (fonte: `docs/superpowers/agents/heart-roster.json`)
+
+| subagent_type | Peça |
+|---|---|
+| `heart-p0-ingest` | Gravador cru |
+| `heart-p1-archive` | Universo + as-traded |
+| `heart-p1-archive` e `heart-p0-ingest` podem correr em paralelo | |
+| `heart-p2-events` | Livro de eventos (relê P0) |
+| `heart-p3-cause` | Atribuição |
+| `heart-p4-panel` | Painel FastAPI SuperEzio |
+| `heart-p5-ml` | Gestor que cura e pesa caminhos |
+
+## Modelo obrigatório
+
+Ao criar ou lançar **qualquer** destes 6 (Task / Agent), passa **`model: composer-2.5-fast`**. Bom e barato. Não herdes o modelo da sessão-mãe. Não uses glm/opus/sonnet nestes papéis salvo o operador pedir outro modelo por escrito.
+
+## ML não é secundário
+
+`heart-p5-ml` é de **primeira classe**. O arquivo gera um rio de dados; o ML decide o que curar e que peso cada caminho (evento × janela × eixo) recebe. Um painel sem esse gestor é um dump. Não chames a Peça 5 de anexo, nice-to-have, ou "depois se der".
+
+## Ordem
+
+P0 e P1 independentes. P2 relê P0. P3 precisa de contratos P1+P2. P4 mostra; não aprende pesos. P5 pode TDD em sintéticos cedo, mas não treina no arquivo vivo sem P1–P3.
