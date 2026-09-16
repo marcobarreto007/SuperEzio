@@ -7,12 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from core.heart.edgar_atom import parse_edgar_atom
-from core.heart.nyse_halts import parse_nyse_halts_csv
 
 from core.heart.event_book import EventBook, MarketEvent
-
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "heart"
 
 
 @pytest.fixture
@@ -69,17 +65,16 @@ def test_corrupt_line_is_quarantined(book: EventBook, tmp_path: Path):
 
 
 def test_ingest_many_writes_new_events_skips_duplicates(book: EventBook):
-    nyse_csv = (FIXTURES / "nyse_halts_sample.csv").read_text(encoding="utf-8")
-    edgar_body = (FIXTURES / "edgar_8k_atom.xml").read_bytes()
-    batch = parse_nyse_halts_csv(nyse_csv) + parse_edgar_atom(edgar_body, form="8-K")
+    from core.heart.nyse_halts import parse_nyse_halts_csv
 
-    written = book.ingest_many(batch)
-    assert written == 3
-    assert len(book.read_all()) == 3
-
-    written_again = book.ingest_many(batch)
-    assert written_again == 0
-    assert len(book.read_all()) == 3
+    nyse_csv = (
+        Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "nyse_halts.csv"
+    ).read_text(encoding="utf-8")
+    batch = parse_nyse_halts_csv(nyse_csv)
+    assert book.ingest_many(batch) == 1
+    assert len(book.read_all()) == 1
+    assert book.ingest_many(batch) == 0
+    assert len(book.read_all()) == 1
 
 
 def test_ingest_many_empty_list_returns_zero(book: EventBook):

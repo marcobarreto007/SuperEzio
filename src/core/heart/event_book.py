@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import threading
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -70,6 +71,13 @@ class EventBook:
             os.fsync(handle.fileno())
         self._known_identities().add(event.identity)
         return AppendResult(written=True)
+
+    def ingest_many(self, events: Sequence[MarketEvent]) -> int:
+        written = 0
+        for event in events:
+            if self.append(event).written:
+                written += 1
+        return written
 
     def read_all(self) -> list[MarketEvent]:
         events: list[MarketEvent] = []
