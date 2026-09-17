@@ -115,6 +115,10 @@ if (-not $PythonExe) {
 Log "Starting API on port $ApiPort..." "Cyan"
 Log "Python: $PythonExe" "Gray"
 
+# IBKR Gateway paper nesta maquina (:4002). So process env — nunca reescrever .env.
+if (-not $env:IBKR_PORT) { $env:IBKR_PORT = "4002" }
+if (-not $env:IBKR_HOST) { $env:IBKR_HOST = "127.0.0.1" }
+
 $apiProcess = Start-Process -FilePath $PythonExe `
     -ArgumentList @("-m", "agent_server.main") `
     -WorkingDirectory $ScriptDir `

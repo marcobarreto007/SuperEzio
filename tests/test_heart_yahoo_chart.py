@@ -68,3 +68,76 @@ def test_fetch_writes_csv_via_injected_client(tmp_path: Path, monkeypatch):
     written = fetch_and_store("GDX", dest, client=client)
     assert written == dest / "GDX.csv"
     assert "20.5" in written.read_text(encoding="utf-8")
+
+
+def test_fetch_missing_user_agent_raises_403(monkeypatch):
+    from core.heart.http import HeartHttpError
+    from core.heart.yahoo_chart import fetch_chart_payload
+
+    monkeypatch.delenv("SUPEREZIO_HEART_USER_AGENT", raising=False)
+    client = httpx.Client(timeout=30.0)
+    try:
+        fetch_chart_payload("SPY", client)
+        raise AssertionError("expected HeartHttpError")
+    except HeartHttpError as exc:
+        assert exc.status == 403
+
+
+def test_fetch_empty_bars_raises_422(tmp_path: Path, monkeypatch):
+    from core.heart.http import HeartHttpError
+    from core.heart.yahoo_chart import fetch_and_store
+
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (test@example.com)")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"chart": {"result": []}})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
+    try:
+        fetch_and_store("EMPTY", tmp_path, client=client)
+        raise AssertionError("expected HeartHttpError")
+    except HeartHttpError as exc:
+        assert exc.status == 422
+
+
+def test_seed_from_events_counts_failures_without_inventing_bars(tmp_path: Path, monkeypatch):
+    from datetime import UTC, datetime
+
+    from core.heart.event_book import MarketEvent
+    from core.heart.yahoo_chart import seed_from_events
+
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (test@example.com)")
+
+    events = [
+        MarketEvent(
+            identity="nyse-halt:GOOD:2026-09-16T15:00:00-04:00",
+            source="nyse_halts",
+            event_type="nyse.luld_pause",
+            occurred_at=datetime(2026, 9, 16, 19, 0, tzinfo=UTC),
+            timestamp_precision="second",
+            symbol="GOOD",
+            mic_code="XNAS",
+        ),
+        MarketEvent(
+            identity="nyse-halt:BAD:2026-09-16T15:01:00-04:00",
+            source="nyse_halts",
+            event_type="nyse.luld_pause",
+            occurred_at=datetime(2026, 9, 16, 19, 1, tzinfo=UTC),
+            timestamp_precision="second",
+            symbol="BAD",
+            mic_code="XNAS",
+        ),
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "GOOD" in str(request.url):
+            return httpx.Response(200, json=CHART_TWO_DAYS)
+        return httpx.Response(404, content=b"missing")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
+    result = seed_from_events(events, tmp_path, client=client, limit=3)
+    assert result["stored"] == ["GOOD"]
+    assert len(result["failed"]) == 1
+    assert result["failed"][0]["symbol"] == "BAD"
+    assert (tmp_path / "GOOD.csv").exists()
+    assert not (tmp_path / "BAD.csv").exists()

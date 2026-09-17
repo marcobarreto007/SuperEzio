@@ -749,7 +749,9 @@ async def bob_ibkr_recover():
         from adapters.broker.ibkr_service import get_ibkr_service
 
         service = get_ibkr_service()
-        result = service.force_recovery_attempt()
+        # force_recovery_attempt() faz disconnect + sleep(1s) + connect: bloqueia,
+        # entao sai do loop de eventos (espelha control_endpoints._handle_bob_ibkr_recover).
+        result = await asyncio.to_thread(service.force_recovery_attempt)
         return result
     # Endpoint de recuperação nunca deve estourar 500: o serviço IBKR levanta
     # tipos variados; falha vira resposta degradada — catch amplo deliberado.

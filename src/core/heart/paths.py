@@ -6,7 +6,7 @@ ALLOWED_WINDOWS = frozenset({"same_session"})
 ALLOWED_AXES = frozenset(
     {"abnormal_return", "gross_return", "lifetime_score", "surprise"}
 )
-ALLOWED_STATUS = frozenset({"kept", "killed"})
+ALLOWED_STATUS = frozenset({"kept", "killed", "refused_empty_store", "unweighted"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,8 +37,8 @@ class PathDecision:
             raise ValueError(f"unsupported status: {self.status}")
         if self.weight < 0:
             raise ValueError("weight must be >= 0")
-        if self.status == "killed" and self.weight != 0.0:
-            raise ValueError("killed paths must have weight 0.0")
+        if self.status in ("killed", "refused_empty_store", "unweighted") and self.weight != 0.0:
+            raise ValueError(f"{self.status} paths must have weight 0.0")
 
 
 SPINE_PATH = PathSpec(

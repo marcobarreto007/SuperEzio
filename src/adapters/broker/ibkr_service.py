@@ -62,12 +62,15 @@ class IBKRService:
         port: int | None = None,
         client_id: int | None = None,
     ):
-        self._host = host or _IBKR_HOST
-        self._port = port or _IBKR_PORT
+        # Re-read env at init so tests can monkeypatch IBKR_PORT/IBKR_HOST.
+        self._host = host or os.getenv("IBKR_HOST", _IBKR_HOST)
+        self._port = port or int(os.getenv("IBKR_PORT", str(_IBKR_PORT)))
         self._client_id = client_id or _IBKR_SERVICE_CLIENT_ID
 
-        # Thread safety
+        # Thread safety: cache vs IB socket. ib_insync is not thread-safe and
+        # must never run on FastAPI's asyncio loop (nested-loop + clientId steal).
         self._lock = threading.RLock()
+        self._socket_lock = threading.RLock()
         self._stop_event = threading.Event()
 
         # IBKR connection (owned by this service only)
@@ -121,10 +124,42 @@ class IBKRService:
         self._disconnect()
         logger.info("[IBKRService] Stopped")
 
+    @staticmethod
+    def _format_error(exc: BaseException) -> str:
+        text = str(exc).strip()
+        if text:
+            return f"{type(exc).__name__}: {text}"[:200]
+        return type(exc).__name__
+
+    @staticmethod
+    def _running_asyncio_loop() -> bool:
+        try:
+            asyncio.get_running_loop()
+            return True
+        except RuntimeError:
+            return False
+
     def _connect(self) -> bool:
         """Connect to IBKR with retry logic. Returns True if successful."""
-        if self._connected and self._ib is not None:
-            return True
+        with self._socket_lock:
+            return self._connect_unlocked()
+
+    def _connect_unlocked(self) -> bool:
+        if self._ib is not None:
+            try:
+                if self._ib.isConnected():
+                    self._connected = True
+                    return True
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("[IBKRService] stale IB handle: %s", self._format_error(exc))
+            self._disconnect_unlocked()
+
+        if self._running_asyncio_loop():
+            self._last_error = "IBKR connect refused on running asyncio loop"
+            self._consecutive_failures += 1
+            logger.warning("[IBKRService] %s", self._last_error)
+            self._connected = False
+            return False
 
         try:
             self._ensure_thread_event_loop()
@@ -144,32 +179,36 @@ class IBKRService:
         except ImportError:
             self._last_error = "ib_insync not installed"
             logger.warning("[IBKRService] %s", self._last_error)
+            self._ib = None
+            self._connected = False
             return False
-        # Fronteira deliberada de conexao: qualquer falha de rede/TWS deve virar
-        # estado de erro auditavel (log + retorno False), sem subir.
         except Exception as exc:  # noqa: BLE001
-            self._last_error = str(exc)[:200]
+            self._last_error = self._format_error(exc)
             self._consecutive_failures += 1
             logger.warning("[IBKRService] Connection failed: %s", self._last_error)
-            self._connected = False
+            self._disconnect_unlocked()
             return False
 
     @staticmethod
     def _ensure_thread_event_loop() -> None:
-        """Ensure ib_insync has an asyncio loop in daemon worker threads."""
-
+        """Ensure ib_insync has an asyncio loop in daemon/worker threads."""
         try:
-            asyncio.get_event_loop()
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                asyncio.set_event_loop(asyncio.new_event_loop())
         except RuntimeError:
             asyncio.set_event_loop(asyncio.new_event_loop())
 
     def _disconnect(self) -> None:
         """Disconnect from IBKR."""
+        with self._socket_lock:
+            self._disconnect_unlocked()
+
+    def _disconnect_unlocked(self) -> None:
         try:
-            if self._ib is not None and self._connected:
+            if self._ib is not None:
                 self._ib.disconnect()
                 logger.info("[IBKRService] Disconnected")
-        # Desconexao e melhor esforco: nunca deve derrubar o shutdown do servico.
         except Exception as exc:  # noqa: BLE001
             logger.debug("[IBKRService] Disconnect error: %s", exc)
         finally:
@@ -192,9 +231,13 @@ class IBKRService:
             self._stop_event.wait(_IBKR_REFRESH_INTERVAL_SEC)
 
     def _refresh(self) -> None:
-        """Refresh cache from IBKR."""
+        """Refresh cache from IBKR. Owns the socket for the whole pass."""
         self._last_refresh_attempt = time.monotonic()
 
+        with self._socket_lock:
+            self._refresh_unlocked()
+
+    def _refresh_unlocked(self) -> None:
         # Auto-recovery: after 100+ failures, reset counter and try fresh
         if self._consecutive_failures >= 100:
             logger.warning(
@@ -203,7 +246,7 @@ class IBKRService:
             )
             self._consecutive_failures = 0
             self._cooldown_until = 0  # Clear cooldown
-            self._disconnect()  # Force reconnect
+            self._disconnect_unlocked()  # Force reconnect
 
         # Check cooldown
         if time.monotonic() < self._cooldown_until:
@@ -215,7 +258,7 @@ class IBKRService:
             return
 
         # Try to connect if not connected
-        if not self._connect():
+        if not self._connect_unlocked():
             # Check if we should enter cooldown
             if self._consecutive_failures >= _IBKR_COOLDOWN_MAX_ERRORS:
                 self._cooldown_until = time.monotonic() + _IBKR_COOLDOWN_SEC
@@ -291,6 +334,14 @@ class IBKRService:
         # sem derrubar o ciclo de refresh.
         except Exception as exc:  # noqa: BLE001
             logger.warning("[IBKRService] Equity refresh failed: %s", exc)
+
+        try:
+            orders = self._pull_open_orders_unlocked(timeout=1.0)
+            with self._lock:
+                self._open_orders_cache = list(orders)
+                self._open_orders_cache_time = time.monotonic()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[IBKRService] Orders refresh failed: %s", exc)
 
         # Reset failure counter on success
         self._consecutive_failures = 0
@@ -385,102 +436,79 @@ class IBKRService:
             return self._equity_cache
 
     def get_open_orders(self, timeout: float = 3.0) -> list[dict]:
-        """Get open orders (live call, no cache).
-
-        Args:
-            timeout: Max seconds to wait for the request
-
-        Returns:
-            List of order dicts (empty list if service is down)
-        """
-        if not self._connect():
-            return []
-
-        try:
-            orders: list[dict] = []
-            seen: set[str] = set()
-
-            def add_trade(trade: Any) -> None:
-                order = getattr(trade, "order", None)
-                contract = getattr(trade, "contract", None)
-                order_status = getattr(trade, "orderStatus", None)
-
-                if order is None:
-                    return
-
-                raw_order_id = str(getattr(order, "orderId", "") or "")
-                perm_id = str(getattr(order, "permId", "") or "")
-                client_id = str(getattr(order, "clientId", "") or "")
-                symbol = str(
-                    getattr(contract, "symbol", "") or getattr(contract, "localSymbol", "") or ""
-                ).upper()
-                status = str(getattr(order_status, "status", "") or "submitted")
-                order_id = perm_id if perm_id not in {"", "0"} else raw_order_id
-                dedupe_key = (
-                    perm_id if perm_id not in {"", "0"} else f"{client_id}:{raw_order_id}:{symbol}"
-                )
-
-                if not order_id or not symbol or dedupe_key in seen:
-                    return
-
-                seen.add(dedupe_key)
-                orders.append(
-                    {
-                        "order_id": order_id,
-                        "tws_order_id": raw_order_id,
-                        "perm_id": perm_id or None,
-                        "client_id": client_id or None,
-                        "ticker": symbol,
-                        "action": str(getattr(order, "action", "")).upper(),
-                        "qty": float(getattr(order, "totalQuantity", 0)),
-                        "order_type": str(getattr(order, "orderType", "")).upper(),
-                        "limit_price": float(getattr(order, "lmtPrice", 0)) or None,
-                        "stop_price": float(getattr(order, "auxPrice", 0)) or None,
-                        "status": status,
-                    }
-                )
-
-            # reqAllOpenOrders is the authoritative paper/demo path for orders
-            # visible in TWS, including orders not created by this clientId.
-            for method_name in ("reqAllOpenOrders", "reqOpenOrders"):
-                try:
-                    method = getattr(self._ib, method_name)
-                    for trade in method() or []:
-                        add_trade(trade)
-                    self._ib.sleep(min(max(timeout, 0.1), 3.0))
-                # Fronteira de melhor esforco: tenta o proximo metodo de leitura
-                # de ordens se um deles falhar (ib_insync levanta erros variados).
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("[IBKRService] order method %s failed: %s", method_name, exc)
-                    continue
-
-            # Then collect any trades that arrived asynchronously while ib_insync
-            # processed the socket loop above.
-            for accessor in ("openTrades", "trades"):
-                try:
-                    for trade in getattr(self._ib, accessor)() or []:
-                        add_trade(trade)
-                # Fronteira de melhor esforco: acesso assincrono a trades pode
-                # falhar por ordem; continua com os demais accessors.
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("[IBKRService] accessor %s failed: %s", accessor, exc)
-                    continue
-
+        """HTTP/request threads read the cache. Only the daemon touches the socket."""
+        if threading.current_thread() is not self._thread:
             with self._lock:
-                if not orders and self._open_orders_cache:
-                    cache_age = time.monotonic() - self._open_orders_cache_time
-                    if cache_age < 10.0:
-                        return list(self._open_orders_cache)
-                self._open_orders_cache = list(orders)
-                self._open_orders_cache_time = time.monotonic()
+                return list(self._open_orders_cache)
 
-            return orders
+        with self._socket_lock:
+            if not self._connect_unlocked():
+                return []
+            try:
+                orders = self._pull_open_orders_unlocked(timeout)
+                with self._lock:
+                    self._open_orders_cache = list(orders)
+                    self._open_orders_cache_time = time.monotonic()
+                return orders
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("[IBKRService] Open orders failed: %s", self._format_error(exc))
+                return []
 
-        # Fronteira de melhor esforco: falha ao listar ordens vira warning +
-        # fallback para lista vazia (servico indisponivel).
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("[IBKRService] Open orders failed: %s", exc)
-            return []
+    def _pull_open_orders_unlocked(self, timeout: float) -> list[dict]:
+        orders: list[dict] = []
+        seen: set[str] = set()
+
+        def add_trade(trade: Any) -> None:
+            order = getattr(trade, "order", None)
+            contract = getattr(trade, "contract", None)
+            order_status = getattr(trade, "orderStatus", None)
+
+            if order is None:
+                return
+
+            raw_order_id = str(getattr(order, "orderId", "") or "")
+            perm_id = str(getattr(order, "permId", "") or "")
+            client_id = str(getattr(order, "clientId", "") or "")
+            symbol = str(
+                getattr(contract, "symbol", "") or getattr(contract, "localSymbol", "") or ""
+            ).upper()
+            status = str(getattr(order_status, "status", "") or "submitted")
+            order_id = perm_id if perm_id not in {"", "0"} else raw_order_id
+            dedupe_key = (
+                perm_id if perm_id not in {"", "0"} else f"{client_id}:{raw_order_id}:{symbol}"
+            )
+
+            if not order_id or not symbol or dedupe_key in seen:
+                return
+
+            seen.add(dedupe_key)
+            orders.append(
+                {
+                    "order_id": order_id,
+                    "tws_order_id": raw_order_id,
+                    "perm_id": perm_id or None,
+                    "client_id": client_id or None,
+                    "ticker": symbol,
+                    "action": str(getattr(order, "action", "")).upper(),
+                    "qty": float(getattr(order, "totalQuantity", 0)),
+                    "order_type": str(getattr(order, "orderType", "")).upper(),
+                    "limit_price": float(getattr(order, "lmtPrice", 0)) or None,
+                    "stop_price": float(getattr(order, "auxPrice", 0)) or None,
+                    "status": status,
+                }
+            )
+
+        # Read-only Gateway rejects reqAllOpenOrders (Error 321) and can hang
+        # the cockpit. Local accessors are enough after ib.connect() sync.
+        _ = timeout
+        for accessor in ("openTrades", "trades"):
+            try:
+                for trade in getattr(self._ib, accessor)() or []:
+                    add_trade(trade)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("[IBKRService] accessor %s failed: %s", accessor, exc)
+
+        return orders
 
     def get_status(self) -> dict[str, Any]:
         """Get structured health/status for /health/details.
@@ -524,15 +552,11 @@ class IBKRService:
         """
         logger.info("[IBKRService] Force recovery attempt triggered")
 
-        # Reset cooldown to allow immediate retry
-        self._cooldown_until = 0
-
-        # Force disconnect to ensure clean reconnect
-        self._disconnect()
-        time.sleep(1.0)
-
-        # Attempt connection
-        success = self._connect()
+        with self._socket_lock:
+            self._cooldown_until = 0
+            self._disconnect_unlocked()
+            time.sleep(1.0)
+            success = self._connect_unlocked()
 
         if success:
             failures_before = self._consecutive_failures

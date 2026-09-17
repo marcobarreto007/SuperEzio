@@ -60,8 +60,10 @@ def test_empty_view_is_empty_rows_not_error():
     app.router.routes.extend(heart.router.routes)
     response = TestClient(app).get("/api/heart/ranking")
     assert response.status_code == 200
-    assert response.json()["rows"] == []
-    assert response.json()["path_status"] is None
+    body = response.json()
+    assert body["rows"] == []
+    assert body["path_id"] == "nyse.luld_pause|same_session|gross_return"
+    assert body["path_status"] == heart.EMPTY_OHLCV_STATUS
 
 
 def test_get_ranking_calls_refresh_outside_pytest(monkeypatch):
@@ -116,4 +118,22 @@ def test_hydrated_empty_moves_returns_honest_empty(monkeypatch, tmp_path):
     app.router.routes.extend(heart.router.routes)
     body = TestClient(app).get("/api/heart/ranking").json()
     assert body["rows"] == []
-    assert body["path_status"] is None
+    assert body["path_id"] == "nyse.luld_pause|same_session|gross_return"
+    assert body["path_status"] == heart.EMPTY_OHLCV_STATUS
+
+
+def test_ranking_empty_ohlcv_dir_honest_response(tmp_path, monkeypatch):
+    heart.reset_heart_view_for_test()
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    heart_root = tmp_path / "heart"
+    heart_root.mkdir()
+    ohlcv = tmp_path / "ohlcv"
+    ohlcv.mkdir()
+    monkeypatch.setattr(heart, "DEFAULT_HEART_ROOT", heart_root)
+    monkeypatch.setenv("SUPEREZIO_HEART_OHLCV_DIR", str(ohlcv))
+    app = FastAPI()
+    app.router.routes.extend(heart.router.routes)
+    body = TestClient(app).get("/api/heart/ranking").json()
+    assert body["rows"] == []
+    assert body["path_id"] == "nyse.luld_pause|same_session|gross_return"
+    assert body["path_status"] == heart.EMPTY_OHLCV_STATUS

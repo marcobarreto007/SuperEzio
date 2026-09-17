@@ -2,12 +2,20 @@
 
 Close is ``indicators.quote.close``, never ``adjclose``. Splits stay as a
 price jump in the series — that is the archive, not a defect.
+
+CLI (from repo root with ``src`` on PYTHONPATH)::
+
+    python -m core.heart.yahoo_chart --from-events --limit 3
+    python -m core.heart.yahoo_chart --symbol SPY
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
+import json
 import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -15,7 +23,9 @@ from typing import Any
 import httpx
 
 from core.heart.corporate_actions import freeze_on_yahoo_missing
+from core.heart.event_book import EventBook
 from core.heart.http import HeartHttpError
+from core.heart.raw_recorder import DEFAULT_HEART_ROOT
 
 CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 
@@ -153,3 +163,76 @@ def seed_from_events(
         except (HeartHttpError, httpx.HTTPError, OSError, ValueError) as exc:
             failed.append({"symbol": symbol, "error": str(exc)})
     return {"requested": symbols, "stored": stored, "failed": failed}
+
+
+def resolve_ohlcv_dir(explicit: Path | None = None) -> Path:
+    if explicit is not None:
+        return Path(explicit)
+    override = os.getenv("SUPEREZIO_HEART_OHLCV_DIR", "").strip()
+    if override:
+        return Path(override)
+    return DEFAULT_HEART_ROOT / "ohlcv"
+
+
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Fetch as-traded Yahoo daily bars into Heart OHLCV CSVs.")
+    parser.add_argument(
+        "--ohlcv-dir",
+        type=Path,
+        default=None,
+        help="Output directory (default: data/heart/ohlcv or SUPEREZIO_HEART_OHLCV_DIR).",
+    )
+    parser.add_argument(
+        "--events-path",
+        type=Path,
+        default=None,
+        help="EventBook JSONL (default: data/heart/events.jsonl).",
+    )
+    parser.add_argument("--from-events", action="store_true", help="Seed symbols from LULD events on disk.")
+    parser.add_argument("--symbol", action="append", default=[], help="Ticker to fetch (repeatable).")
+    parser.add_argument("--limit", type=int, default=3, help="Max LULD symbols when --from-events (default: 3).")
+    return parser.parse_args(argv)
+
+
+def run_cli(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    if not os.getenv("SUPEREZIO_HEART_USER_AGENT", "").strip():
+        print("SUPEREZIO_HEART_USER_AGENT is required", file=sys.stderr)
+        return 2
+
+    ohlcv_dir = resolve_ohlcv_dir(args.ohlcv_dir)
+    ohlcv_dir.mkdir(parents=True, exist_ok=True)
+    symbols = [str(s).upper() for s in args.symbol]
+    summary: dict[str, Any] = {"ohlcv_dir": str(ohlcv_dir), "stored": [], "failed": []}
+
+    with httpx.Client(timeout=30.0) as client:
+        if args.from_events:
+            events_path = args.events_path or (DEFAULT_HEART_ROOT / "events.jsonl")
+            events = EventBook(events_path).read_all() if events_path.exists() else []
+            result = seed_from_events(events, ohlcv_dir, client=client, limit=args.limit)
+            summary["from_events"] = result
+            summary["stored"].extend(result["stored"])
+            summary["failed"].extend(result["failed"])
+            if not result["requested"] and not symbols:
+                symbols = ["SPY"]
+            elif not result["stored"] and not symbols:
+                symbols = ["SPY"]
+
+        for symbol in symbols:
+            try:
+                fetch_and_store(symbol, ohlcv_dir, client=client)
+                if symbol not in summary["stored"]:
+                    summary["stored"].append(symbol)
+            except (HeartHttpError, httpx.HTTPError, OSError, ValueError) as exc:
+                summary["failed"].append({"symbol": symbol, "error": str(exc)})
+
+    if not summary["stored"] and not args.from_events and not symbols:
+        print("Provide --symbol and/or --from-events", file=sys.stderr)
+        return 2
+
+    print(json.dumps(summary, indent=2))
+    return 0 if summary["stored"] else 1
+
+
+if __name__ == "__main__":
+    sys.exit(run_cli())

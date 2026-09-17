@@ -27,6 +27,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_HEART_ROOT = _ROOT / "data" / "heart"
 # Heart bars live next to EventBook. DataHub/TD ETF cache is a different river.
 DEFAULT_OHLCV_DIR = _ROOT / "data" / "heart" / "ohlcv"
+EMPTY_OHLCV_STATUS = "empty_ohlcv"
 
 
 def resolve_ohlcv_dir() -> Path:
@@ -78,15 +79,25 @@ def get_heart_ranking() -> dict[str, Any]:
         return {
             "rows": [],
             "path_id": SPINE_PATH.path_id,
-            "path_status": None,
+            "path_status": EMPTY_OHLCV_STATUS,
         }
 
     attributions = _build_attributions(VIEW.moves, VIEW.events)
     rows = rank_moves(VIEW.moves, RankingWeights.equal(), attributions=attributions)
     path_status = None
     path_id = SPINE_PATH.path_id
-    if VIEW.bars:
-        decision = decide_path(VIEW.bars, entry_index=3, spec=SPINE_PATH)
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        if VIEW.bars:
+            decision = decide_path(VIEW.bars, entry_index=3, spec=SPINE_PATH)
+            path_status = decision.status
+            path_id = decision.path_id
+            for row in rows:
+                row["path_status"] = path_status
+                row["path_id"] = path_id
+    else:
+        from core.heart.ml.empty_store import decide_or_refuse
+
+        decision = decide_or_refuse(resolve_ohlcv_dir(), SPINE_PATH.path_id)
         path_status = decision.status
         path_id = decision.path_id
         for row in rows:

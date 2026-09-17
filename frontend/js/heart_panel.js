@@ -43,6 +43,14 @@
       tbody.innerHTML = "";
       emptyEl.hidden = false;
       tableEl.hidden = true;
+      var emptyParts = ["sem movimentos (livro vazio)"];
+      if (body.path_id) {
+        emptyParts.push("path_id: " + body.path_id);
+      }
+      if (body.path_status) {
+        emptyParts.push("path_status: " + body.path_status);
+      }
+      emptyEl.textContent = emptyParts.join(" — ");
       setStatus("", false);
       return;
     }
