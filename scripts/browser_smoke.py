@@ -20,6 +20,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -383,7 +384,10 @@ def run_smoke(
     page_errors: list[str] = []
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
+        try:
+            browser = pw.chromium.launch(headless=not headed, slow_mo=slow_mo, channel="chrome")
+        except PlaywrightError:
+            browser = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
         context = browser.new_context(viewport={"width": 1440, "height": 980})
         if token:
             # Public mode: the token must exist BEFORE the first fetch —

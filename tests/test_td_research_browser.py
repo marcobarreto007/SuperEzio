@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 def test_research_card_labels_history_and_keeps_canadian_ticker():
     script = Path(__file__).resolve().parents[1] / "frontend/js/cockpit.js"
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, channel="chrome")
         try:
             page = browser.new_page()
             page.set_content(

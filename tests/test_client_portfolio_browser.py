@@ -18,7 +18,7 @@ from playwright.sync_api import sync_playwright
 def test_portfolio_does_not_invent_balance_or_connection(portfolio, expected, connected):
     script = Path(__file__).resolve().parents[1] / "frontend/js/bob-panel.js"
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, channel="chrome")
         try:
             page = browser.new_page()
             page.set_content('<div id="expert-panel-cards"></div>')
@@ -50,7 +50,7 @@ def test_portfolio_does_not_invent_balance_or_connection(portfolio, expected, co
 def test_broker_chip_requires_explicit_order_permission(ibkr, label):
     script = Path(__file__).resolve().parents[1] / "frontend/js/init.js"
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, channel="chrome")
         try:
             page = browser.new_page()
             page.set_content(
@@ -70,7 +70,7 @@ def test_broker_chip_requires_explicit_order_permission(ibkr, label):
 def test_offline_portfolio_does_not_fabricate_trading_history():
     script = Path(__file__).resolve().parents[1] / "frontend/js/init.js"
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, channel="chrome")
         try:
             page = browser.new_page()
             page.set_content('<div id="orders-list"></div>')

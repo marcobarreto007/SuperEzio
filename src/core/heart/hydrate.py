@@ -126,7 +126,8 @@ def _load_moves_from_ohlcv(
             moves.extend(
                 daily_moves_from_bars(bars=bars, listing=listing, first_seen=first_seen)
             )
-        return moves
+        if moves:
+            return moves
 
     for csv_path in csv_paths[:_MAX_CSV_WITHOUT_EVENTS]:
         listing = _listing_for_csv(csv_path, listing_guess=listing_guess, events=events)

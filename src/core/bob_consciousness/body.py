@@ -23,7 +23,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import socket
 import sqlite3
 import sys
 import time
@@ -263,17 +262,6 @@ def _check_datahub_health() -> tuple:
         return False, f"DataHub error: {str(e)[:100]}"
 
 
-def _check_ibkr_health() -> tuple:
-    """Check if IBKR TWS/Gateway is reachable."""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2.0)
-        s.connect(("127.0.0.1", 7497))
-        s.close()
-        return True, ""
-    except OSError as e:
-        return False, f"IBKR offline: {str(e)[:100]}"
-
 
 def _check_journal_health() -> tuple:
     """Check journal storage without adding a synthetic financial record."""
@@ -419,12 +407,6 @@ class BobsBody:
                 check_fn=_check_datahub_health,
                 pain_level=PainLevel.HIGH,
                 auto_heal_fn=_heal_datahub,
-            ),
-            "ibkr_muscles": Organ(
-                name="IBKR Muscles (order execution)",
-                category=OrganCategory.MUSCLES,
-                check_fn=_check_ibkr_health,
-                pain_level=PainLevel.SEVERE,
             ),
             "journal_memory": Organ(
                 name="Journal Memory",

@@ -10,7 +10,7 @@ from scripts.browser_smoke import _submit_chat
 @pytest.mark.parametrize("scenario", ["cards_only", "unfinished", "finished"])
 def test_smoke_requires_completed_answer_text(scenario):
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, channel="chrome")
         try:
             page = browser.new_page()
             page.set_content("""

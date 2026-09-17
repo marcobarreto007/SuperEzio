@@ -36,8 +36,14 @@ def _install_ohlcv_csv(monkeypatch, *, bars_by_path: dict[Path, list[dict]] | No
     """Inject a fake core.heart.ohlcv_csv module for hermetic tests."""
 
     def bars_from_yahoo_csv(path: Path) -> list[dict]:
+        resolved = Path(path)
         if bars_by_path is not None:
-            return list(bars_by_path.get(Path(path), []))
+            if resolved in bars_by_path:
+                return list(bars_by_path[resolved])
+            for key, value in bars_by_path.items():
+                if Path(key).name == resolved.name:
+                    return list(value)
+            return []
         if Path(path).name == "FTFT.csv":
             return list(BARS)
         return []
@@ -138,6 +144,39 @@ def test_refresh_never_invents_ohlcv(tmp_path: Path, monkeypatch):
     refresh_heart_view(view, heart_root=heart_root, ohlcv_dir=ohlcv)
     assert view.moves == []
     assert view.bars == []
+
+
+def test_refresh_falls_back_when_event_tickers_miss_csv(tmp_path: Path, monkeypatch):
+    ohlcv = tmp_path / "ohlcv"
+    ohlcv.mkdir()
+    aaa = ohlcv / "AAA.csv"
+    aaa.write_text("placeholder\n", encoding="utf-8")
+    bars = [
+        {
+            "session_date": "2026-09-11",
+            "open": 1.0,
+            "high": 1.0,
+            "low": 1.0,
+            "close": 10.0,
+            "volume": 1,
+        },
+        {
+            "session_date": "2026-09-14",
+            "open": 1.0,
+            "high": 1.0,
+            "low": 1.0,
+            "close": 11.0,
+            "volume": 1,
+        },
+    ]
+    _install_ohlcv_csv(monkeypatch, bars_by_path={aaa.resolve(): bars, aaa: bars})
+    heart_root = tmp_path / "heart"
+    heart_root.mkdir()
+    _write_ftft_event(heart_root / "events.jsonl")
+    view = HeartView()
+    refresh_heart_view(view, heart_root=heart_root, ohlcv_dir=ohlcv)
+    assert view.moves
+    assert all(m["symbol"] == "AAA" for m in view.moves)
 
 
 def test_refresh_no_ohlcv_dir_leaves_moves_empty(tmp_path: Path, monkeypatch):
