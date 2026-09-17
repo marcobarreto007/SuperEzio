@@ -62,3 +62,53 @@ def test_empty_view_is_empty_rows_not_error():
     assert response.status_code == 200
     assert response.json()["rows"] == []
     assert response.json()["path_status"] is None
+
+
+def test_get_ranking_calls_refresh_outside_pytest(monkeypatch):
+    heart.reset_heart_view_for_test()
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls: list[tuple] = []
+
+    def fake_refresh(view, *, heart_root, ohlcv_dir):
+        calls.append((heart_root, ohlcv_dir))
+
+    monkeypatch.setattr(heart, "refresh_heart_view", fake_refresh)
+    app = FastAPI()
+    app.router.routes.extend(heart.router.routes)
+    response = TestClient(app).get("/api/heart/ranking")
+    assert response.status_code == 200
+    assert len(calls) == 1
+    assert calls[0][0].name == "heart"
+    assert calls[0][1].parts[-2:] == ("effective_universe", "ohlcv")
+
+
+def test_get_ranking_skips_refresh_under_pytest(monkeypatch):
+    heart.reset_heart_view_for_test()
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests/test_heart_panel_api.py::test")
+    calls: list[tuple] = []
+
+    def fake_refresh(view, *, heart_root, ohlcv_dir):
+        calls.append((heart_root, ohlcv_dir))
+
+    monkeypatch.setattr(heart, "refresh_heart_view", fake_refresh)
+    app = FastAPI()
+    app.router.routes.extend(heart.router.routes)
+    TestClient(app).get("/api/heart/ranking")
+    assert calls == []
+
+
+def test_hydrated_empty_moves_returns_honest_empty(monkeypatch, tmp_path):
+    heart.reset_heart_view_for_test()
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+
+    def fake_refresh(view, *, heart_root, ohlcv_dir):
+        view.moves = []
+        view.events = []
+        view.bars = []
+
+    monkeypatch.setattr(heart, "refresh_heart_view", fake_refresh)
+    app = FastAPI()
+    app.router.routes.extend(heart.router.routes)
+    body = TestClient(app).get("/api/heart/ranking").json()
+    assert body["rows"] == []
+    assert body["path_status"] is None

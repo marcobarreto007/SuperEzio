@@ -7,9 +7,17 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class FeedSpec:
+    """Wire feed polled by Peça 0 and stored raw in ``raw/YYYY/MM/DD/<feed_id>.jsonl``.
+
+    Some endpoints return syntactically valid RSS with zero ``<item>`` elements when
+    the channel id is invalid or requires a paid subscription — see ``notes`` on
+    individual feeds rather than treating an empty body as success.
+    """
+
     feed_id: str
     url: str
     recoverable: bool = False
+    notes: str | None = None
 
 
 NON_RECOVERABLE_FEEDS: tuple[FeedSpec, ...] = (
@@ -24,6 +32,12 @@ NON_RECOVERABLE_FEEDS: tuple[FeedSpec, ...] = (
     FeedSpec(
         "businesswire_ma",
         "https://feed.businesswire.com/rss/home/?rss=merger-acquisition",
+        notes=(
+            "As of 2026-09-17 the endpoint returns RSS whose channel description is "
+            "'RSS channel ID is not available' with zero <item> elements. No free "
+            "public channel-id URL was confirmed; feed is retained until a valid id "
+            "is configured."
+        ),
     ),
     FeedSpec(
         "newsfile",
@@ -36,6 +50,9 @@ NON_RECOVERABLE_FEEDS: tuple[FeedSpec, ...] = (
     FeedSpec(
         "nasdaq_rssoutbound",
         "https://www.nasdaq.com/feed/rssoutbound",
+        notes=(
+            "Live poll can exceed 30 s read timeout; poller uses httpx.Client(timeout=30.0)."
+        ),
     ),
 )
 

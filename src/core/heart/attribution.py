@@ -203,3 +203,13 @@ def attribute_move(
         cluster_id=identity,
         human_override=None,
     )
+
+
+def attribute_moves(
+    moves: Sequence[DailyMove],
+    events: Sequence[MarketEvent | Any],
+) -> dict[str, Attribution]:
+    """Batch join: one Attribution per move keyed by move_key."""
+    if not moves:
+        return {}
+    return {move_key(m): attribute_move(m, events) for m in moves}

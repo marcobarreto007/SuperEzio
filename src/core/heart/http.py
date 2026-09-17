@@ -9,10 +9,14 @@ import httpx
 
 
 class HeartHttpError(Exception):
-    def __init__(self, status: int, body: bytes = b"") -> None:
+    def __init__(self, status: int, body: bytes = b"", *, reason: str | None = None) -> None:
         self.status = status
         self.body = body
-        super().__init__(f"heart HTTP {status}")
+        self.reason = reason
+        message = f"heart HTTP {status}"
+        if reason:
+            message = f"{message}: {reason}"
+        super().__init__(message)
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +45,19 @@ def build_headers(
     return headers
 
 
+def _require_read_timeout(client: httpx.Client) -> None:
+    timeout = client.timeout
+    if timeout is None:
+        raise RuntimeError("httpx.Client read timeout is required for heart ingest")
+    if isinstance(timeout, (int, float)):
+        return
+    if isinstance(timeout, httpx.Timeout):
+        if timeout.read is None:
+            raise RuntimeError("httpx.Client read timeout is required for heart ingest")
+        return
+    raise RuntimeError("httpx.Client read timeout is required for heart ingest")
+
+
 def request(
     client: httpx.Client,
     url: str,
@@ -48,7 +65,11 @@ def request(
     etag: str | None = None,
     last_modified: str | None = None,
 ) -> HeartResponse:
-    response = client.get(url, headers=build_headers(etag=etag, last_modified=last_modified))
+    _require_read_timeout(client)
+    try:
+        response = client.get(url, headers=build_headers(etag=etag, last_modified=last_modified))
+    except httpx.TimeoutException as exc:
+        raise HeartHttpError(408, reason=str(exc)) from exc
     if response.status_code == 304:
         return HeartResponse(
             status=304,

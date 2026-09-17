@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SuperEzio — Coração (ranking)</title>
+  <meta name="theme-color" content="#111820">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/heart_panel.css">
+</head>
+<body>
+  <header class="heart-header">
+    <a class="heart-header__back" href="/">← Cockpit</a>
+    <h1 class="heart-header__title">Coração — ranking</h1>
+  </header>
+
+  <main
+    class="heart-main"
+    id="heart-panel"
+    data-ranking-url="/api/heart/ranking"
+  >
+    <p class="heart-status" id="heart-status" aria-live="polite">A carregar…</p>
+    <p class="heart-empty" id="heart-empty" hidden>sem movimentos (livro vazio)</p>
+
+    <div class="heart-table-wrap">
+      <table class="heart-table" id="heart-table">
+        <thead>
+          <tr>
+            <th scope="col">symbol</th>
+            <th scope="col">session_date</th>
+            <th scope="col">gross_ret</th>
+            <th scope="col">path_id</th>
+            <th scope="col">path_status</th>
+          </tr>
+        </thead>
+        <tbody id="heart-tbody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script defer src="/js/heart_panel.js"></script>
+</body>
+</html>

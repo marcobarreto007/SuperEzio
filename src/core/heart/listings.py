@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import csv
+from datetime import date
 from io import StringIO
 
-from core.heart.universe import ListingRow, listing_exchange_to_mic
+from core.heart.universe import IngestResult, ListingRow, UniverseRegistry, listing_exchange_to_mic
 
 
 def parse_nasdaqtraded_lines(text: str) -> list[ListingRow]:
@@ -29,3 +30,23 @@ def parse_nasdaqtraded_lines(text: str) -> list[ListingRow]:
             )
         )
     return rows
+
+
+def ingest_nasdaqtraded_text(
+    registry: UniverseRegistry,
+    text: str,
+    as_of: date,
+) -> IngestResult:
+    rows = parse_nasdaqtraded_lines(text)
+    if not rows:
+        return registry.ingest_snapshot(
+            [],
+            as_of=as_of,
+            snapshot_ok=False,
+            source="nasdaqtraded",
+        )
+    return registry.ingest_snapshot(
+        rows,
+        as_of=as_of,
+        snapshot_ok=True,
+    )

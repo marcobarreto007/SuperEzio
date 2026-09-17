@@ -40,3 +40,29 @@ def test_500_raises(monkeypatch):
     client = httpx.Client(transport=httpx.MockTransport(handler))
     with pytest.raises(HeartHttpError):
         request(client, "https://example.invalid/rss")
+
+
+def test_read_timeout_raises_heart_http_error(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (marco@example.com)")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("read timed out", request=request)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
+    with pytest.raises(HeartHttpError) as exc_info:
+        request(client, "https://example.invalid/slow")
+    assert exc_info.value.status == 408
+
+
+def test_client_without_read_timeout_is_rejected(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (marco@example.com)")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"<rss/>")
+
+    client = httpx.Client(
+        transport=httpx.MockTransport(handler),
+        timeout=httpx.Timeout(30.0, read=None),
+    )
+    with pytest.raises(RuntimeError, match="read timeout"):
+        request(client, "https://example.invalid/rss")

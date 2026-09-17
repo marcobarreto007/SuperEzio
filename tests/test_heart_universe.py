@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from core.heart.universe import ListingRow, UniverseRegistry, listing_exchange_to_mic
+from core.heart.universe import (
+    DEFAULT_UNIVERSE_PATH,
+    ListingRow,
+    UniverseRegistry,
+    listing_exchange_to_mic,
+)
+from core.paths import project_path
 
 
 @pytest.fixture
@@ -25,6 +31,10 @@ def _row(symbol: str, mic: str = "XNAS", **kwargs) -> ListingRow:
     }
     payload.update(kwargs)
     return ListingRow(**payload)
+
+
+def test_default_universe_path():
+    assert DEFAULT_UNIVERSE_PATH == project_path("data", "heart", "universe.sqlite")
 
 
 def test_listing_exchange_codes_map_to_mic():

@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from core.paths import project_path
+
+DEFAULT_UNIVERSE_PATH = project_path("data", "heart", "universe.sqlite")
+
 _LISTING_EXCHANGE_TO_MIC = {
     "Q": "XNAS",
     "N": "XNYS",

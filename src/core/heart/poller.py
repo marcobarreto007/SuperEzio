@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import logging
 from pathlib import Path
 
 import httpx
 
-from core.heart.feeds import FeedSpec, feed_by_id
-from core.heart.http import request
-from core.heart.raw_recorder import RawCapture, RawRecorder, RecordResult
+from core.heart.feeds import NON_RECOVERABLE_FEEDS, FeedSpec, feed_by_id
+from core.heart.http import HeartHttpError, request
+from core.heart.raw_recorder import (
+    DEFAULT_HEART_ROOT,
+    RawCapture,
+    RawRecorder,
+    RecordResult,
+)
+
+logger = logging.getLogger(__name__)
+
+_POLL_ERRORS = (HeartHttpError, httpx.TimeoutException, httpx.ReadTimeout)
 
 
 def poll_once(client: httpx.Client, feed: FeedSpec, recorder: RawRecorder) -> RecordResult:
@@ -31,18 +41,41 @@ def poll_once(client: httpx.Client, feed: FeedSpec, recorder: RawRecorder) -> Re
     )
 
 
+def _poll_feed_safe(
+    client: httpx.Client,
+    feed: FeedSpec,
+    recorder: RawRecorder,
+) -> bool:
+    try:
+        poll_once(client, feed, recorder)
+    except _POLL_ERRORS as exc:
+        logger.error("heart ingest failed for %s: %s", feed.feed_id, exc)
+        return False
+    return True
+
+
 def ingest_cli(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run_heart_ingest")
     parser.add_argument("--once", action="store_true")
-    parser.add_argument("--root", type=Path)
+    parser.add_argument("--root", type=Path, default=DEFAULT_HEART_ROOT)
     parser.add_argument("--feed-id", default="prnewswire")
+    parser.add_argument(
+        "--all-feeds",
+        action="store_true",
+        help="Poll every non-recoverable feed once; continue after individual failures.",
+    )
     args = parser.parse_args(argv)
     if not args.once:
         parser.error("--once is required")
-    if args.root is None:
-        parser.error("--root is required")
+
     recorder = RawRecorder(root=args.root)
-    feed = feed_by_id(args.feed_id)
+
     with httpx.Client(timeout=30.0) as client:
-        poll_once(client, feed, recorder)
+        if args.all_feeds:
+            ok = sum(
+                1 for feed in NON_RECOVERABLE_FEEDS if _poll_feed_safe(client, feed, recorder)
+            )
+            return 0 if ok > 0 else 1
+
+        poll_once(client, feed_by_id(args.feed_id), recorder)
     return 0
