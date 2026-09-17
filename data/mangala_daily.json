@@ -1,65 +1,11 @@
 {
-  "scanned_at": "2026-09-16T20:14:02.051496+00:00",
+  "scanned_at": "2026-09-17T01:18:38.010166+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "KODK",
-      "price": 9.41,
-      "volume": 542534,
-      "name": "KODK",
-      "score": 37,
-      "signal": "PASS",
-      "factors": {
-        "volume": 5,
-        "whale": 0,
-        "momentum": 12,
-        "rsi": 12,
-        "catalyst": 8
-      },
-      "whale_status": "SEM_DADOS",
-      "whale_score": null,
-      "pump_risk": "ALERT",
-      "pump_score": 69,
-      "data_status": "PARTIAL",
-      "flip_plan": {
-        "entry": 9.42,
-        "target_5pct": 9.89,
-        "stop_3pct": 9.14,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-09-16T20:14:02.050497+00:00"
-    },
-    {
-      "ticker": "SNDL",
-      "price": 1.38,
-      "volume": 1469043,
-      "name": "SNDL",
-      "score": 28,
-      "signal": "PASS",
-      "factors": {
-        "volume": 5,
-        "whale": 0,
-        "momentum": 5,
-        "rsi": 12,
-        "catalyst": 6
-      },
-      "whale_status": "SEM_DADOS",
-      "whale_score": null,
-      "pump_risk": "SEM_DADOS",
-      "pump_score": null,
-      "data_status": "NO_DATA",
-      "flip_plan": {
-        "entry": 1.38,
-        "target_5pct": 1.45,
-        "stop_3pct": 1.34,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-09-16T20:13:53.940842+00:00"
-    },
-    {
       "ticker": "RIG",
       "price": 5.54,
-      "volume": 43612708,
+      "volume": 58126100,
       "name": "RIG",
       "score": 21,
       "signal": "PASS",
@@ -81,19 +27,46 @@
         "stop_3pct": 5.37,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T20:13:27.741254+00:00"
+      "scanned_at": "2026-09-17T01:18:01.176149+00:00"
+    },
+    {
+      "ticker": "PLUG",
+      "price": 2.02,
+      "volume": 47154400,
+      "name": "PLUG",
+      "score": 18,
+      "signal": "PASS",
+      "factors": {
+        "volume": 5,
+        "whale": 0,
+        "momentum": 0,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "FORTE",
+      "whale_score": 70,
+      "pump_risk": "SEM_DADOS",
+      "pump_score": null,
+      "data_status": "PARTIAL",
+      "flip_plan": {
+        "entry": 2.02,
+        "target_5pct": 2.12,
+        "stop_3pct": 1.96,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-09-17T01:18:07.951009+00:00"
     },
     {
       "ticker": "NIO",
-      "price": 3.59,
-      "volume": 21409278,
+      "price": 3.58,
+      "volume": 24100424,
       "name": "NIO",
-      "score": 21,
+      "score": 18,
       "signal": "PASS",
       "factors": {
         "volume": 10,
         "whale": 0,
-        "momentum": 3,
+        "momentum": 0,
         "rsi": 0,
         "catalyst": 8
       },
@@ -108,34 +81,61 @@
         "stop_3pct": 3.47,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T20:13:33.876443+00:00"
+      "scanned_at": "2026-09-17T01:18:14.848770+00:00"
+    },
+    {
+      "ticker": "BB",
+      "price": 7.64,
+      "volume": 10791300,
+      "name": "BB",
+      "score": 18,
+      "signal": "PASS",
+      "factors": {
+        "volume": 0,
+        "whale": 0,
+        "momentum": 5,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "SEM_DADOS",
+      "whale_score": null,
+      "pump_risk": "SEM_DADOS",
+      "pump_score": null,
+      "data_status": "NO_DATA",
+      "flip_plan": {
+        "entry": 7.64,
+        "target_5pct": 8.02,
+        "stop_3pct": 7.41,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-09-17T01:18:21.180135+00:00"
     },
     {
       "ticker": "TLRY",
       "price": 3.93,
-      "volume": 3701964,
+      "volume": 3814846,
       "name": "TLRY",
-      "score": 21,
+      "score": 13,
       "signal": "PASS",
       "factors": {
         "volume": 5,
-        "whale": 5,
+        "whale": 0,
         "momentum": 0,
-        "rsi": 3,
+        "rsi": 0,
         "catalyst": 8
       },
-      "whale_status": "FRACO",
-      "whale_score": 20,
+      "whale_status": "SEM_DADOS",
+      "whale_score": null,
       "pump_risk": "SEM_DADOS",
       "pump_score": null,
-      "data_status": "PARTIAL",
+      "data_status": "NO_DATA",
       "flip_plan": {
         "entry": 3.93,
         "target_5pct": 4.13,
         "stop_3pct": 3.81,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-16T20:13:47.794010+00:00"
+      "scanned_at": "2026-09-17T01:18:26.874138+00:00"
     }
   ]
 }
