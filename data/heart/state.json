@@ -1,0 +1,19 @@
+{
+  "feeds": {
+    "prnewswire": {
+      "etag": "W/\"9dcc-65ba5d36b0eca\"",
+      "last_modified": "Thu, 17 Sep 2026 04:00:35 GMT"
+    },
+    "cnw": {
+      "etag": "W/\"a8ff-65b717ccab716\"",
+      "last_modified": "Mon, 14 Sep 2026 13:34:03 GMT"
+    },
+    "businesswire_ma": {
+      "etag": "5d9fb2e8a97a1a561d6bc8e8c9bba3cf",
+      "last_modified": "Thu, 17 Sep 2026 04:01:39 GMT"
+    },
+    "globenewswire": {
+      "last_modified": "Thu, 17 Sep 2026 04:01:39 GMT"
+    }
+  }
+}

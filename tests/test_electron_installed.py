@@ -27,6 +27,7 @@ def test_customer_onboarding_encrypts_key_and_opens_packaged_workspace():
         "SUPEREZIO_ANS_SCAN": "0",
         "SUPEREZIO_MANGALA_SCAN": "0",
         "SUPEREZIO_CORPO_HEARTBEAT": "0",
+        "SUPEREZIO_HEART_INGEST": "0",
     }
     process = subprocess.Popen(
         [os.environ["SUPEREZIO_ELECTRON_EXE"], f"--remote-debugging-port={port}"],

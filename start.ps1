@@ -39,6 +39,7 @@ if ($IsolatedValidation) {
     $env:SUPEREZIO_ANS_SCAN = "0"
     $env:SUPEREZIO_MANGALA_SCAN = "0"
     $env:SUPEREZIO_CORPO_HEARTBEAT = "0"
+    $env:SUPEREZIO_HEART_INGEST = "0"
     $env:F51_TRADING_EXECUTION_FREEZE = "1"
     $env:SUPEREZIO_LIVE_TRADING_DISABLED = "1"
     $env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "0"
@@ -54,6 +55,28 @@ function Log {
     $line = "$(Get-Date -Format 'HH:mm:ss') $Msg"
     Write-Host $line -ForegroundColor $Color
     Add-Content -Path $startupLog -Value $line
+}
+
+if (-not $env:SUPEREZIO_HEART_USER_AGENT) {
+    foreach ($envFile in @((Join-Path $ScriptDir ".env"), (Join-Path $ScriptDir ".env.local"))) {
+        if (Test-Path -LiteralPath $envFile) {
+            $uaLine = Select-String -Path $envFile -Pattern '^SUPEREZIO_HEART_USER_AGENT=(.+)$' | Select-Object -First 1
+            if ($uaLine) {
+                $uaVal = $uaLine.Matches[0].Groups[1].Value.Trim().Trim('"').Trim("'")
+                if ($uaVal) {
+                    $env:SUPEREZIO_HEART_USER_AGENT = $uaVal
+                    break
+                }
+            }
+        }
+    }
+}
+if (-not $env:SUPEREZIO_HEART_USER_AGENT) {
+    $env:SUPEREZIO_HEART_USER_AGENT = "SuperEzioHeart/1.0 (marco@example.com)"
+    Log "Heart UA: default local contact (override SUPEREZIO_HEART_USER_AGENT)" "Yellow"
+}
+if (-not $IsolatedValidation) {
+    if (-not $env:SUPEREZIO_HEART_INGEST) { $env:SUPEREZIO_HEART_INGEST = "1" }
 }
 
 Write-Host ""

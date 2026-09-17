@@ -91,6 +91,7 @@ def _start_server() -> subprocess.Popen:
         # on a cold server. Tests must be deterministic (POLITICA F51).
         "SUPEREZIO_ANS_SCAN": "0",
         "SUPEREZIO_MANGALA_SCAN": "0",
+        "SUPEREZIO_HEART_INGEST": "0",
     }
     proc = subprocess.Popen(
         [sys.executable, "-m", "agent_server.main"],

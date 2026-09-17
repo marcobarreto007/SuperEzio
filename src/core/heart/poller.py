@@ -54,6 +54,11 @@ def _poll_feed_safe(
     return True
 
 
+def poll_all_feeds(client: httpx.Client, recorder: RawRecorder) -> int:
+    """One pass over NON_RECOVERABLE_FEEDS. Individual failures are logged."""
+    return sum(1 for feed in NON_RECOVERABLE_FEEDS if _poll_feed_safe(client, feed, recorder))
+
+
 def ingest_cli(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run_heart_ingest")
     parser.add_argument("--once", action="store_true")
@@ -72,9 +77,7 @@ def ingest_cli(argv: list[str] | None = None) -> int:
 
     with httpx.Client(timeout=30.0) as client:
         if args.all_feeds:
-            ok = sum(
-                1 for feed in NON_RECOVERABLE_FEEDS if _poll_feed_safe(client, feed, recorder)
-            )
+            ok = poll_all_feeds(client, recorder)
             return 0 if ok > 0 else 1
 
         poll_once(client, feed_by_id(args.feed_id), recorder)

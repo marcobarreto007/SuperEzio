@@ -507,6 +507,18 @@ async def lifespan(app: FastAPI):
                 "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
             )
 
+    # ── Heart ingest (RSS + EventBook + NYSE LULD). Lives with this process. ──
+    if os.getenv("SUPEREZIO_HEART_INGEST", "1") != "1":
+        logger.info("[%s] Heart ingest loop disabled (SUPEREZIO_HEART_INGEST!=1)", AGENT_NAME)
+    else:
+        try:
+            from core.heart.runtime_loop import start_heart_ingest
+
+            start_heart_ingest()
+            logger.info("[%s] Heart ingest loop started (24/7 while API is up)", AGENT_NAME)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[%s] Heart ingest loop failed to start: %s", AGENT_NAME, str(exc)[:200])
+
     yield
 
     # ── Stop Mangala Daily Proactive Scan ──
@@ -519,6 +531,14 @@ async def lifespan(app: FastAPI):
         logger.info("[%s] Mangala proactive scan stopped", AGENT_NAME)
     except Exception as exc:  # noqa: BLE001
         logger.debug("[%s] Mangala proactive scan stop failed: %s", AGENT_NAME, exc)
+
+    try:
+        from core.heart.runtime_loop import stop_heart_ingest
+
+        stop_heart_ingest()
+        logger.info("[%s] Heart ingest loop stopped", AGENT_NAME)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[%s] Heart ingest loop stop failed: %s", AGENT_NAME, exc)
 
     # ── Stop Bob's ANS ──
     # Parada best-effort no shutdown: falha não pode abortar o teardown —
