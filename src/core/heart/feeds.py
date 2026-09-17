@@ -18,6 +18,7 @@ class FeedSpec:
     url: str
     recoverable: bool = False
     notes: str | None = None
+    poll_read_timeout_s: float | None = None
 
 
 NON_RECOVERABLE_FEEDS: tuple[FeedSpec, ...] = (
@@ -50,8 +51,10 @@ NON_RECOVERABLE_FEEDS: tuple[FeedSpec, ...] = (
     FeedSpec(
         "nasdaq_rssoutbound",
         "https://www.nasdaq.com/feed/rssoutbound",
+        poll_read_timeout_s=20.0,
         notes=(
-            "Live poll can exceed 30 s read timeout; poller uses httpx.Client(timeout=30.0)."
+            "Nasdaq outbound RSS is slow; capped at poll_read_timeout_s so one feed "
+            "cannot hold the whole ingest cycle for 60 s."
         ),
     ),
 )

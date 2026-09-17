@@ -97,8 +97,9 @@ def test_ingest_raw_jsonl_writes_events(book: EventBook, tmp_path: Path):
         json.dumps({"body": body, "feed_id": "prnewswire"}) + "\n",
         encoding="utf-8",
     )
-    written = ingest_raw_jsonl(raw_path, book, source="prnewswire")
+    written, next_offset = ingest_raw_jsonl(raw_path, book, source="prnewswire")
     assert written == 1
+    assert next_offset == raw_path.stat().st_size
     stored = book.read_all()
     assert len(stored) == 1
     assert stored[0].identity == "spine-guid-1"
@@ -112,7 +113,23 @@ def test_ingest_raw_jsonl_skips_corrupt_json(book: EventBook, tmp_path: Path):
         + json.dumps({"body": body}) + "\n",
         encoding="utf-8",
     )
-    assert ingest_raw_jsonl(raw_path, book, source="prnewswire") == 1
+    written, _ = ingest_raw_jsonl(raw_path, book, source="prnewswire")
+    assert written == 1
+
+
+def test_ingest_raw_jsonl_resumes_from_byte_offset(book: EventBook, tmp_path: Path):
+    body = _spine_with_pubdate("Mon, 15 Sep 2026 16:10:00 GMT")
+    raw_path = tmp_path / "resume.jsonl"
+    first = (json.dumps({"body": body}) + "\n").encode("utf-8")
+    second = json.dumps({"body": "<rss/>"}) + "\n"
+    raw_path.write_bytes(first + second.encode("utf-8"))
+    written, offset = ingest_raw_jsonl(raw_path, book, source="prnewswire", start_offset=0)
+    assert written == 1
+    written_tail, end_offset = ingest_raw_jsonl(
+        raw_path, book, source="prnewswire", start_offset=offset
+    )
+    assert written_tail == 0
+    assert end_offset == raw_path.stat().st_size
 
 
 def test_ingest_raw_jsonl_skips_duplicate_identities(book: EventBook, tmp_path: Path):
@@ -120,5 +137,6 @@ def test_ingest_raw_jsonl_skips_duplicate_identities(book: EventBook, tmp_path: 
     raw_path = tmp_path / "dup.jsonl"
     line = json.dumps({"body": body}) + "\n"
     raw_path.write_text(line + line, encoding="utf-8")
-    assert ingest_raw_jsonl(raw_path, book, source="prnewswire") == 1
+    written, _ = ingest_raw_jsonl(raw_path, book, source="prnewswire")
+    assert written == 1
     assert len(book.read_all()) == 1

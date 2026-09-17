@@ -40,14 +40,28 @@ def parse_rss_items(xml_text: str, *, source: str) -> list[MarketEvent]:
     return events
 
 
-def ingest_raw_jsonl(path: Path, book: EventBook, *, source: str) -> int:
+def ingest_raw_jsonl(
+    path: Path,
+    book: EventBook,
+    *,
+    source: str,
+    start_offset: int = 0,
+) -> tuple[int, int]:
+    """Fold raw JSONL into EventBook from ``start_offset``. Returns (written, next_offset)."""
     written = 0
     raw_path = Path(path)
     if not raw_path.exists():
-        return 0
-    with open(raw_path, encoding="utf-8") as handle:
-        for raw_line in handle:
-            line = raw_line.strip()
+        return 0, 0
+    file_size = raw_path.stat().st_size
+    if start_offset >= file_size:
+        return 0, start_offset
+    with open(raw_path, "rb") as handle:
+        handle.seek(start_offset)
+        while True:
+            raw_line = handle.readline()
+            if not raw_line:
+                break
+            line = raw_line.decode("utf-8", errors="replace").strip()
             if not line:
                 continue
             try:
@@ -60,7 +74,8 @@ def ingest_raw_jsonl(path: Path, book: EventBook, *, source: str) -> int:
             if not isinstance(body, str) or not body.strip():
                 continue
             written += book.ingest_many(parse_rss_items(body, source=source))
-    return written
+        next_offset = handle.tell()
+    return written, next_offset
 
 
 def _item_to_event(item: ET.Element, *, source: str) -> MarketEvent | None:

@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import threading
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -30,6 +31,22 @@ try:
 except ImportError:  # pragma: no cover
     _msvcrt = None
 
+_thread_lock_guard = threading.Lock()
+_thread_locks: dict[str, threading.Lock] = {}
+_FILE_LOCK_RETRIES = 8
+_FILE_LOCK_BACKOFF_S = 0.05
+
+
+def _thread_lock_for(lock_path: Path) -> threading.Lock:
+    """In-process mutex: msvcrt locks are not re-entrant across threads."""
+    key = str(lock_path.resolve())
+    with _thread_lock_guard:
+        lock = _thread_locks.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _thread_locks[key] = lock
+        return lock
+
 
 @contextlib.contextmanager
 def _file_lock(path: Path):
@@ -39,16 +56,26 @@ def _file_lock(path: Path):
     lock_path = path.with_name(path.name + ".lock")
     if not lock_path.exists():
         lock_path.write_bytes(b"\0")
-    with open(lock_path, "r+b") as handle:
-        try:
-            handle.seek(0)
-            _msvcrt.locking(handle.fileno(), _msvcrt.LK_LOCK, 1)
-            yield
-        finally:
+    with _thread_lock_for(lock_path):
+        delay = _FILE_LOCK_BACKOFF_S
+        for attempt in range(_FILE_LOCK_RETRIES):
             try:
-                _msvcrt.locking(handle.fileno(), _msvcrt.LK_UNLCK, 1)
-            except OSError:
-                pass
+                with open(lock_path, "r+b") as handle:
+                    try:
+                        handle.seek(0)
+                        _msvcrt.locking(handle.fileno(), _msvcrt.LK_LOCK, 1)
+                        yield
+                        return
+                    finally:
+                        try:
+                            _msvcrt.locking(handle.fileno(), _msvcrt.LK_UNLCK, 1)
+                        except OSError:
+                            pass
+            except OSError as exc:
+                if exc.errno != 36 or attempt == _FILE_LOCK_RETRIES - 1:
+                    raise
+                time.sleep(delay)
+                delay = min(delay * 2, 0.5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +122,31 @@ class RawRecorder:
         if last_modified:
             headers["If-Modified-Since"] = last_modified
         return headers
+
+    def fold_offset(self, raw_path: Path) -> int:
+        key = self._fold_key(raw_path)
+        value = self._fold_offsets().get(key, 0)
+        return int(value) if isinstance(value, int) and value >= 0 else 0
+
+    def save_fold_offset(self, raw_path: Path, offset: int) -> None:
+        if offset < 0:
+            return
+        key = self._fold_key(raw_path)
+        offsets = dict(self._fold_offsets())
+        offsets[key] = offset
+        path = self._state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        with self._lock, _file_lock(path):
+            tmp.write_text(
+                json.dumps(
+                    {"feeds": self._load_state(), "fold_offsets": offsets},
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            os.replace(tmp, path)
 
     def record(self, feed: FeedSpec, *, capture: RawCapture) -> RecordResult:
         self._assert_write_allowed()
@@ -182,7 +234,7 @@ class RawRecorder:
             handle.flush()
             os.fsync(handle.fileno())
 
-    def _load_state(self) -> dict[str, Any]:
+    def _load_state_file(self) -> dict[str, Any]:
         path = self._state_path()
         if not path.exists():
             return {}
@@ -191,27 +243,50 @@ class RawRecorder:
         except json.JSONDecodeError:
             logger.warning("Heart state unreadable; starting empty")
             return {}
-        feeds = payload.get("feeds")
+        return payload if isinstance(payload, dict) else {}
+
+    def _load_state(self) -> dict[str, Any]:
+        feeds = self._load_state_file().get("feeds")
         return feeds if isinstance(feeds, dict) else {}
+
+    def _fold_offsets(self) -> dict[str, int]:
+        raw = self._load_state_file().get("fold_offsets")
+        if not isinstance(raw, dict):
+            return {}
+        offsets: dict[str, int] = {}
+        for key, value in raw.items():
+            if isinstance(value, int) and value >= 0:
+                offsets[str(key)] = value
+        return offsets
+
+    def _fold_key(self, raw_path: Path) -> str:
+        try:
+            return raw_path.resolve().relative_to(self._root.resolve()).as_posix()
+        except ValueError:
+            return raw_path.as_posix()
 
     def _store_validators(self, feed_id: str, headers: Mapping[str, str]) -> None:
         etag = _header(headers, "ETag")
         last_modified = _header(headers, "Last-Modified")
         if not etag and not last_modified:
             return
-        state = self._load_state()
-        current = dict(state.get(feed_id) or {})
+        feeds = dict(self._load_state())
+        current = dict(feeds.get(feed_id) or {})
         if etag:
             current["etag"] = etag
         if last_modified:
             current["last_modified"] = last_modified
-        state[feed_id] = current
+        feeds[feed_id] = current
         path = self._state_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(path.name + ".tmp")
         with self._lock, _file_lock(path):
             tmp.write_text(
-                json.dumps({"feeds": state}, indent=2) + "\n",
+                json.dumps(
+                    {"feeds": feeds, "fold_offsets": self._fold_offsets()},
+                    indent=2,
+                )
+                + "\n",
                 encoding="utf-8",
             )
             os.replace(tmp, path)

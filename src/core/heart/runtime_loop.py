@@ -40,7 +40,7 @@ def _interval_seconds() -> int:
     return value if value >= 1 else DEFAULT_INTERVAL_SECONDS
 
 
-def _fold_raw_into_book(root: Path, book: EventBook) -> int:
+def _fold_raw_into_book(root: Path, book: EventBook, recorder: RawRecorder) -> int:
     raw_root = root / "raw"
     if not raw_root.is_dir():
         return 0
@@ -49,7 +49,20 @@ def _fold_raw_into_book(root: Path, book: EventBook) -> int:
         if jsonl.name.endswith(".lock"):
             continue
         source = jsonl.stem
-        written += ingest_raw_jsonl(jsonl, book, source=source)
+        start_offset = recorder.fold_offset(jsonl)
+        try:
+            written_inc, next_offset = ingest_raw_jsonl(
+                jsonl,
+                book,
+                source=source,
+                start_offset=start_offset,
+            )
+        except OSError as exc:
+            logger.warning("heart fold skipped %s: %s", jsonl.name, exc)
+            continue
+        written += written_inc
+        if next_offset > start_offset:
+            recorder.save_fold_offset(jsonl, next_offset)
     return written
 
 
@@ -63,11 +76,15 @@ def run_heart_cycle(
     recorder = RawRecorder(root=heart_root)
     feeds_ok = poll_all_feeds(client, recorder)
     book = EventBook(heart_root / "events.jsonl")
-    rss_events = _fold_raw_into_book(heart_root, book)
+    rss_events = 0
+    try:
+        rss_events = _fold_raw_into_book(heart_root, book, recorder)
+    except OSError as exc:
+        logger.error("heart fold failed: %s", exc)
     nyse_events = 0
     try:
         nyse_events = ingest_halts_csv(fetch_halts_csv(client), book)
-    except HeartHttpError as exc:
+    except (HeartHttpError, httpx.TransportError) as exc:
         logger.warning("heart nyse halt fetch failed: %s", exc)
     logger.info(
         "heart cycle done feeds_ok=%s/%s rss_events=%s nyse_events=%s at=%s",

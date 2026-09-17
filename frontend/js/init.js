@@ -748,7 +748,7 @@
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
-	        var historyTitle = "<span>Caderneta de Recomendações &amp; Teses</span>"; /* Local audit history */
+	        var historyTitle = "<span>Caderno local (não é posição IBKR)</span>"; /* Local audit history */
 	        historyHost.innerHTML = [
 	          '<div class="trade-history-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' + historyTitle + '<strong style="color:#00e5ff;">' + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
 	          '<div class="trade-history-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">' + historyRows.join("") + "</div>",

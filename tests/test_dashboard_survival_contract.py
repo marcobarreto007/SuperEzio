@@ -51,3 +51,45 @@ def test_cockpit_trade_history_integrates_recommendations():
     assert "trades" in history
     if history["trades"]:
         assert "ticker" in history["trades"][0]
+
+
+def test_cockpit_trade_history_excludes_mangala_fixtures(monkeypatch):
+    class FakeJournal:
+        path = "paper_journal.jsonl"
+
+        def list_all(self):
+            return [
+                {
+                    "trade_id": "mangala-AAPL-1",
+                    "ticker": "AAPL",
+                    "entry_price": 100.0,
+                    "shares": 10.0,
+                },
+                {
+                    "trade_id": "rec-real",
+                    "ticker": "VFV",
+                    "entry_price": 50.0,
+                    "shares": 3.0,
+                    "thesis": "tese paper",
+                },
+            ]
+
+        def get_stats(self):
+            return {"total_trades": 2, "open_trades": 2}
+
+    class FakeLedger:
+        def _read_all(self):
+            return []
+
+    monkeypatch.setattr("core.trading.paper_journal.PaperJournal", FakeJournal)
+    monkeypatch.setattr(
+        "core.trading.recommendation_ledger.get_recommendation_ledger",
+        lambda: FakeLedger(),
+    )
+    history = _cockpit_trade_history(limit=10)
+    ids = [row["trade_id"] for row in history["trades"]]
+    assert "mangala-AAPL-1" not in ids
+    assert "rec-real" in ids
+    assert history["stats"]["not_broker_fills"] is True
+    assert history["stats"]["broker_open_positions"] == 0
+    assert all(row.get("is_broker_fill") is False for row in history["trades"])

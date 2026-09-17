@@ -139,6 +139,16 @@ def test_corrupt_line_is_quarantined_and_does_not_block_new_capture(recorder: Ra
     assert len(surviving) == 1
 
 
+def test_fold_offset_round_trip(recorder: RawRecorder, tmp_path: Path):
+    raw_path = tmp_path / "heart" / "raw" / "2026" / "09" / "17" / "prnewswire.jsonl"
+    raw_path.parent.mkdir(parents=True)
+    raw_path.write_text("x\n", encoding="utf-8")
+    assert recorder.fold_offset(raw_path) == 0
+    recorder.save_fold_offset(raw_path, 42)
+    again = RawRecorder(tmp_path / "heart")
+    assert again.fold_offset(raw_path) == 42
+
+
 def test_pytest_cannot_write_the_production_heart_path(monkeypatch, tmp_path: Path):
     production = tmp_path / "production_heart"
     monkeypatch.setattr("core.heart.raw_recorder.DEFAULT_HEART_ROOT", production)

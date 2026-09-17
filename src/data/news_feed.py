@@ -419,6 +419,10 @@ class NewsScout:
         """NewsAPI — fonte premium com chave."""
         if not self.newsapi_key or not _HAS_REQUESTS:
             return []
+        from data.newsapi_provider import newsapi_cooling_down, note_newsapi_http_status
+
+        if newsapi_cooling_down():
+            return []
         try:
             url = "https://newsapi.org/v2/everything"
             params = {
@@ -429,6 +433,7 @@ class NewsScout:
                 "pageSize": limit,
             }
             resp = _requests.get(url, params=params, timeout=8)
+            note_newsapi_http_status(resp.status_code)
             if resp.status_code != 200:
                 return []
             items = []

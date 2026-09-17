@@ -267,11 +267,21 @@ def _trade_history_sort_key(row: dict[str, Any]) -> str:
     )
 
 
+def _is_mangala_test_row(row: dict[str, Any]) -> bool:
+    """Mangala fixture rows are not IBKR fills and must not pad the cockpit."""
+    trade_id = str(row.get("trade_id") or row.get("order_id") or row.get("id") or "")
+    if not trade_id.lower().startswith("mangala-"):
+        return False
+    return not row.get("provenance")
+
+
 def _normalize_trade_history_row(
     row: dict[str, Any],
     *,
     source: str = "paper_journal",
 ) -> dict[str, Any] | None:
+    if _is_mangala_test_row(row):
+        return None
     ticker = str(row.get("ticker") or row.get("symbol") or "").strip().upper()
     trade_id = str(row.get("trade_id") or row.get("order_id") or row.get("id") or "").strip()
     if not ticker or not trade_id:
@@ -309,6 +319,7 @@ def _normalize_trade_history_row(
         "exit_date": exit_date,
         "updated_at": row.get("updated_at") or row.get("created_at"),
         "source": source,
+        "is_broker_fill": False,
     }
 
 
@@ -341,9 +352,11 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
         stats = journal.get_stats()
         stats["journal_records"] = len(trades)
         stats["open_hypotheses"] = sum(1 for trade in trades if trade.get("status") == "open")
+        stats["open_trades"] = stats["open_hypotheses"]
         stats["broker_orders"] = 0
         stats["broker_fills"] = 0
         stats["broker_open_positions"] = 0
+        stats["not_broker_fills"] = True
         return {
             "source": "recommendation_ledger",
             "path": str(journal.path),

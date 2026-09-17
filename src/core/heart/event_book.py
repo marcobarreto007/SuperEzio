@@ -61,9 +61,9 @@ class EventBook:
 
     def append(self, event: MarketEvent) -> AppendResult:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._quarantine_corrupt_lines()
         if event.identity in self._known_identities():
             return AppendResult(written=False)
+        self._quarantine_corrupt_lines()
         payload = json.dumps(event.to_row(), ensure_ascii=False) + "\n"
         with self._lock, _file_lock(self._path), open(self._path, "a", encoding="utf-8") as handle:
             handle.write(payload)

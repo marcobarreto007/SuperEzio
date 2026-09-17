@@ -76,7 +76,8 @@ if (-not $env:SUPEREZIO_HEART_USER_AGENT) {
     Log "Heart UA: default local contact (override SUPEREZIO_HEART_USER_AGENT)" "Yellow"
 }
 if (-not $IsolatedValidation) {
-    if (-not $env:SUPEREZIO_HEART_INGEST) { $env:SUPEREZIO_HEART_INGEST = "1" }
+    # Dedicated python -m core.heart process owns ingest; API embed must not duplicate it.
+    $env:SUPEREZIO_HEART_INGEST = "0"
 }
 
 Write-Host ""

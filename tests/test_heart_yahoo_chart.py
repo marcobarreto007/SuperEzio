@@ -136,8 +136,93 @@ def test_seed_from_events_counts_failures_without_inventing_bars(tmp_path: Path,
 
     client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
     result = seed_from_events(events, tmp_path, client=client, limit=3)
-    assert result["stored"] == ["GOOD"]
+    assert result["stored"] == [{"symbol": "GOOD", "mic_code": "XNAS"}]
     assert len(result["failed"]) == 1
     assert result["failed"][0]["symbol"] == "BAD"
+    assert result["failed"][0]["mic_code"] == "XNAS"
+    assert result["skipped"] == []
+    assert result["rate_limited"] is False
     assert (tmp_path / "GOOD.csv").exists()
     assert not (tmp_path / "BAD.csv").exists()
+
+
+def test_seed_from_events_skips_existing_csv(tmp_path: Path, monkeypatch):
+    from datetime import UTC, datetime
+
+    from core.heart.event_book import MarketEvent
+    from core.heart.yahoo_chart import seed_from_events, write_as_traded_csv
+
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (test@example.com)")
+
+    write_as_traded_csv(
+        tmp_path / "HAVE.csv",
+        bars_from_chart_payload(CHART_TWO_DAYS),
+    )
+
+    events = [
+        MarketEvent(
+            identity="nyse-halt:HAVE:2026-09-16T15:00:00-04:00",
+            source="nyse_halts",
+            event_type="nyse.luld_pause",
+            occurred_at=datetime(2026, 9, 16, 19, 0, tzinfo=UTC),
+            timestamp_precision="second",
+            symbol="HAVE",
+            mic_code="XNAS",
+        ),
+        MarketEvent(
+            identity="nyse-halt:NEW:2026-09-16T15:01:00-04:00",
+            source="nyse_halts",
+            event_type="nyse.luld_pause",
+            occurred_at=datetime(2026, 9, 16, 19, 1, tzinfo=UTC),
+            timestamp_precision="second",
+            symbol="NEW",
+            mic_code="XNAS",
+        ),
+    ]
+
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(200, json=CHART_TWO_DAYS)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
+    result = seed_from_events(events, tmp_path, client=client, limit=3)
+    assert result["skipped"] == [{"symbol": "HAVE", "mic_code": "XNAS"}]
+    assert result["stored"] == [{"symbol": "NEW", "mic_code": "XNAS"}]
+    assert result["failed"] == []
+    assert len(calls) == 1
+    assert "NEW" in calls[0]
+    assert "HAVE" not in calls[0]
+
+
+def test_seed_from_events_stops_on_rate_limit(tmp_path: Path, monkeypatch):
+    from datetime import UTC, datetime
+
+    from core.heart.event_book import MarketEvent
+    from core.heart.yahoo_chart import seed_from_events
+
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (test@example.com)")
+
+    events = [
+        MarketEvent(
+            identity=f"nyse-halt:SYM{i}:2026-09-16T15:00:00-04:00",
+            source="nyse_halts",
+            event_type="nyse.luld_pause",
+            occurred_at=datetime(2026, 9, 16, 19, i, tzinfo=UTC),
+            timestamp_precision="second",
+            symbol=f"SYM{i}",
+            mic_code="XNAS",
+        )
+        for i in range(3)
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, content=b"rate limited")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), timeout=30.0)
+    result = seed_from_events(events, tmp_path, client=client, limit=5)
+    assert result["rate_limited"] is True
+    assert len(result["failed"]) == 1
+    assert result["stored"] == []
+    assert not any(tmp_path.glob("*.csv"))

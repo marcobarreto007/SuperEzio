@@ -64,10 +64,19 @@ def request(
     *,
     etag: str | None = None,
     last_modified: str | None = None,
+    read_timeout: float | None = None,
 ) -> HeartResponse:
     _require_read_timeout(client)
+    get_kwargs: dict[str, object] = {}
+    if read_timeout is not None:
+        connect = min(10.0, read_timeout)
+        get_kwargs["timeout"] = httpx.Timeout(read_timeout, connect=connect, read=read_timeout)
     try:
-        response = client.get(url, headers=build_headers(etag=etag, last_modified=last_modified))
+        response = client.get(
+            url,
+            headers=build_headers(etag=etag, last_modified=last_modified),
+            **get_kwargs,
+        )
     except httpx.TimeoutException as exc:
         raise HeartHttpError(408, reason=str(exc)) from exc
     if response.status_code == 304:

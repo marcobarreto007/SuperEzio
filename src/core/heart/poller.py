@@ -19,7 +19,14 @@ from core.heart.raw_recorder import (
 
 logger = logging.getLogger(__name__)
 
-_POLL_ERRORS = (HeartHttpError, httpx.TimeoutException, httpx.ReadTimeout)
+_POLL_ERRORS = (
+    HeartHttpError,
+    httpx.TimeoutException,
+    httpx.ReadTimeout,
+    httpx.ConnectError,
+    httpx.RemoteProtocolError,
+    httpx.NetworkError,
+)
 
 
 def poll_once(client: httpx.Client, feed: FeedSpec, recorder: RawRecorder) -> RecordResult:
@@ -29,6 +36,7 @@ def poll_once(client: httpx.Client, feed: FeedSpec, recorder: RawRecorder) -> Re
         feed.url,
         etag=cond.get("If-None-Match"),
         last_modified=cond.get("If-Modified-Since"),
+        read_timeout=feed.poll_read_timeout_s,
     )
     headers: dict[str, str] = {}
     if response.etag:

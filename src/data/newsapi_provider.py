@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -123,6 +124,29 @@ def _sentiment(text: str) -> tuple[float, str]:
     return score, label
 
 
+# Developer accounts: 50 req / 12h. After 429, stop hitting the API.
+_NEWSAPI_COOLDOWN_SEC = 12 * 3600
+_newsapi_cooldown_until = 0.0
+
+
+def newsapi_cooling_down() -> bool:
+    return time.monotonic() < _newsapi_cooldown_until
+
+
+def note_newsapi_http_status(status: int) -> None:
+    """Trip a 12h cooldown on HTTP 429. Other errors stay one-shot failures."""
+    global _newsapi_cooldown_until
+    if int(status) != 429:
+        return
+    _newsapi_cooldown_until = time.monotonic() + _NEWSAPI_COOLDOWN_SEC
+    logger.warning("[NewsAPI] HTTP 429 — cooldown %ss, no further calls", _NEWSAPI_COOLDOWN_SEC)
+
+
+def reset_newsapi_cooldown_for_tests() -> None:
+    global _newsapi_cooldown_until
+    _newsapi_cooldown_until = 0.0
+
+
 class NewsAPIProvider:
     """Standalone NewsAPI v2 provider for financial news."""
 
@@ -132,7 +156,7 @@ class NewsAPIProvider:
 
     @property
     def healthy(self) -> bool:
-        return self._healthy
+        return self._healthy and not newsapi_cooling_down()
 
     def get_news(self, query: str, limit: int = 8) -> list[dict[str, Any]]:
         """Fetch news articles for a query.
@@ -141,6 +165,8 @@ class NewsAPIProvider:
         publication date.
         """
         if not self.api_key or not _HAS_REQUESTS:
+            return []
+        if newsapi_cooling_down():
             return []
 
         try:
@@ -156,6 +182,7 @@ class NewsAPIProvider:
                 params=params,
                 timeout=10,
             )
+            note_newsapi_http_status(resp.status_code)
             if resp.status_code != 200:
                 error_msg = resp.json().get("message", resp.text) if resp.text else "unknown"
                 logger.warning("[NewsAPI] HTTP %s: %s", resp.status_code, error_msg)

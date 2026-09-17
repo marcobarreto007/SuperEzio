@@ -123,9 +123,27 @@ def fetch_and_store(symbol: str, ohlcv_dir: Path, *, client: httpx.Client) -> Pa
 _CA_MICS = frozenset({"XTSX", "XTSV", "XTSE", "NEOE"})
 
 
-def luld_symbols_for_us_tape(events: list[Any], *, limit: int = 20) -> list[str]:
-    """First-seen LULD tickers that are not explicitly Canadian."""
-    ordered: list[str] = []
+def _csv_candidate_names(symbol: str, mic_code: str | None) -> list[str]:
+    """Basenames hydrate may resolve for a listing (MIC-aware)."""
+    sym = str(symbol).upper()
+    names = [f"{sym}.csv", f"{sym.replace('.', '-')}.csv"]
+    if (mic_code or "").upper() in _CA_MICS:
+        names.insert(0, f"{sym}.TO.csv")
+    return names
+
+
+def existing_ohlcv_csv(ohlcv_dir: Path, symbol: str, mic_code: str | None = None) -> Path | None:
+    """Return the on-disk CSV path when bars already exist for this listing."""
+    for name in _csv_candidate_names(symbol, mic_code):
+        path = ohlcv_dir / name
+        if path.is_file():
+            return path
+    return None
+
+
+def luld_listings_for_us_tape(events: list[Any]) -> list[dict[str, str]]:
+    """First-seen LULD tickers with MIC; Canadian tape excluded."""
+    ordered: list[dict[str, str]] = []
     seen: set[str] = set()
     for event in events:
         event_type = getattr(event, "event_type", "")
@@ -139,9 +157,7 @@ def luld_symbols_for_us_tape(events: list[Any], *, limit: int = 20) -> list[str]
         if key in seen:
             continue
         seen.add(key)
-        ordered.append(key)
-        if len(ordered) >= limit:
-            break
+        ordered.append({"symbol": key, "mic_code": mic})
     return ordered
 
 
@@ -152,17 +168,47 @@ def seed_from_events(
     client: httpx.Client,
     limit: int = 20,
 ) -> dict[str, Any]:
-    """Download as-traded CSVs. Failures are counted, never invented."""
-    symbols = luld_symbols_for_us_tape(events, limit=limit)
-    stored: list[str] = []
+    """Download as-traded CSVs for EventBook symbols lacking OHLCV.
+
+    At most ``limit`` Yahoo fetches per run. Symbols with an existing CSV are
+    skipped (never re-downloaded). Failures are counted; bars are never invented.
+    """
+    candidates = luld_listings_for_us_tape(events)
+    stored: list[dict[str, str]] = []
+    skipped: list[dict[str, str]] = []
     failed: list[dict[str, str]] = []
-    for symbol in symbols:
+    requested: list[dict[str, str]] = []
+    attempted = 0
+    rate_limited = False
+
+    for listing in candidates:
+        if attempted >= limit:
+            break
+        symbol = listing["symbol"]
+        mic = listing.get("mic_code") or ""
+        if existing_ohlcv_csv(ohlcv_dir, symbol, mic):
+            skipped.append(listing)
+            continue
+        attempted += 1
+        requested.append(listing)
         try:
             fetch_and_store(symbol, ohlcv_dir, client=client)
-            stored.append(symbol)
-        except (HeartHttpError, httpx.HTTPError, OSError, ValueError) as exc:
-            failed.append({"symbol": symbol, "error": str(exc)})
-    return {"requested": symbols, "stored": stored, "failed": failed}
+            stored.append(listing)
+        except HeartHttpError as exc:
+            failed.append({"symbol": symbol, "mic_code": mic, "error": str(exc)})
+            if exc.status == 429:
+                rate_limited = True
+                break
+        except (httpx.HTTPError, OSError, ValueError) as exc:
+            failed.append({"symbol": symbol, "mic_code": mic, "error": str(exc)})
+
+    return {
+        "requested": requested,
+        "stored": stored,
+        "skipped": skipped,
+        "failed": failed,
+        "rate_limited": rate_limited,
+    }
 
 
 def resolve_ohlcv_dir(explicit: Path | None = None) -> Path:
@@ -190,7 +236,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--from-events", action="store_true", help="Seed symbols from LULD events on disk.")
     parser.add_argument("--symbol", action="append", default=[], help="Ticker to fetch (repeatable).")
-    parser.add_argument("--limit", type=int, default=3, help="Max LULD symbols when --from-events (default: 3).")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="Max new Yahoo fetches when --from-events (default: 20; skips existing CSVs).",
+    )
     return parser.parse_args(argv)
 
 
@@ -211,12 +262,8 @@ def run_cli(argv: list[str] | None = None) -> int:
             events = EventBook(events_path).read_all() if events_path.exists() else []
             result = seed_from_events(events, ohlcv_dir, client=client, limit=args.limit)
             summary["from_events"] = result
-            summary["stored"].extend(result["stored"])
+            summary["stored"].extend(row["symbol"] for row in result["stored"])
             summary["failed"].extend(result["failed"])
-            if not result["requested"] and not symbols:
-                symbols = ["SPY"]
-            elif not result["stored"] and not symbols:
-                symbols = ["SPY"]
 
         for symbol in symbols:
             try:
