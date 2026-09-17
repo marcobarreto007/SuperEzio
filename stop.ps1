@@ -55,6 +55,11 @@ if (Test-Path -LiteralPath $bridgeStop) {
     try { & $bridgeStop } catch {}
 }
 
+$heartIngestStop = Join-Path $PSScriptRoot "scripts\ops\stop_heart_ingest.ps1"
+if (Test-Path -LiteralPath $heartIngestStop) {
+    try { & $heartIngestStop } catch {}
+}
+
 $owner = Get-SuperEzioPortOwner -Port $ApiPort
 if (-not $owner) {
     if ($stopped) { Write-Host "Port $ApiPort is free." }

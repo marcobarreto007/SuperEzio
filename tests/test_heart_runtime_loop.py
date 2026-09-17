@@ -60,3 +60,29 @@ def test_cycle_nyse_http_error_does_not_invent_halts(tmp_path: Path, monkeypatch
     assert result["nyse_events"] == 0
     events = EventBook(root / "events.jsonl").read_all()
     assert all(event.event_type != "nyse.luld_pause" for event in events)
+
+
+def test_process_main_once_does_not_need_fastapi(tmp_path: Path, monkeypatch):
+    import importlib
+
+    heart_main = importlib.import_module("core.heart.__main__")
+
+    calls: list[Path] = []
+
+    def fake_cycle(root: Path):
+        calls.append(root)
+        return {"feeds_ok": 0, "feeds_total": 0, "rss_events": 0, "nyse_events": 0}
+
+    monkeypatch.setattr(heart_main, "_cycle_with_own_client", fake_cycle)
+    monkeypatch.setenv("SUPEREZIO_HEART_USER_AGENT", "SuperEzioHeart/1.0 (marco@example.com)")
+    exit_code = heart_main.main(["--once", "--root", str(tmp_path / "heart")])
+    assert exit_code == 0
+    assert calls == [tmp_path / "heart"]
+
+
+def test_process_main_refuses_without_user_agent(monkeypatch):
+    import importlib
+
+    heart_main = importlib.import_module("core.heart.__main__")
+    monkeypatch.delenv("SUPEREZIO_HEART_USER_AGENT", raising=False)
+    assert heart_main.main(["--once"]) == 2

@@ -16,3 +16,9 @@ def test_heart_panel_files_exist():
 def test_heart_html_references_ranking_api():
     html = (ROOT / "frontend" / "heart.html").read_text(encoding="utf-8")
     assert "/api/heart/ranking" in html
+
+
+def test_heart_ohlcv_store_exists_beside_eventbook():
+    assert (ROOT / "data" / "heart" / "ohlcv").is_dir()
+    assert (ROOT / "scripts" / "ops" / "start_heart_ingest.ps1").is_file()
+    assert (ROOT / "scripts" / "ops" / "stop_heart_ingest.ps1").is_file()

@@ -151,6 +151,17 @@ if ($apiUp) {
             Log "Bridge em standby: $($_.Exception.Message)" "Yellow"
         }
     }
+
+    if (-not $IsolatedValidation) {
+        $heartIngestStart = Join-Path $ScriptDir "scripts\ops\start_heart_ingest.ps1"
+        if (Test-Path -LiteralPath $heartIngestStart) {
+            try {
+                & $heartIngestStart
+            } catch {
+                Log "Heart ingest process em standby: $($_.Exception.Message)" "Yellow"
+            }
+        }
+    }
 } else {
     if (-not $apiProcess.HasExited) { $apiProcess | Stop-Process -Force }
     Log "ERROR: API did not become healthy within $HealthTimeoutMinutes minutes." "Red"

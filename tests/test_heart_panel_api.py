@@ -79,7 +79,12 @@ def test_get_ranking_calls_refresh_outside_pytest(monkeypatch):
     assert response.status_code == 200
     assert len(calls) == 1
     assert calls[0][0].name == "heart"
-    assert calls[0][1].parts[-2:] == ("effective_universe", "ohlcv")
+    assert calls[0][1].parts[-2:] == ("heart", "ohlcv")
+
+
+def test_resolve_ohlcv_dir_honors_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("SUPEREZIO_HEART_OHLCV_DIR", str(tmp_path / "bars"))
+    assert heart.resolve_ohlcv_dir() == tmp_path / "bars"
 
 
 def test_get_ranking_skips_refresh_under_pytest(monkeypatch):

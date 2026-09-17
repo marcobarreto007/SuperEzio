@@ -1,8 +1,17 @@
 # SuperEzio
 
-## O que é
+## Papel (autoridade — manda sobre o resto deste ficheiro)
 
-Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob) com chat, dados de mercado e execução de ordens, com dados, journals e git em disco local (DISK ONLY) e modelos de inteligência consumidos via APIs em nuvem.
+Corpo de investimento local da família Barreto. Paper. Marco executa o TD à mão.
+
+- **SuperEzio** (`:8002`) = cockpit, evidência, gates (F51, SDCA, taxa zero $1k CAD), journal/recomendação. Bob **narra** (DeepSeek cloud). Não é assistente da casa.
+- **Coração** = arquivo evento×preço, custo zero, **sem LLM**. Ranking só junta barra à sessão do evento, com MIC. P5 aprende pesos; o painel mostra.
+- **MIKE** (repo irmão `:8083` + cérebro local `:8080`) = família, memória, Gmail. Vê/comanda o Ezio pelo bridge `:8009`. Não é motor de ranking nem broker.
+- Live frozen por default. Integração morta devolve erro — nunca sucesso fingido. GPUs desta máquina são do cérebro do MIKE.
+
+## O que é (runtime)
+
+Runtime local e camada operacional: chat Bob, dados de mercado, journal, Heart, com disco local (DISK ONLY). Inteligência de pesquisa via APIs em nuvem (DeepSeek). O grafo legado ainda corre; alvo: `docs/architecture/TARGET_ARCHITECTURE.md`.
 
 ## Comandos
 - instalar: pip install -e ".[dev]"

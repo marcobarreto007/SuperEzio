@@ -175,8 +175,60 @@ def test_refresh_falls_back_when_event_tickers_miss_csv(tmp_path: Path, monkeypa
     _write_ftft_event(heart_root / "events.jsonl")
     view = HeartView()
     refresh_heart_view(view, heart_root=heart_root, ohlcv_dir=ohlcv)
-    assert view.moves
-    assert all(m["symbol"] == "AAA" for m in view.moves)
+    assert view.moves == []
+
+
+def test_refresh_keeps_only_event_session_not_full_history(tmp_path: Path, monkeypatch):
+    _install_ohlcv_csv(monkeypatch)
+    heart_root = tmp_path / "heart"
+    heart_root.mkdir()
+    _write_ftft_event(heart_root / "events.jsonl")
+    ohlcv = tmp_path / "ohlcv"
+    ohlcv.mkdir()
+    (ohlcv / "FTFT.csv").write_text("placeholder\n", encoding="utf-8")
+    view = HeartView()
+    refresh_heart_view(view, heart_root=heart_root, ohlcv_dir=ohlcv)
+    assert [m["session_date"] for m in view.moves] == ["2026-09-14"]
+    assert all(m["symbol"] == "FTFT" for m in view.moves)
+
+
+def test_refresh_does_not_join_tsx_homonym_to_us_halt(tmp_path: Path, monkeypatch):
+    from core.heart.ohlcv_csv import listing_guess_from_filename
+
+    ohlcv = tmp_path / "ohlcv"
+    ohlcv.mkdir()
+    csv_path = ohlcv / "VGRO.TO.csv"
+    csv_path.write_text("placeholder\n", encoding="utf-8")
+    bars = [
+        {
+            "session_date": f"2018-02-{day:02d}",
+            "open": 20.0,
+            "high": 20.0,
+            "low": 20.0,
+            "close": 20.0 + day,
+            "volume": 1,
+        }
+        for day in range(1, 10)
+    ]
+    _install_ohlcv_csv(monkeypatch, bars_by_path={csv_path.resolve(): bars, csv_path: bars})
+    sys.modules["core.heart.ohlcv_csv"].listing_guess_from_filename = listing_guess_from_filename
+
+    heart_root = tmp_path / "heart"
+    heart_root.mkdir()
+    event = MarketEvent(
+        identity="nyse-halt:VGRO:2025-12-23T10:00:00-05:00",
+        source="nyse_halts",
+        event_type="nyse.luld_pause",
+        occurred_at=datetime(2025, 12, 23, 10, 0, 0, tzinfo=ET),
+        timestamp_precision="second",
+        symbol="VGRO",
+        mic_code=None,
+    )
+    EventBook(heart_root / "events.jsonl").append(event)
+
+    view = HeartView()
+    refresh_heart_view(view, heart_root=heart_root, ohlcv_dir=ohlcv)
+    assert view.moves == []
 
 
 def test_refresh_no_ohlcv_dir_leaves_moves_empty(tmp_path: Path, monkeypatch):
