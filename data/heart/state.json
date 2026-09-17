@@ -1,19 +1,19 @@
 {
   "feeds": {
     "prnewswire": {
-      "etag": "W/\"9bf5-65ba5ef80dc58\"",
-      "last_modified": "Thu, 17 Sep 2026 04:08:26 GMT"
+      "etag": "W/\"a305-65bb29876e222\"",
+      "last_modified": "Thu, 17 Sep 2026 19:14:40 GMT"
     },
     "cnw": {
       "etag": "W/\"a8ff-65b717ccab716\"",
       "last_modified": "Mon, 14 Sep 2026 13:34:03 GMT"
     },
     "businesswire_ma": {
-      "etag": "d1c0b817352984809f4c418a45ff96fc",
-      "last_modified": "Thu, 17 Sep 2026 04:10:04 GMT"
+      "etag": "87476d9fe8cffd6962dac484fcd61a30",
+      "last_modified": "Thu, 17 Sep 2026 19:10:25 GMT"
     },
     "globenewswire": {
-      "last_modified": "Thu, 17 Sep 2026 04:01:39 GMT"
+      "last_modified": "Thu, 17 Sep 2026 18:55:09 GMT"
     }
   }
 }
