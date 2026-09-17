@@ -1,30 +1,29 @@
 {
   "date_local": "2026-09-16",
-  "session": "commit-e-salva-tudo-2026-09-16",
+  "session": "spine-tasks-2-8-e-consolidacao",
   "status": "APPLIED_LOCAL",
-  "objective": "Committar o working tree completo (3 frentes: migracao Python 3.12 + deps regularizadas, executor de pesquisa do bridge Mike, ML de eventos) e registrar o estado no checkpoint.",
-  "predecessor": "caderneta-proveniencia-e-dados-dos-experts",
+  "objective": "Espinha do Coracao fechada ponta-a-ponta (Tasks 2-8) e estado consolidado: suite heart verde, coleta da suite completa destravada.",
+  "predecessor": "commit-e-salva-tudo-2026-09-16",
 
   "entregue": {
-    "commit_1c7edb83": {
-      "titulo": "feat(ops,bridge,ml): Python 3.12, deps regularizadas, pesquisa do Mike e ML de eventos",
-      "arquivos": "25 files changed, +1734/-201",
-      "frentes": {
-        "env_312": "requires-python >=3.12 (pyproject + bridge/start.ps1 + config.ps1 + launcher/check com texto novo + ruff py312); entram financedatabase, akshare, xlrd, openpyxl (ja importadas no codigo); saem aiohttp, statsmodels, pandas-ta, mem0ai (sem uso); bcrypt<4.1 conserta passlib; contrato testado por test_runtime_environment_contract.py (requirements.txt == project.dependencies)",
-        "bridge": "poll do MIKE 30s->5s (bridge/config.py + bridge/events.toml em lockstep); task.submit do Mike passa a executar pesquisa via pipeline (session bridge:mike), paper/trade seguem freeze; doc docs/architecture/MIKE_EZIO_CONTINUITY.md (recibo duravel, sem replay automatico)",
-        "ml_eventos": "src/core/ml/event_dataset.py + event_experiment.py + scripts/prepare_event_ml_input.py + run_event_ml.py (ML de eventos avulso, nao-heart) com 4 testes",
-        "dados": "append operacional: bob_pain_log +40 linhas, conversation_memory +5, mangala_daily novo scan (degradado: OpenBB fora na janela)",
-        "lint_heart": "ruff I001/PLR0402 corrigidos em tests/test_heart_event_book.py e test_heart_paths.py (gate de Stop consertado)"
-      }
-    }
+    "c05c53c8_spine_end_to_end": {
+      "titulo": "feat(heart): spine end-to-end (ingest, listings, identities, join, moves, ml decide, panel api)",
+      "oque": "Tasks 2-8: parser NYSE, ingest_many, listings/DailyMove, relogio ET nos testes de attribution, decide_path (killed no crash), poller HTTP mockado, GET /api/heart/ranking, teste-pai tests/test_heart_spine.py",
+      "ordem_executada": "5->6->4 apos a Task 3 (juncao e kill antes do HTTP), contra o plano original - decisao do operador apos review de 4 agentes"
+    },
+    "75b036af_browser_cdp": {
+      "titulo": "docs(browser): spec Chromium compilado + CDP sem Playwright",
+      "oque": "Spec de browser via CDP nativo, sem depender de Playwright instalado"
+    },
+    "12dce400_mangala": "novo scan operacional do mangala_daily"
   },
 
   "reservas_conhecidas": {
-    "heart_suite_vermelha": "RESOLVIDO o erro de coleta: core.heart.nyse_halts + event_book.ingest_many implementados (1550053e) e test_heart_event_book usa o fixture da espinha. Restam 2 falhas de fuso UTC/ET em test_heart_attribution.py (testes carimbam UTC, codigo converte para America/New_York) — Tarefa 5 do spine parcial.",
-    "browser_sem_playwright": "5 testes browser falham por falta de navegador Playwright no ambiente (banner 'playwright install'): test_browser_smoke_final_answer (3) e test_client_portfolio_browser (2). maxfail=5 interrompe o full run.",
-    "lock_path_temporario": "requirements-lock.txt regenerado com constraint temporario da maquina (C:\\Users\\marco\\AppData\\Local\\Temp\\constraints_nobcrypt.txt) em centenas de linhas de comentario — regenerar sem o constraint.",
-    "poll_5s_sem_teste": "poll do bridge 30s->5s sem teste dedicado (regra 4: mudanca de comportamento vem com teste).",
-    "decision_trace_rotulo": "src/agent_server/main.py grava execution=human_td_direct_investing fixo mesmo em run de pesquisa — rotulo enganoso no rastreio, sem efeito de execucao."
+    "browser_sem_navegador": "5 testes browser falham por falta de navegador no ambiente (test_browser_smoke_final_answer 3 + test_client_portfolio_browser 2) - medido 2026-09-16: 5 failed em 5.52s. A spec CDP (75b036af) existe mas os testes ainda dependem de browser instalado. INV-R51.",
+    "lock_path_temporario": "requirements-lock.txt regenerado com constraint temporario da maquina (AppData\\Local\\Temp\\constraints_nobcrypt.txt) em comentarios - regenerar sem o constraint. INV-R52.",
+    "poll_5s_sem_teste": "poll do bridge 30s->5s sem teste dedicado (regra 4).",
+    "decision_trace_rotulo": "src/agent_server/main.py grava execution=human_td_direct_investing fixo mesmo em run de pesquisa - rotulo enganoso no rastreio, sem efeito de execucao.",
+    "edgar_atom_pendente": "core.heart.edgar_atom ainda nao existe; caminho EDGAR fica fora da espinha ate voltar ao escopo (decisao explicita: nao inventar edgar_atom)."
   },
 
   "invariants": {
@@ -41,15 +40,16 @@
     "caderneta": "REAL_BEATS_COUNTERFACTUAL"
   },
 
-  "next_step": "Migrar os testes de attribution para ET (fecha a Tarefa 5 do spine); criar core.heart.edgar_atom quando o caminho EDGAR voltar ao escopo; playwright install no venv; regenerar requirements-lock.txt sem o constraint temporario; teste para o poll 5s do bridge.",
+  "next_step": "Instalar navegador (CDP Chromium) para os 5 testes browser; regenerar requirements-lock.txt sem o constraint temporario; teste para o poll 5s do bridge; avaliar o caminho EDGAR quando voltar ao escopo.",
 
   "verification": {
-    "ruff": "check limpo — 'All checks passed!' (src + tests, incluindo src/core/heart)",
-    "pytest_full": "NAO COLETA: ModuleNotFoundError core.heart.edgar_atom em tests/test_heart_event_book.py (75s, 2983 itens coletados antes do erro)",
-    "pytest_sem_event_book": "5 failed (browser/Playwright), 858 passed, 1 skipped, 1 deselected — maxfail=5 parou em 262s",
-    "pytest_heart_pos_tarefa5": "2 failed (fuso UTC/ET em test_heart_attribution.py), 10 passed (event_book + nyse_halts + attribution + paths, 2.29s)",
-    "secrets_scan": "limpo — 3 subagentes varreram os diffs e data/: nenhuma credencial/chave",
-    "working_tree": "limpo apos commits 1c7edb83, 22f7673b e 1550053e"
+    "ruff": "check limpo - 'All checks passed!' (src + tests)",
+    "heart_tests": "56 passed, 0 failed (tests/test_heart_*.py, 5.46s) - attribution migrado para ET, fuso corrigido",
+    "events_toml": "52 passed (tests/test_control_endpoints.py, 3.65s)",
+    "coleta": "3003/3004 testes coletados, 0 erros (31.66s) - event_book ja coleta",
+    "browser": "5 failed (Playwright/Chromium em falta no ambiente, 5.52s) - nao e Heart",
+    "secrets_scan": "limpo - varreduras anteriores dos diffs: nenhuma credencial/chave",
+    "working_tree": "limpo apos commits c05c53c8, 75b036af, 12dce400 e docs(ops)"
   },
 
   "still_true": {

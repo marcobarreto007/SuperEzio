@@ -795,27 +795,27 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
 - Resolution: este update registra R41-R49 e o TASK_BOARD recebeu a entrada de hoje.
 - Status: Resolved 2026-08-21.
 
-### INV-R50 - Suite heart vermelha pos-commit 1c7edb83 [MEDIUM 2026-09-16 -> PARCIALMENTE MITIGADO]
+### INV-R50 - Suite heart vermelha pos-commit 1c7edb83 [MEDIUM 2026-09-16 -> RESOLVED 2026-09-16]
 
 - Classification: test suite / modulo heart.
 - Risk: test_heart_event_book.py nao coleta (importa core.heart.edgar_atom e nyse_halts
   inexistentes — Tarefa 5 do spine) e test_heart_attribution.py tem 2 falhas de fuso UTC/ET.
   Definicao de pronto (pytest -q inteiro) nao fecha. Herdado de 9c6ce6eb; registrado no
   commit 1c7edb83 como bloqueador documentado.
-- Verification: medido 2026-09-16 — full run nao coleta (75s); sem event_book, maxfail=5
-  para em 5 falhas de browser; alvo attribution+paths: 2 failed, 4 passed.
-- Resolution parcial: 1550053e implementa core.heart.nyse_halts + event_book.ingest_many
-  e recorta o import de edgar_atom — coleta destravada. Medido apos: 2 failed, 10 passed
-  (event_book + nyse_halts + attribution + paths). Residual: as 2 falhas de fuso UTC/ET
-  em test_heart_attribution.py (migrar os testes para ET).
-- Status: Parcialmente mitigado 2026-09-16; residual Active ate migrar attribution para ET.
+- Resolution: 1550053e (nyse_halts + ingest_many) destravou a coleta; c05c53c8 (spine
+  end-to-end, Tasks 2-8) migrou os testes de attribution para relogio ET. Medido
+  2026-09-16: tests/test_heart_*.py = 56 passed, 0 failed; coleta da suite completa
+  3003/3004, 0 erros.
+- Status: Resolved 2026-09-16.
 
 ### INV-R51 - Testes browser falham por falta de navegador Playwright [LOW 2026-09-16 -> ACTIVE]
 
 - Classification: ambiente de teste.
 - Risk: test_browser_smoke_final_answer (3) e test_client_portfolio_browser (2) falham com
   banner "playwright install"; com maxfail=5 o full run corta a cobertura em 858 passed.
-- Mitigation: playwright install no .venv do projeto.
+- Verification: re-medido 2026-09-16 apos 75b036af (spec CDP sem Playwright): 5 failed em
+  5.52s — os testes ainda dependem de navegador instalado.
+- Mitigation: instalar Chromium (CDP) no ambiente e religar os 5 testes a ele.
 - Status: Active 2026-09-16.
 
 ### INV-R52 - Path temporario de constraint no requirements-lock.txt [LOW 2026-09-16 -> ACTIVE]
