@@ -1,46 +1,19 @@
 {
-  "scanned_at": "2026-09-18T00:35:53.201975+00:00",
+  "scanned_at": "2026-09-18T14:19:09.378841+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "PLUG",
-      "price": 2.12,
-      "volume": 61214068,
-      "name": "PLUG",
-      "score": 13,
-      "signal": "PASS",
-      "factors": {
-        "volume": 5,
-        "whale": 0,
-        "momentum": 0,
-        "rsi": 0,
-        "catalyst": 8
-      },
-      "whale_status": "SEM_DADOS",
-      "whale_score": null,
-      "pump_risk": "ALERT",
-      "pump_score": 70,
-      "data_status": "PARTIAL",
-      "flip_plan": {
-        "entry": 2.12,
-        "target_5pct": 2.23,
-        "stop_3pct": 2.06,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-09-18T00:35:13.114010+00:00"
-    },
-    {
       "ticker": "RIG",
       "price": 5.66,
-      "volume": 41113459,
+      "volume": 5229280,
       "name": "RIG",
-      "score": 13,
+      "score": 36,
       "signal": "PASS",
       "factors": {
-        "volume": 5,
+        "volume": 10,
         "whale": 0,
-        "momentum": 0,
-        "rsi": 0,
+        "momentum": 10,
+        "rsi": 8,
         "catalyst": 8
       },
       "whale_status": "SEM_DADOS",
@@ -54,19 +27,73 @@
         "stop_3pct": 5.49,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-18T00:35:19.463748+00:00"
+      "scanned_at": "2026-09-18T14:18:50.113576+00:00"
+    },
+    {
+      "ticker": "BB",
+      "price": 7.86,
+      "volume": 2000908,
+      "name": "BB",
+      "score": 23,
+      "signal": "PASS",
+      "factors": {
+        "volume": 0,
+        "whale": 0,
+        "momentum": 5,
+        "rsi": 8,
+        "catalyst": 10
+      },
+      "whale_status": "FORTE",
+      "whale_score": 70,
+      "pump_risk": "SEM_DADOS",
+      "pump_score": null,
+      "data_status": "PARTIAL",
+      "flip_plan": {
+        "entry": 7.86,
+        "target_5pct": 8.25,
+        "stop_3pct": 7.62,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-09-18T14:19:03.515696+00:00"
+    },
+    {
+      "ticker": "PLUG",
+      "price": 2.07,
+      "volume": 9258316,
+      "name": "PLUG",
+      "score": 21,
+      "signal": "PASS",
+      "factors": {
+        "volume": 5,
+        "whale": 0,
+        "momentum": 3,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "SEM_DADOS",
+      "whale_score": null,
+      "pump_risk": "SEM_DADOS",
+      "pump_score": null,
+      "data_status": "NO_DATA",
+      "flip_plan": {
+        "entry": 2.09,
+        "target_5pct": 2.19,
+        "stop_3pct": 2.03,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-09-18T14:18:35.600573+00:00"
     },
     {
       "ticker": "NIO",
-      "price": 3.62,
-      "volume": 20325200,
+      "price": 3.64,
+      "volume": 6536217,
       "name": "NIO",
-      "score": 13,
+      "score": 16,
       "signal": "PASS",
       "factors": {
         "volume": 5,
         "whale": 0,
-        "momentum": 0,
+        "momentum": 3,
         "rsi": 0,
         "catalyst": 8
       },
@@ -76,25 +103,25 @@
       "pump_score": null,
       "data_status": "NO_DATA",
       "flip_plan": {
-        "entry": 3.62,
-        "target_5pct": 3.8,
-        "stop_3pct": 3.51,
+        "entry": 3.65,
+        "target_5pct": 3.83,
+        "stop_3pct": 3.54,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-18T00:35:27.861815+00:00"
+      "scanned_at": "2026-09-18T14:18:42.508014+00:00"
     },
     {
       "ticker": "TLRY",
-      "price": 3.94,
-      "volume": 2862883,
+      "price": 3.96,
+      "volume": 537031,
       "name": "TLRY",
-      "score": 13,
+      "score": 16,
       "signal": "PASS",
       "factors": {
         "volume": 5,
         "whale": 0,
         "momentum": 0,
-        "rsi": 0,
+        "rsi": 3,
         "catalyst": 8
       },
       "whale_status": "SEM_DADOS",
@@ -103,39 +130,12 @@
       "pump_score": null,
       "data_status": "NO_DATA",
       "flip_plan": {
-        "entry": 3.94,
-        "target_5pct": 4.14,
-        "stop_3pct": 3.82,
+        "entry": 3.98,
+        "target_5pct": 4.18,
+        "stop_3pct": 3.86,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-09-18T00:35:41.077356+00:00"
-    },
-    {
-      "ticker": "KODK",
-      "price": 9.74,
-      "volume": 694371,
-      "name": "KODK",
-      "score": 13,
-      "signal": "PASS",
-      "factors": {
-        "volume": 5,
-        "whale": 0,
-        "momentum": 0,
-        "rsi": 0,
-        "catalyst": 8
-      },
-      "whale_status": "SEM_DADOS",
-      "whale_score": null,
-      "pump_risk": "SEM_DADOS",
-      "pump_score": null,
-      "data_status": "NO_DATA",
-      "flip_plan": {
-        "entry": 9.74,
-        "target_5pct": 10.23,
-        "stop_3pct": 9.45,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-09-18T00:35:53.200969+00:00"
+      "scanned_at": "2026-09-18T14:19:09.378841+00:00"
     }
   ]
 }
