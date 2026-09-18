@@ -58,6 +58,7 @@ runtime/quality_probe/
 runtime/traces/
 runtime/*.pid
 *.pid
+*.lock
 # Byproducts do servidor rodando com cwd=src/ (paths relativos ao cwd):
 # dumps de prompt e pain log espelhado — o canônico vive em runtime/ e data/.
 src/runtime/
