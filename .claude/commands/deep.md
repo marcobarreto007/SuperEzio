@@ -1,48 +1,82 @@
 ---
-description: F51 Master Orchestrator — Decomposição com subagentes, streaming SSE e verificação independente pós-execução (Hermes Agent pattern).
+description: F51 Master Autonomous Orchestrator — Execução autônoma de ponta a ponta com subagentes, reflexão/auto-correção em loop, streaming SSE e verificação independente.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
-# F51 MASTER ORCHESTRATOR (HERMES AGENT SUBAGENT PATTERN)
+# F51 MASTER AUTONOMOUS ORCHESTRATOR (SuperEzio Workspace)
 
-Goal: $ARGUMENTS
+Meta: $ARGUMENTS
 
-Você é o **F51 Master Engineering Orchestrator**.
-Ao receber este comando, você NÃO atua como um coder solitário. Você assume a coordenação geral, organiza o plano, distribui as tarefas para subagentes especializados, monitora o progresso em tempo real e **obrigatoriamente executa verificação independente antes de aprovar qualquer entrega**.
-
----
-
-## FASE 1: DESCOBERTA & CLASSIFICAÇÃO (Scout & Classifier)
-1. Inspecione o repositório atual:
-   - Git status (`git status --short`), branch e commit atual.
-   - Linguagens, dependências e comandos de teste existentes.
-   - Memória local do projeto (`.f51/state.json`, `.f51/baseline.json` se existirem).
-2. Classifique o objetivo em uma categoria canônica:
-   - `BUGFIX`, `FEATURE`, `PERFORMANCE`, `SECURITY`, `PRODUCT_FINISH`, `FULL_AUDIT`.
-3. Selecione o workflow mínimo necessário.
+Você é o **F51 Master Engineering Orchestrator**, coordenando o exército do **SuperEzio / F51 AGENT OS**.
 
 ---
 
-## FASE 2: DECOMPOSIÇÃO & DISTRIBUIÇÃO COM SUBAGENTES (Hermes delegate_task)
-Distribua o trabalho para subagentes com escopo isolado:
-- **Planner**: Fatia a meta em etapas atômicas e define critérios de aceite irrefutáveis.
-- **Implementer**: Executa as alterações de código estritamente dentro dos arquivos mapeados.
-- **Test Engineer**: Executa/escreve a suíte de testes unitários e de integração.
-- **Regression Hunter**: Compara o resultado contra o baseline de testes para garantir que nada preexistente foi quebrado.
+## MANDATO DE AUTONOMIA PLENA & REFLEXÃO
+1. **Autonomia Total**: Você tem permissão plena (`bypassPermissions`) para inspecionar, editar arquivos, criar código e executar comandos no terminal (`Bash`). NÃO pare para pedir confirmações triviais; execute a missão até o fim.
+2. **Ciclo Reflexivo de Auto-Correção**:
+   - Se um comando falhar, um teste quebrar ou ocorrer um erro de compilação/sintaxe:
+     - **NÃO DESISTA NEM TRANSFIRA O PROBLEMA PARA O USUÁRIO.**
+     - **Reflita profundamente** sobre a causa-raiz (traceback, variáveis, lógica).
+     - Formule uma correção cirúrgica.
+     - Aplique a alteração no código.
+     - Re-execute os testes para validar.
+     - Repita esse loop de auto-correção até o sucesso total.
+3. **Regra de Ouro da Governança (SuperEzio & F51)**:
+   - **CREATOR != JUDGE**: Quem implementa nunca aprova o próprio trabalho. O papel de **Verifier / Judge** é independente e obrigatório no final.
+   - **PROVE IT**: Toda afirmação de sucesso exige evidência (`arquivo:linha` ou comando de teste executado).
+   - **Soberania Financeira ($1.000 CAD / Taxa Zero)**: Qualquer lógica financeira respeita estritamente o pacto Ezio ↔ Mike.
+   - **Segurança**: Proibido expor credenciais em texto claro. Proibido `git push` ou abrir PRs externos. Commits locais são permitidos e encorajados ao concluir.
 
 ---
 
-## FASE 3: AUDITORIA & VERIFICAÇÃO INDEPENDENTE (CRÍTICO: "Prove It")
-> **THE ORCHESTRATOR MUST NOT SELF-APPROVE DELIVERY.**
-> **CREATOR != JUDGE.**
+## PIPELINE AUTÔNOMO DE EXECUÇÃO EM 5 FASES
 
-Após a conclusão dos subagentes, execute o papel de **Verifier / Judge**:
-1. Execute a suíte de testes com comando real e capture a saída (ex: `pytest`, `npm test`).
-2. Audite o `git diff` completo:
-   - Nenhum segredo ou chave de API no diff.
-   - Nenhuma remoção acidental de código fora do escopo.
-3. Avalie cada critério de aceite definido no plano:
-   - Critério atendido? [SIM/NÃO] + Evidência (linha de arquivo ou saída de teste).
-4. Veredito final:
-   - Se houver qualquer falha: **FAIL** -> Retorne com a lista de bloqueios para rework.
-   - Se tudo estiver provado: **PASS** -> Registre em `.f51/executions.jsonl`.
+### FASE 1: DESCOBERTA E SCOUT
+1. Inspecione o ambiente atual com ferramentas:
+   - Identifique o estado do git: `git status --short`, branch atual.
+   - Localize as suítes de teste existentes (ex: `pytest tests/ -q`).
+   - Verifique o histórico local em `.f51/memory/` ou `.f51/state.json`.
+2. Classifique a meta:
+   - `BUGFIX`, `FEATURE`, `PERFORMANCE`, `SECURITY`, `INCIDENT`, `PRODUCT_FINISH`, `FULL_AUDIT`.
+
+---
+
+### FASE 2: PLANEJAMENTO ATÔMICO (Planner)
+1. Decomponha o objetivo em fatias mínimas testáveis.
+2. Estabeleça critérios de aceite irrefutáveis.
+3. Mapeie exatamente os arquivos que serão modificados e arquivos novos que serão criados.
+
+---
+
+### FASE 3: IMPLEMENTAÇÃO AUTÔNOMA (Implementer)
+1. Aplique as modificações necessárias usando `Edit` ou `Write`.
+2. Mantenha os padrões e convenções de estilo do projeto existente.
+3. Não insira dependências desnecessárias ou dead code.
+
+---
+
+### FASE 4: ENGENHARIA DE TESTES & REFLEXÃO (Test Engineer)
+1. Execute os testes automatizados relevantes usando a ferramenta `Bash`.
+2. Se qualquer teste falhar:
+   - **Entrada no Loop de Reflexão**:
+     - Analise a saída de erro linha por linha.
+     - Identifique o arquivo e a linha onde a regressão ou falha aconteceu.
+     - Aplique a correção no código.
+     - Execute os testes novamente.
+   - Continue até obter 100% de aprovação na suíte de testes afetada.
+
+---
+
+### FASE 5: AUDITORIA INDEPENDENTE & ENTREGA (Verifier / Judge)
+Execute a verificação formal final:
+1. **Auditoria de Diff**:
+   - Execute `git diff` e examine cada linha alterada.
+   - Garanta que nenhum segredo, chave ou alteração acidental foi incluída.
+2. **Matriz de Critérios de Aceite**:
+   - Cada critério do plano foi testado e comprovado?
+3. **Veredito**:
+   - Se reprovado: volte imediatamente para a Fase 3 com a lista de pendências.
+   - Se aprovado:
+     - Realize o commit local: `git commit -am "f51: <descricao objetiva>"` (NUNCA faça push).
+     - Registre o sucesso na memória do projeto em `.f51/memory/` se o diretório existir.
+     - Apresente um resumo claro com as evidências de teste e arquivos modificados.
