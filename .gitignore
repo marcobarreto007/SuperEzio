@@ -218,3 +218,16 @@ runtime/desktop-*/
 # Dados baixados (~611 MB) — re-baixaveis em minutos. So o manifesto fica versionado.
 data/reference/*
 !data/reference/MANIFEST.json
+
+# --- 18/09/2026: classe de risco, nao caso isolado ---
+# runtime/ era coberto POR LISTA (arquivo a arquivo), entao qualquer arquivo
+# novo entrava sem ninguem perceber. Foi assim que runtime/test_token.json
+# (token OAuth) ficou commitado e empurrado desde 20/07/2026.
+# Os padroes abaixo fecham a CLASSE sem desrastrear os artefatos legitimos
+# (checkpoints, relatorios), que continuam versionados de proposito.
+*token*.json
+*credential*.json
+*secret*.json
+*.token
+runtime/desktop-*/
+runtime/**/Local State
