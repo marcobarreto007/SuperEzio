@@ -1,0 +1,25 @@
+# Config do gitleaks para este repositório.
+#
+# Criado em 18/09/2026, depois da primeira varredura: 107 achados na árvore de
+# trabalho, dos quais 82 vinham de `journal/dedup/`.
+#
+# POR QUE SÃO FALSO POSITIVO: aqueles 108 arquivos guardam `idempotency_key` —
+# um hash aleatório de alta entropia POR DESENHO. A regra `generic-api-key` do
+# gitleaks procura exatamente isso: string longa e aleatória. Não há segredo
+# ali; há a garantia de que duas execuções da mesma tarefa não se dupliquem.
+#
+# POR QUE ISTO IMPORTA: um scanner que grita 82 vezes por execução é um scanner
+# que a pessoa aprende a ignorar — e aí ele não serve para nada quando o achado
+# for real. O `test_token.json`, que ERA real, estava no meio desse ruído.
+#
+# O que NÃO está silenciado: qualquer outro caminho. A regra é uma allowlist de
+# UM diretório, não um desligamento da regra.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "journal/dedup: chaves de idempotencia sao hash aleatorio por desenho, nao segredo"
+paths = [
+  '''journal/dedup/.*''',
+]
