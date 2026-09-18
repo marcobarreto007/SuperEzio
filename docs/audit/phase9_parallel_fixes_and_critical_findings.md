@@ -73,9 +73,15 @@ aceitar ou refutar. **Ambos confirmados como reais**, não refutados:
 
 ### CRÍTICO — Token Hugging Face real exposto no repositório
 - Confirmado em `F51-Nitro-MoE/dl_mixtral.sh:2` e `F51-Nitro-MoE/download_mixtral.sh:2`
-  (`export HF_TOKEN="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"`), além de mais 4 arquivos encontrados nesta
+  (`export HF_TOKEN="hf_<REDIGIDO-18SET2026>"`), além de mais 4 arquivos encontrados nesta
   sessão: `F51-Nitro-MoE/dl_glm2.py`, `dl_mixtral.py`, `dl_glm.py`, `dl2.py`.
-- **NÃO CORRIGIDO nesta sessão por instrução explícita do operador ("cara nao toke em tokens")** — uma
+- ⚠️ **O PRÓPRIO DOCUMENTO virou um segundo vazamento:** ele citava o token literalmente, e o
+  arquivo está rastreado pelo git. Uma auditoria que reproduz o segredo que denuncia não é
+  auditoria — é uma segunda cópia. **Token redigido em 18/09/2026** (`hf_<REDIGIDO-18SET2026>`).
+- **ROTACIONAR É OBRIGATÓRIO.** Tirar do git não desfaz o vazamento: o token está no histórico
+  e em todo clone já feito. Rotacionar na origem (huggingface.co/settings/tokens) é a única
+  correção real, e não é algo que um commit resolve.
+- _Histórico:_ **não corrigido** na sessão original, por instrução do operador ("cara nao toke em tokens") — uma
   tentativa de correção em `dl_mixtral.sh`/`download_mixtral.sh` foi revertida a pedido antes de
   qualquer commit.
 - **Ação pendente, só o operador pode fazer**: revogar/rotacionar o token na conta Hugging Face. Trate
