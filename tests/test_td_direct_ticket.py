@@ -198,6 +198,47 @@ def test_manifest_loader_fails_closed_when_official_list_is_stale(tmp_path):
         load_td_commission_free_manifest(path)
 
 
+def test_commission_free_eligibility_fails_closed_when_manifest_is_stale(tmp_path):
+    """A stale official list must never certify an ETF as commission-free.
+
+    QQQ is a real member of the TD list, so freshness is the only thing that can
+    turn this answer into UNKNOWN. This is the guarantee that blocked every TD
+    ticket on 2026-09-19, when the shipped manifest crossed
+    SUPEREZIO_TD_COMMISSION_LIST_MAX_AGE_DAYS (7 days) and every caller silently
+    received ``eligible: None``. Without this test the stale path is invisible:
+    the freshness check degrades to UNKNOWN instead of raising.
+    """
+
+    def _manifest(name: str, verified_at: str) -> Path:
+        path = tmp_path / f"{name}.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "verified_at": verified_at,
+                    "source_url": (
+                        "https://www.td.com/ca/en/investing/direct-investing/commission-free-etfs"
+                    ),
+                    "symbols": {"CAN": ["TTP"], "US": ["QQQ"]},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
+    fresh = td_commission_eligibility(
+        "QQQ", "NASDAQ", manifest_path=_manifest("fresh", datetime.now(UTC).isoformat())
+    )
+    assert fresh["status"] == "ELIGIBLE"
+    assert fresh["eligible"] is True
+
+    stale = td_commission_eligibility(
+        "QQQ", "NASDAQ", manifest_path=_manifest("stale", "2020-01-01T00:00:00Z")
+    )
+    assert stale["status"] == "UNKNOWN"
+    assert stale["eligible"] is None
+    assert stale["estimated_base_commission"] is None
+
+
 def test_commission_free_eligibility_distinguishes_listed_etf_from_stock():
     assert td_commission_eligibility("QQQ", "NASDAQ")["eligible"] is True
     assert td_commission_eligibility("AAPL", "NASDAQ")["eligible"] is False
