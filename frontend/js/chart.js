@@ -262,7 +262,21 @@
     /* If already a DIV, assume we already set up the structure */
     if (el.tagName !== 'CANVAS') {
       var mainPane = document.getElementById('chart-main-pane');
-      if (mainPane) return el;  // already initialized
+      if (mainPane) {
+        mainPane.className = 'chart-main-pane';
+        mainPane.style.cssText = '';
+        var rsiPane = document.getElementById('chart-rsi-pane');
+        var macdPane = document.getElementById('chart-macd-pane');
+        if (rsiPane) {
+          rsiPane.className = 'chart-osc-pane chart-osc-pane--rsi';
+          rsiPane.style.cssText = '';
+        }
+        if (macdPane) {
+          macdPane.className = 'chart-osc-pane chart-osc-pane--macd';
+          macdPane.style.cssText = '';
+        }
+        return el;
+      }
       /* Rebuild: clear and set up structure */
       el.innerHTML = '';
       el.style.cssText = 'width:100%;height:100%;min-height:0;display:flex;flex-direction:column;';
@@ -279,15 +293,15 @@
     /* Create sub-panes */
     var mainDiv = document.createElement('div');
     mainDiv.id = 'chart-main-pane';
-    mainDiv.style.cssText = 'flex:1 1 0%;min-height:0;position:relative;overflow:hidden;';
+    mainDiv.className = 'chart-main-pane';
 
     var rsiDiv = document.createElement('div');
     rsiDiv.id = 'chart-rsi-pane';
-    rsiDiv.style.cssText = 'flex:0 0 88px;min-height:88px;border-top:1px solid ' + C.border + ';position:relative;overflow:hidden;';
+    rsiDiv.className = 'chart-osc-pane chart-osc-pane--rsi';
 
     var macdDiv = document.createElement('div');
     macdDiv.id = 'chart-macd-pane';
-    macdDiv.style.cssText = 'flex:0 0 96px;min-height:96px;border-top:1px solid ' + C.border + ';position:relative;overflow:hidden;';
+    macdDiv.className = 'chart-osc-pane chart-osc-pane--macd';
 
     el.appendChild(mainDiv);
     el.appendChild(rsiDiv);

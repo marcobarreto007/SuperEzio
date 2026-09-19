@@ -31,6 +31,7 @@
   --radius-lg: 8px;
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
   --transition-fast: 0.12s ease;
+  --cp-chip: 250px;
 }
 
 [data-theme="light"] {
@@ -102,6 +103,9 @@ body::after {
   height: 40px;
   min-height: 40px;
   padding: 0 12px;
+  /* Clear the docked Bob tab (32px, position:fixed right:0). padding:0 12px
+     used to leave the last icon under the tab. */
+  padding-right: 44px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   box-shadow: none;
@@ -109,12 +113,9 @@ body::after {
 }
 
 /* Mobile/tablet: the topbar must GROW when its clusters wrap (fixed 40px
-   here would override the wrap height:auto in topbar.css — R4 G4). */
-@media (max-width: 860px) {
-  .topbar {
-    height: auto;
-  }
-}
+   here would override the wrap height:auto in topbar.css — R4 G4).
+   The rest of the 860px stack lives with the later query so laptop rules
+   stay in one ladder. */
 
 .topbar::after,
 .chart-workspace::before {
@@ -356,7 +357,8 @@ body::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .topbar__metric {
@@ -414,6 +416,10 @@ body::after {
   font: 700 9px var(--font-mono);
   color: var(--red-sell);
   letter-spacing: 0.04em;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar__conn-text.is-online {
@@ -490,6 +496,9 @@ body::after {
   padding: 8px 12px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
+  /* charts.css sets min-height:72px — that plus wrapping prices ate the chart. */
+  min-height: 0;
+  flex-wrap: nowrap;
 }
 
 .market-header__info {
@@ -521,13 +530,31 @@ body::after {
 
 .market-header__profile {
   min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
+}
+
+.profile-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 11px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.profile-seg,
+.profile-pipe {
+  white-space: nowrap;
 }
 
 .market-header__prices {
   display: flex;
   align-items: stretch;
   gap: 0;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -605,7 +632,31 @@ body::after {
   width: 100%;
   height: 100%;
   min-width: 0;
-  display: block;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-main-pane {
+  flex: 1 1 0%;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-osc-pane {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--border-color);
+  min-height: 48px;
+}
+
+.chart-osc-pane--rsi {
+  flex: 0 0 72px;
+}
+
+.chart-osc-pane--macd {
+  flex: 0 0 80px;
 }
 
 /* Orders Mirror */
@@ -762,6 +813,9 @@ body::after {
   letter-spacing: 0.05em;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .expert-card__verdict {
@@ -1329,9 +1383,11 @@ body::after {
   height: 31px;
   min-height: 31px;
   padding: 0 12px;
+  /* Collapsed MIKE control chip docks to bottom:0 on the left of this bar. */
+  padding-left: var(--cp-chip);
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
 }
@@ -1342,7 +1398,15 @@ body::after {
   gap: 5px;
   font: 600 10px var(--font-mono);
   color: var(--text-muted);
-  flex-shrink: 0;
+  /* Shrinking a nowrap label without an ellipsis let it overflow its own box and
+     paint over the neighbour (measured: +4.7px at 900, +29.8px at 860, +194px at
+     390 — and below 860px this bar is position:fixed, so the smear stayed on
+     screen). Same pattern the rest of this file already uses on
+     .topbar__conn-text and .profile-text. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bot-bar__item::before {
@@ -1773,9 +1837,99 @@ body.show-debug-cards .bob-runtime {
   border-color: var(--text-muted);
 }
 
+/* Laptop / Windows-scaled 1080p (1366–1680). The previous ladder jumped
+   from a 380px rail to a 1100px shrink, so 1280–1600 crushed the chart. */
+@media (max-width: 1680px) {
+  .app-main {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+  }
+
+  .topbar__conn-text {
+    max-width: 120px;
+  }
+
+  .topbar__metric-label {
+    display: none;
+  }
+
+  .market-header {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .market-header__label {
+    display: none;
+  }
+
+  .market-header__profile {
+    max-width: 160px;
+  }
+
+  .market-header__prices {
+    flex-shrink: 1;
+  }
+
+  .market-header__prices .price-cell {
+    padding: 3px 6px;
+    min-width: 0;
+  }
+
+  .price-cell--mode {
+    display: none;
+  }
+
+  .chart-osc-pane--rsi {
+    flex-basis: 56px;
+  }
+
+  .chart-osc-pane--macd {
+    flex-basis: 64px;
+  }
+
+  .orders-mirror {
+    max-height: 96px;
+  }
+
+  #statusbar-genie,
+  #statusbar-models,
+  #statusbar-deep {
+    display: none;
+  }
+}
+
+@media (max-width: 1366px) {
+  .topbar__conn-text {
+    display: none;
+  }
+
+  .market-header__profile {
+    max-width: 120px;
+  }
+
+  .analyze-chart-btn {
+    padding: 4px 8px;
+  }
+}
+
+@media (max-height: 900px) {
+  .chart-osc-pane--rsi {
+    flex-basis: 52px;
+    min-height: 48px;
+  }
+
+  .chart-osc-pane--macd {
+    flex-basis: 56px;
+    min-height: 48px;
+  }
+
+  .orders-mirror {
+    max-height: 88px;
+  }
+}
+
 @media (max-width: 1100px) {
   .app-main {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 250px);
   }
 
   .market-header__prices .price-cell {
@@ -1802,8 +1956,38 @@ body.show-debug-cards .bob-runtime {
     display: none;
   }
 
+  .topbar {
+    height: auto;
+  }
+
   .app-main {
     grid-template-columns: 1fr;
+  }
+
+  .market-header {
+    flex-wrap: wrap;
+  }
+
+  .chart-osc-pane--macd {
+    display: none;
+  }
+
+  .chart-osc-pane--rsi {
+    flex-basis: 48px;
+    min-height: 44px;
+  }
+
+  .bot-bar {
+    position: fixed;
+    left: 0;
+    right: 32px;
+    bottom: 0;
+    z-index: 101;
+    padding-left: var(--cp-chip);
+  }
+
+  body {
+    padding-bottom: 31px;
   }
 
   /* Neutralize the old fixed drawer: panel becomes a normal grid row. */
@@ -1954,7 +2138,7 @@ body.show-debug-cards .bob-runtime {
      136px content height, cutting the list above and below. Cap by viewport
      share and let the rows shrink instead. */
   .orders-mirror {
-    max-height: 30vh;
+    max-height: 16vh;
     min-height: 0;
   }
 

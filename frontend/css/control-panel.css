@@ -18,8 +18,8 @@
    fechar — nao encolher a area de candles por padrao. */
 .control-panel {
   position: fixed;
-  left: 16px;
-  bottom: 64px;
+  left: 8px;
+  bottom: 31px;
   width: min(420px, calc(100vw - 32px));
   z-index: 850; /* acima do conteudo, abaixo de popovers (899+) e modais */
   display: flex;
@@ -33,6 +33,48 @@
   border-radius: 10px;
   box-shadow: var(--shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.8));
   overflow: hidden;
+}
+
+/* Collapsed: sit in the status bar so the chip does not cover orders. */
+.control-panel:has(.cp-body[hidden]) {
+  left: 0;
+  bottom: 0;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 48px));
+  height: 31px;
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--line-light, rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+  z-index: 102;
+}
+
+.control-panel:has(.cp-body[hidden]) .cp-hd {
+  padding: 0 10px;
+  height: 31px;
+  border-bottom: none;
+}
+
+.control-panel:has(.cp-body[hidden]) .cp-badge--standby,
+.control-panel:has(.cp-body[hidden]) .cp-sub {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .control-panel:has(.cp-body[hidden]) {
+    left: 0;
+    bottom: 0;
+    height: 31px;
+    max-width: var(--cp-chip, 250px);
+  }
+
+  .control-panel:has(.cp-body:not([hidden])) {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 31px;
+    max-height: 60vh;
+  }
 }
 
 /* Fonte morta ou ilegivel: a moldura grita, nao fica vazia em silencio. */
