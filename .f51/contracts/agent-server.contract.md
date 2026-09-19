@@ -23,7 +23,7 @@
 | `/health/details` | GET | Readiness details for GPU, local models, Redis, providers, and cost guard. |
 | `/metrics` | GET | Returns service metrics from the observability layer. |
 | `/neural/logs` | GET | Streams observability logs as SSE. |
-| `/api/chart-data/{ticker}` | GET | Returns normalized OHLCV, profile, price, and indicators from DataHub. |
+| `/api/chart-data/{ticker}` | GET | Returns normalized OHLCV, profile, price, indicators, and `server_ts` (int epoch seconds — the same stamp shape `/api/chart-sse/{ticker}` sends). `server_ts` is set when the payload is built, so the 60s cache carries the fetch time rather than a re-stamped serve time. Frontend `health.js` reads it (falling back to the last candle's own time) to classify data freshness; without it the cockpit reported `DATA: DEGRADADO` on every ticker. |
 | `/api/chart-sse/{ticker}` | GET | Streams chart snapshots, candle updates, errors, and heartbeat events. |
 | `/task/submit` | POST | Accepts an A2A `TASK.SUBMIT` envelope and streams NDJSON pipeline events. |
 | `/capabilities` | GET | Returns product capability metadata. |

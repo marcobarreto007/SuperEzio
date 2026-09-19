@@ -289,3 +289,163 @@ def test_ohlcv_builder_parses_iso_datetime_and_epoch(monkeypatch):
         datetime.fromisoformat("2026-08-19").timestamp()
     )  # naive local, mirrors endpoint fromisoformat parsing
     assert [c["time"] for c in ohlcv] == [1787284800, 1787284800, date_epoch]
+
+
+# ---------------------------------------------------------------------------
+# 2026-09-19 — the "DATA: DEGRADADO" root cause.
+#
+# /api/chart-data/{ticker} carried no server stamp at all. frontend/js/health.js
+# #dataState looked for as_of/fetched_at/timestamp/last_update on the payload,
+# found none, and fell through to {"state": "degraded"} — unconditionally, on
+# every ticker and timeframe, with perfectly healthy candles. The cockpit footer
+# therefore read "DATA: DEGRADADO" forever and the label was not a data verdict.
+#
+# The fix is two halves and BOTH are required — the endpoint stamping server_ts
+# alone changes nothing on screen, because health.js did not know that name:
+#   B) the endpoint stamps server_ts, reusing the convention the candle stream
+#      already sends (pinned above by
+#      test_chart_data_server_ts_reuses_candle_stream_convention);
+#   A) health.js reads it, and falls back to the last candle's own time.
+#
+# The front half is exercised for real: the production health.js is loaded into
+# node with a minimal window shim and buildSnapshot() is called on it. Asserting
+# on the source text would have passed while the state stayed "degraded".
+# ---------------------------------------------------------------------------
+
+_HEALTH_DRIVER = """
+const fs = require('fs'), vm = require('vm');
+let raw = '';
+process.stdin.on('data', d => { raw += d; });
+process.stdin.on('end', () => {
+  const payload = JSON.parse(raw);
+  const ctx = {
+    document: { readyState: 'loading', addEventListener() {} },
+    window: { SZ: { state: { chartData: payload.chartData } } },
+    console,
+  };
+  ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(payload.script, 'utf8'), ctx);
+  process.stdout.write(JSON.stringify(ctx.window.SZ.health.buildSnapshot(payload.details)));
+});
+"""
+
+
+def _health_data_state(chart_data):
+    """Drive the real frontend/js/health.js in node; return snapshot.data.
+
+    ``chart_data`` is what the cockpit puts in SZ.state.chartData — the raw
+    /api/chart-data payload. Returns the ``data`` branch the status bar renders.
+    """
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    node = shutil.which("node") or pytest.skip("node is required to exercise the real health.js")
+
+    health_js = Path(__file__).parents[1] / "frontend" / "js" / "health.js"
+    payload = json.dumps(
+        {
+            "chartData": chart_data,
+            "details": {"checks": {}, "mission": {}},
+            "script": str(health_js),
+        }
+    )
+    proc = subprocess.run(
+        [node, "-e", _HEALTH_DRIVER],
+        input=payload,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0, f"health.js failed under node: {proc.stderr}"
+    return json.loads(proc.stdout)["data"]
+
+
+def _assert_stamp_is_now(as_of) -> None:
+    parsed = datetime.fromisoformat(str(as_of))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    assert abs((parsed - datetime.now(UTC)).total_seconds()) < 120, as_of
+
+
+def test_chart_data_response_carries_server_ts(monkeypatch):
+    """The REST chart payload must stamp server_ts (epoch seconds), like the SSE."""
+    import agent_server.endpoints as ep
+
+    monkeypatch.delenv("SUPEREZIO_JWT_SECRET", raising=False)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
+    monkeypatch.setattr(
+        ep.hub, "get_candles", lambda ticker, timeframe="6M": {"candles": _make_candles()}
+    )
+    monkeypatch.setattr(ep.hub, "get_profile", lambda ticker: {"name": "Test Co"})
+    ep._CHART_CACHE.clear()  # a warm entry from another test would mask the stamp
+
+    from agent_server.main import app
+
+    client = TestClient(app)
+    before = int(time.time())
+    resp = client.get("/api/chart-data/TEST?timeframe=1M")
+    after = int(time.time())
+    assert resp.status_code == 200, resp.text
+
+    body = resp.json()
+    assert "server_ts" in body, f"chart payload has no server_ts: {sorted(body)}"
+    assert isinstance(body["server_ts"], int), (
+        f"server_ts must be epoch seconds as int (same as the candle stream); "
+        f"got {type(body['server_ts']).__name__}"
+    )
+    assert before <= body["server_ts"] <= after, (
+        f"server_ts {body['server_ts']} outside the request window [{before}, {after}]"
+    )
+
+
+def test_health_js_reads_server_ts_as_epoch_seconds():
+    """The stamp is epoch SECONDS: read raw it is 1970, which renders as "stale"."""
+    now = int(time.time())
+    snap = _health_data_state(
+        {
+            "ticker": "TD.TO",
+            "server_ts": now,
+            "ohlcv": [{"time": now - 3600, "close": 1.0}],
+        }
+    )
+    assert snap["state"] == "live", snap
+    _assert_stamp_is_now(snap["asOf"])
+
+
+def test_health_js_falls_back_to_last_candle_time_when_unstamped():
+    """A payload with no stamp is still datable from its own last bar."""
+    now = int(time.time())
+    snap = _health_data_state({"ticker": "TD.TO", "ohlcv": [{"time": now - 60, "close": 1.0}]})
+    assert snap["state"] == "live", snap
+    _assert_stamp_is_now(snap["asOf"])
+
+
+def test_health_js_marks_a_daily_bar_stale_not_live():
+    """The 15-minute freshness window is intraday. A daily bar is honestly stale."""
+    now = int(time.time())
+    snap = _health_data_state({"ticker": "TD.TO", "ohlcv": [{"time": now - 86400, "close": 1.0}]})
+    assert snap["state"] == "stale", snap
+
+
+def test_health_js_still_reads_the_legacy_stamp_names():
+    """as_of / fetched_at / timestamp / last_update must keep working."""
+    snap = _health_data_state(
+        {
+            "ohlcv": [{"time": 1, "close": 1.0}],
+            "as_of": datetime.now(UTC).isoformat(),
+        }
+    )
+    assert snap["state"] == "live", snap
+
+
+def test_health_js_reports_offline_without_candles():
+    """No candles stays "offline" — the new stamp must not mask an empty chart."""
+    assert _health_data_state({"ticker": "X", "ohlcv": []})["state"] == "offline"
+
+
+def test_health_js_reports_unknown_without_chart():
+    assert _health_data_state(None)["state"] == "unknown"

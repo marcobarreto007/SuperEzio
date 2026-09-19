@@ -956,6 +956,13 @@ async def get_chart_data(
     response = {
         "ticker": clean_ticker,
         "timeframe": timeframe,
+        # Server stamp in epoch seconds — the SAME convention the candle SSE
+        # stream below already sends, so the front has one stamp shape to read
+        # instead of two. Stamped at build time on purpose: it travels with the
+        # cached entry, so it keeps meaning "when this data was fetched".
+        # Stamping on a cache hit instead would claim a freshness the cached
+        # payload does not have.
+        "server_ts": int(time.time()),
         "profile": info,
         "price": {
             "current": current_price,

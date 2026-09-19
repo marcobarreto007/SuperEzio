@@ -9,19 +9,60 @@
     return "ready";
   }
 
+  /* Two stamp shapes reach this file and both must read as the same fact:
+     `server_ts` is epoch SECONDS as an int — the REST/SSE convention pinned by
+     tests/test_chart_data_times.py — while as_of/fetched_at/timestamp/last_update
+     carry ISO strings or epoch ms. Reading server_ts raw would date it to 1970
+     and render a fresh chart as "stale", so every candidate goes through
+     parseStamp. A payload with no stamp at all is still datable from its own
+     last bar: the bars are the evidence, and refusing to look at them is what
+     made a healthy chart report "degraded" on every ticker, forever. */
+  var STAMP_KEYS = ["as_of", "fetched_at", "timestamp", "last_update", "server_ts"];
+
+  function parseStamp(value) {
+    if (value == null) return null;
+    if (typeof value === "number") {
+      if (!isFinite(value) || value <= 0) return null;
+      return value < 1e11 ? value * 1000 : value;   // seconds vs milliseconds
+    }
+    if (typeof value === "string") {
+      var s = value.trim();
+      if (!s) return null;
+      var t = Date.parse(s);
+      return isFinite(t) ? t : null;
+    }
+    return null;
+  }
+
+  function lastCandleTime(chart) {
+    var rows = Array.isArray(chart && chart.ohlcv) ? chart.ohlcv : [];
+    for (var i = rows.length - 1; i >= 0; i--) {
+      var t = parseStamp(rows[i] && rows[i].time);
+      if (t != null) return t;
+    }
+    return null;
+  }
+
+  /* Returns epoch milliseconds, or null when the payload dates itself nowhere. */
   function chartTimestamp(chart) {
-    return chart && (chart.as_of || chart.fetched_at || chart.timestamp || chart.last_update) || null;
+    if (!chart) return null;
+    for (var i = 0; i < STAMP_KEYS.length; i++) {
+      var t = parseStamp(chart[STAMP_KEYS[i]]);
+      if (t != null) return t;
+    }
+    return lastCandleTime(chart);
   }
 
   function dataState(chart) {
     if (!chart) return { state: "unknown", asOf: null };
-    var asOf = chartTimestamp(chart);
+    var ms = chartTimestamp(chart);
     var candles = Array.isArray(chart.ohlcv) ? chart.ohlcv.length : 0;
+    var asOf = ms == null ? null : new Date(ms).toISOString();
     if (!candles) return { state: "offline", asOf: asOf };
-    if (!asOf) return { state: "degraded", asOf: null };
-    var parsed = new Date(asOf).getTime();
-    if (!isFinite(parsed)) return { state: "degraded", asOf: asOf };
-    return { state: Date.now() - parsed > 15 * 60 * 1000 ? "stale" : "live", asOf: asOf };
+    /* No parseable time anywhere: candles exist but nothing dates them. That is
+       the only remaining honest reading of "degraded". */
+    if (ms == null) return { state: "degraded", asOf: null };
+    return { state: Date.now() - ms > 15 * 60 * 1000 ? "stale" : "live", asOf: asOf };
   }
 
   function pipelineState() {
