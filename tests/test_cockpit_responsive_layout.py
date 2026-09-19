@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COCKPIT_CSS = (ROOT / "frontend" / "css" / "cockpit.css").read_text(encoding="utf-8")
 CONTROL_CSS = (ROOT / "frontend" / "css" / "control-panel.css").read_text(encoding="utf-8")
+CHART_CSS = (ROOT / "frontend" / "css" / "charts.css").read_text(encoding="utf-8")
 COCKPIT_JS = (ROOT / "frontend" / "js" / "cockpit.js").read_text(encoding="utf-8")
 CHART_JS = (ROOT / "frontend" / "js" / "chart.js").read_text(encoding="utf-8")
 
@@ -121,3 +122,46 @@ def test_layout_guard_covers_windows_laptop_widths():
 
     for width in (1920, 1536, 1366):
         assert width in DEFAULT_WIDTHS
+
+
+def test_layout_guard_covers_the_measured_price_clip_band():
+    """The price strip clipped at 940/900 and the guard skipped that whole band.
+
+    DEFAULT_WIDTHS jumped 1024 -> 834, so the widths where `scrollWidth` first
+    exceeded `clientWidth` (measured 12px at 940, 25px at 900) were never
+    rendered by the guard. It could not have caught the defect it exists for.
+    """
+    from scripts.layout_guard import DEFAULT_WIDTHS
+
+    assert 960 in DEFAULT_WIDTHS
+    assert 900 in DEFAULT_WIDTHS
+
+
+def test_layout_guard_widths_stay_descending():
+    from scripts.layout_guard import DEFAULT_WIDTHS
+
+    assert list(DEFAULT_WIDTHS) == sorted(DEFAULT_WIDTHS, reverse=True)
+
+
+def test_phone_oscillator_sizes_do_not_claim_an_inline_styles_fight():
+    """chart.js clears its inline styles, so the !important lost its reason.
+
+    chart.js:272/276 do `style.cssText = ''`, and `#chart-rsi-pane` already
+    outranks `.chart-osc-pane--rsi` on specificity — so the flag was buying
+    nothing while implying a fight that no longer exists.
+    """
+    phone = _media_block(CHART_CSS, "(max-width: 600px)")
+    rsi = phone.split("#chart-rsi-pane {", 1)[1].split("}", 1)[0]
+    assert "flex-basis: 56px" in rsi
+    assert "!important" not in rsi
+
+
+def test_laptop_rsi_override_documents_its_effective_range():
+    """The <=860 declaration never applies below 601px — charts.css wins there.
+
+    A rule that silently stops applying at a width nobody wrote down is a rule
+    that lies. The block must say where it stops.
+    """
+    laptop = _media_block(COCKPIT_CSS, "(max-width: 860px)")
+    assert ".chart-osc-pane--rsi" in laptop
+    assert "601" in laptop or "600" in laptop

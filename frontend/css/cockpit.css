@@ -1972,6 +1972,10 @@ body.show-debug-cards .bob-runtime {
     display: none;
   }
 
+  /* Applies from 601px to 860px only. Below 601px charts.css's phone block
+     (#chart-rsi-pane, an ID) outranks this class selector and pins the pane at
+     56px, so these values never render on a phone. Written down because a rule
+     that silently stops applying at an unwritten width is a rule that lies. */
   .chart-osc-pane--rsi {
     flex-basis: 48px;
     min-height: 44px;

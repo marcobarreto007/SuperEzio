@@ -582,22 +582,28 @@
 
 /* Phone: the fixed 520px price row + 88/96px oscillator panes crushed the
    price pane to ~133px (R4 G3). Give the stage a real minimum, shrink the
-   oscillator panes (inline styles need !important), and let the orders
-   mirror scroll instead of stretching. MUST stay last in the file so it
-   wins the cascade over the 900px block above. */
+   oscillator panes, and let the orders mirror scroll instead of stretching.
+   MUST stay last in the file so it wins the cascade over the 900px block above.
+
+   The !importants retired on 19/09. They existed to beat the inline flex-basis
+   chart.js used to write; chart.js now CLEARS its inline styles (chart.js:272
+   and :276 do `style.cssText = ''`), and these are ID selectors — they already
+   outrank the `.chart-osc-pane--rsi` rule in cockpit.css's 860px block. That
+   specificity gap is why that block stops applying at 601px; keep the two in
+   sync if either value moves. */
 @media (max-width: 600px) {
   /* Keep the 900px row sizing (minmax(520px,64vh)) — shrinking row1 to
      "auto" collapsed the chart-zone to 172px (R4 re-measure). The real
      win is shrinking the oscillator panes so the price pane keeps the
      space instead. */
   #chart-rsi-pane {
-    flex-basis: 56px !important;
-    min-height: 56px !important;
+    flex-basis: 56px;
+    min-height: 56px;
   }
 
   #chart-macd-pane {
-    flex-basis: 56px !important;
-    min-height: 56px !important;
+    flex-basis: 56px;
+    min-height: 56px;
   }
 
   .orders-mirror {

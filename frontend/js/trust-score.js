@@ -28,7 +28,14 @@
     var ts = deep.last_update || deep.timestamp;
     if (!ts && deep.math && deep.math.timestamp) ts = deep.math.timestamp;
     if (!ts) {
-      var chartTs = window.SZ.state && window.SZ.state.chartData && window.SZ.state.chartData.fetched_at;
+      /* The chart-data contract carries `server_ts`, epoch SECONDS. The old
+         field here was `fetched_at`, which the backend has never emitted — so
+         this branch always fell through to the 0.3 floor below. Seconds must be
+         scaled: read raw, a chart fetched a second ago dates to 1970 and scores
+         the worst tier instead of the best. */
+      var chart = window.SZ.state && window.SZ.state.chartData;
+      var chartTs = chart && (chart.fetched_at || chart.server_ts);
+      if (typeof chartTs === "number" && chartTs > 0 && chartTs < 1e11) chartTs *= 1000;
       if (chartTs) ts = chartTs;
     }
     if (!ts) return 0.3;

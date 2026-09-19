@@ -449,3 +449,87 @@ def test_health_js_reports_offline_without_candles():
 
 def test_health_js_reports_unknown_without_chart():
     assert _health_data_state(None)["state"] == "unknown"
+
+
+# ---------------------------------------------------------------------------
+# trust-score.js — the second consumer of the chart stamp.
+#
+# It read `chartData.fetched_at`, a field the backend has never emitted, so the
+# branch always fell through to the 0.3 freshness floor. The chart-data contract
+# carries `server_ts` (epoch SECONDS); read unscaled, a chart fetched a second
+# ago reads as ~56 years old and scores the worst tier.
+# ---------------------------------------------------------------------------
+
+_TRUST_DRIVER = """
+const fs = require('fs'), vm = require('vm');
+let raw = '';
+process.stdin.on('data', d => { raw += d; });
+process.stdin.on('end', () => {
+  const payload = JSON.parse(raw);
+  const win = {
+    SZ: { state: { deep: payload.deep, chartData: payload.chartData } },
+    setInterval() {},
+  };
+  const ctx = {
+    document: { readyState: 'loading', addEventListener() {} },
+    window: win,
+    console,
+    setInterval() {},
+  };
+  ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(payload.script, 'utf8'), ctx);
+  process.stdout.write(String(ctx.window.SZ.trustScore.getDataFreshness()));
+});
+"""
+
+
+def _trust_freshness(chart_data, deep=None):
+    """Drive the real frontend/js/trust-score.js in node; return getDataFreshness()."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    node = shutil.which("node") or pytest.skip("node is required to exercise trust-score.js")
+
+    script = Path(__file__).parents[1] / "frontend" / "js" / "trust-score.js"
+    payload = json.dumps(
+        {
+            "deep": deep if deep is not None else {"math": {}},
+            "chartData": chart_data,
+            "script": str(script),
+        }
+    )
+    proc = subprocess.run(
+        [node, "-e", _TRUST_DRIVER],
+        input=payload,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0, f"trust-score.js failed under node: {proc.stderr}"
+    return float(proc.stdout.strip())
+
+
+def test_trust_score_reads_chart_server_ts_as_epoch_seconds():
+    """A fresh chart must score the top freshness tier, not the 0.3 floor.
+
+    One assertion covers both halves of the bug: the field name (fetched_at was
+    never emitted) and the unit (seconds read as milliseconds dates it to 1970
+    and scores the worst tier, 0.15).
+    """
+    now = int(time.time())
+    assert _trust_freshness({"ticker": "TD.TO", "server_ts": now}) == 1.0
+
+
+def test_trust_score_degrades_with_an_old_chart_stamp():
+    """Sanity: the stamp is actually read, not ignored in favour of a constant."""
+    old = int(time.time()) - 7200
+    assert _trust_freshness({"ticker": "TD.TO", "server_ts": old}) == 0.15
+
+
+def test_trust_score_prefers_a_real_deep_timestamp_over_the_chart():
+    """The chart stamp is a fallback; a live deep timestamp still wins."""
+    now_ms = int(time.time() * 1000)
+    assert _trust_freshness({"server_ts": 1}, deep={"last_update": now_ms}) == 1.0

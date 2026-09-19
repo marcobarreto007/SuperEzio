@@ -43,7 +43,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "http://127.0.0.1:8002"
-DEFAULT_WIDTHS = (1920, 1536, 1440, 1366, 1280, 1024, 834, 768, 600, 390, 320)
+DEFAULT_WIDTHS = (1920, 1536, 1440, 1366, 1280, 1024, 960, 900, 834, 768, 600, 390, 320)
 DEFAULT_HEIGHT = 900
 SETTLE_MS = 1500
 
