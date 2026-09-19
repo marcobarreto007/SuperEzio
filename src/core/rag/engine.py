@@ -231,7 +231,12 @@ class ForensicRAG:
         if embedder is None:
             return False
 
-        texts = [d["text"] for d in docs]
+        # Embed the SAME list that becomes `_documents_cache` (disk + runtime).
+        # The readers below resolve vector indices through `_documents_cache`,
+        # so building vectors from `docs` alone left every pre-existing runtime
+        # doc unembedded and shifted the next `add_document` vector onto another
+        # document's slot: search returned the wrong id/text for the best match.
+        texts = [d["text"] for d in _documents_cache]
         try:
             vecs = embedder.encode(
                 texts,
@@ -240,7 +245,7 @@ class ForensicRAG:
                 show_progress_bar=False,
             )
             _embeddings_cache = vecs
-            logger.info("ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1])
+            logger.info("ForensicRAG indexed %d documents (%d-dim)", len(texts), vecs.shape[1])
 
             if self._faiss_available():
                 import faiss  # type: ignore[import]

@@ -263,6 +263,50 @@ def test_add_document_sobrevive_a_busca_seguinte():
     assert "TRADE-REG-1" in [h["id"] for h in rodou]
 
 
+def test_add_document_nao_desalinha_vetor_e_documento(monkeypatch):
+    """Regressão: rebuild com docs de runtime desalinhava vetor e documento.
+
+    `_ensure_index` montava o índice de vetores só com os docs de disco,
+    enquanto `_documents_cache` recebia disco + runtime. O vetor anexado por
+    `add_document` caía numa posição que o leitor resolvia para OUTRO
+    documento: a busca devolvia o id/text de um registro diferente e o doc
+    recém-ingerido não aparecia. Era a causa real de
+    `test_add_document_sobrevive_a_busca_seguinte` falhar na suíte completa e
+    passar isolado — qualquer teste anterior que ingerisse doc de runtime
+    criava a pré-condição.
+
+    O singleton é global e compartilhado pela sessão inteira, então o teste
+    parte de estado zerado e o monkeypatch devolve os objetos originais no
+    teardown: sem isso este teste viraria o próximo poluidor.
+    """
+    from core.rag import engine as engine_module
+
+    monkeypatch.setattr(engine_module, "_documents_cache", [])
+    monkeypatch.setattr(engine_module, "_runtime_docs", [])
+    monkeypatch.setattr(engine_module, "_embeddings_cache", None)
+    monkeypatch.setattr(engine_module, "_faiss_index", None)
+    monkeypatch.setattr(engine_module, "_index_data_dir", None)
+
+    rag = engine_module.ForensicRAG()
+    # Um doc de runtime ANTES do primeiro rebuild é a pré-condição do defeito.
+    rag.add_document("DECOY-RUNTIME", "documento de runtime anterior sobre pump and dump")
+    rag.search("pump and dump", top_k=2)
+
+    alvo = "thesis exclusiva sobre ticker qqqrev com pump and dump"
+    rag.add_document("TRADE-REG-2", alvo)
+
+    if engine_module._faiss_index is not None:
+        # O leitor resolve índices de vetor através de _documents_cache.
+        assert len(engine_module._documents_cache) == engine_module._faiss_index.ntotal
+
+    hits = rag.search("ticker qqqrev pump", top_k=5)
+    por_id = {h["id"]: h for h in hits}
+
+    assert "TRADE-REG-2" in por_id
+    # O id devolvido tem que carregar o PRÓPRIO texto, não o do decoy.
+    assert por_id["TRADE-REG-2"]["text"] == alvo
+
+
 def test_add_document_mesmo_id_nao_duplica_no_runtime():
     from core.rag import engine as engine_module
 
