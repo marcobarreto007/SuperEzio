@@ -60,7 +60,9 @@ def test_corrupt_line_is_quarantined(book: EventBook, tmp_path: Path):
         timestamp_precision="day",
     )
     book.append(event)
-    assert path.with_name("events.jsonl.quarantine").read_text(encoding="utf-8").startswith("{broken")
+    assert (
+        path.with_name("events.jsonl.quarantine").read_text(encoding="utf-8").startswith("{broken")
+    )
     assert json.loads(path.read_text(encoding="utf-8").splitlines()[-1])["identity"] == "x"
 
 

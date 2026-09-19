@@ -30,9 +30,7 @@ def _collect_daily_moves(store_dir: Path) -> list:
             continue
         listing = listing_guess_from_filename(csv_path.name)
         first_seen = _first_seen_from_bars(bars)
-        moves.extend(
-            daily_moves_from_bars(bars=bars, listing=listing, first_seen=first_seen)
-        )
+        moves.extend(daily_moves_from_bars(bars=bars, listing=listing, first_seen=first_seen))
     return moves
 
 

@@ -109,8 +109,7 @@ def test_ingest_raw_jsonl_skips_corrupt_json(book: EventBook, tmp_path: Path):
     body = _spine_with_pubdate("Mon, 15 Sep 2026 16:10:00 GMT")
     raw_path = tmp_path / "mixed.jsonl"
     raw_path.write_text(
-        "{broken\n"
-        + json.dumps({"body": body}) + "\n",
+        "{broken\n" + json.dumps({"body": body}) + "\n",
         encoding="utf-8",
     )
     written, _ = ingest_raw_jsonl(raw_path, book, source="prnewswire")

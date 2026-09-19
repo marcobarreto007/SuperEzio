@@ -1,4 +1,5 @@
 """Spec aceite: um LULD FTFT, arquivo P0, junção, ranking killed visível."""
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,9 @@ def test_spine_archive_join_kill_and_row(tmp_path, ua):
         return httpx.Response(200, content=rss, headers={"ETag": '"s"'})
 
     rec = RawRecorder(root=tmp_path / "heart")
-    result = poll_once(httpx.Client(transport=httpx.MockTransport(handler)), feed_by_id("prnewswire"), rec)
+    result = poll_once(
+        httpx.Client(transport=httpx.MockTransport(handler)), feed_by_id("prnewswire"), rec
+    )
     assert result.written == 1
 
     events = parse_nyse_halts_csv((ROOT / "nyse_halts.csv").read_text(encoding="utf-8"))

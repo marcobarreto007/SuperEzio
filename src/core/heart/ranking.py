@@ -23,12 +23,7 @@ class RankingWeights:
     surprise: float
 
     def __post_init__(self) -> None:
-        total = (
-            self.abnormal_return
-            + self.gross_return
-            + self.lifetime_score
-            + self.surprise
-        )
+        total = self.abnormal_return + self.gross_return + self.lifetime_score + self.surprise
         if abs(total - 1.0) > 1e-9:
             raise ValueError("ranking weights must sum to 1")
 

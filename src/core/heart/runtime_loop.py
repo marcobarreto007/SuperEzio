@@ -118,9 +118,7 @@ async def background_heart_loop(root: Path | None = None) -> None:
     )
     while _running:
         if not os.getenv("SUPEREZIO_HEART_USER_AGENT"):
-            logger.error(
-                "heart ingest skipped: SUPEREZIO_HEART_USER_AGENT is required"
-            )
+            logger.error("heart ingest skipped: SUPEREZIO_HEART_USER_AGENT is required")
         else:
             try:
                 await asyncio.to_thread(_cycle_with_own_client, heart_root)

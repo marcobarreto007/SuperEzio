@@ -53,7 +53,9 @@ def reset_heart_view_for_test() -> None:
     VIEW.bars = []
 
 
-def _build_attributions(moves: list[DailyMove], events: list[MarketEvent]) -> dict[str, dict[str, Any]]:
+def _build_attributions(
+    moves: list[DailyMove], events: list[MarketEvent]
+) -> dict[str, dict[str, Any]]:
     if _attribute_moves is not None:
         batch = _attribute_moves(moves, events)
         if isinstance(batch, dict):

@@ -4,7 +4,9 @@ from zoneinfo import ZoneInfo
 
 from core.heart.nyse_halts import parse_nyse_halts_csv
 
-CSV = (Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "nyse_halts.csv").read_text(encoding="utf-8")
+CSV = (
+    Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "nyse_halts.csv"
+).read_text(encoding="utf-8")
 
 
 def test_luld_row_becomes_spine_market_event():

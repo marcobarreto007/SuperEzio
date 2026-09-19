@@ -61,9 +61,7 @@ def test_first_snapshot_inserts_active_identity(registry: UniverseRegistry):
 
 def test_same_symbol_next_day_does_not_duplicate(registry: UniverseRegistry):
     registry.ingest_snapshot([_row("AAPL")], as_of=date(2026, 9, 14), snapshot_ok=True)
-    result = registry.ingest_snapshot(
-        [_row("AAPL")], as_of=date(2026, 9, 15), snapshot_ok=True
-    )
+    result = registry.ingest_snapshot([_row("AAPL")], as_of=date(2026, 9, 15), snapshot_ok=True)
     assert result.inserted == 0
     assert result.updated == 1
     records = registry.active()

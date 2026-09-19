@@ -62,9 +62,9 @@ def test_all_feeds_continues_after_one_timeout(tmp_path: Path, monkeypatch):
     recorder = RawRecorder(root=root)
     pr_path = recorder.capture_path("prnewswire", datetime.now(UTC))
     assert pr_path.is_file()
-    assert "spine-guid-1" in pr_path.read_text(encoding="utf-8") or "FTFT noise" in pr_path.read_text(
+    assert "spine-guid-1" in pr_path.read_text(
         encoding="utf-8"
-    )
+    ) or "FTFT noise" in pr_path.read_text(encoding="utf-8")
 
 
 def test_all_feeds_exit_one_when_all_fail(tmp_path: Path, monkeypatch):

@@ -22,9 +22,9 @@ def parse_nyse_halts_csv(text: str) -> list[MarketEvent]:
         symbol = (row.get("Symbol") or "").strip()
         halt_date = (row.get("Halt Date") or "").strip()
         halt_time = (row.get("Halt Time") or "").strip()
-        occurred_at = datetime.strptime(
-            f"{halt_date} {halt_time}", "%Y-%m-%d %H:%M:%S"
-        ).replace(tzinfo=_NY)
+        occurred_at = datetime.strptime(f"{halt_date} {halt_time}", "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=_NY
+        )
         exchange = (row.get("Exchange") or "").strip()
         events.append(
             MarketEvent(

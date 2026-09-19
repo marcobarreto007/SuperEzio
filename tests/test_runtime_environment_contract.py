@@ -83,7 +83,9 @@ def test_password_hashing_round_trip_works():
 def test_requirements_mirror_matches_the_manifest():
     mirror = [
         line.strip()
-        for line in _PYPROJECT.with_name("requirements.txt").read_text(encoding="utf-8").splitlines()
+        for line in _PYPROJECT.with_name("requirements.txt")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip() and not line.startswith("#")
     ]
 

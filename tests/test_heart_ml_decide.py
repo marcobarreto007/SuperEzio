@@ -5,7 +5,9 @@ from core.heart.ml.decide import SPINE_LABEL_SIGMA, decide_from_bars_tail, decid
 from core.heart.paths import SPINE_PATH
 
 BARS = json.loads(
-    (Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "bars.json").read_text(encoding="utf-8")
+    (Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "bars.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 

@@ -262,7 +262,6 @@ def _check_datahub_health() -> tuple:
         return False, f"DataHub error: {str(e)[:100]}"
 
 
-
 def _check_journal_health() -> tuple:
     """Check journal storage without adding a synthetic financial record."""
     try:

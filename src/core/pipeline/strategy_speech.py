@@ -136,8 +136,7 @@ def _en_profile_head(amount: str, risk: str) -> str:
 
 def _product_suggestion_pt(amount: str, risk: str, message: str = "") -> list[str]:
     is_cad = bool(
-        re.search(r"\bcad\b", message or "", re.IGNORECASE)
-        or (amount and "cad" in amount.lower())
+        re.search(r"\bcad\b", message or "", re.IGNORECASE) or (amount and "cad" in amount.lower())
     )
     high = risk == "high"
 
@@ -231,8 +230,7 @@ def _product_suggestion_pt(amount: str, risk: str, message: str = "") -> list[st
 
 def _product_suggestion_en(amount: str, risk: str, message: str = "") -> list[str]:
     is_cad = bool(
-        re.search(r"\bcad\b", message or "", re.IGNORECASE)
-        or (amount and "cad" in amount.lower())
+        re.search(r"\bcad\b", message or "", re.IGNORECASE) or (amount and "cad" in amount.lower())
     )
     high = risk == "high"
 

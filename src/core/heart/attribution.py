@@ -75,9 +75,7 @@ def session_impact_date(
     """Map event timestamp to the session whose return it can explain."""
     moment = occurred_at if occurred_at.tzinfo else occurred_at.replace(tzinfo=UTC)
     local = moment.astimezone(ZoneInfo(session_tz))
-    if local.hour > session_close_hour or (
-        local.hour == session_close_hour and local.minute >= 0
-    ):
+    if local.hour > session_close_hour or (local.hour == session_close_hour and local.minute >= 0):
         return (local + timedelta(days=1)).date()
     return local.date()
 

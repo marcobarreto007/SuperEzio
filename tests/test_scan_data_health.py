@@ -104,4 +104,3 @@ def test_derive_missing_risk_satisfies_quality_gates():
     assert "missing_risk_provenance" not in failures_after
     assert "missing_invalidation" not in failures_after
     assert "missing_invalidation_provenance" not in failures_after
-

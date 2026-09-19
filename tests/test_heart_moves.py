@@ -7,7 +7,9 @@ from core.heart.universe import ListingRow
 from core.math.risk import log_return
 
 BARS = json.loads(
-    (Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "bars.json").read_text(encoding="utf-8")
+    (Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "bars.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 

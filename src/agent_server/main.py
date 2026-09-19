@@ -319,9 +319,7 @@ def _bind_bridge_research_executor(app: FastAPI) -> None:
     )
 
 
-async def _drain_bridge_research(
-    app: FastAPI, run_id: str, message: str, session_id: str
-) -> None:
+async def _drain_bridge_research(app: FastAPI, run_id: str, message: str, session_id: str) -> None:
     from core.pipeline.task_queue import get_task_queue
 
     tq = get_task_queue()

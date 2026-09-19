@@ -104,7 +104,9 @@ def fetch_chart_payload(symbol: str, client: httpx.Client) -> dict[str, Any]:
         timeout=30.0,
     )
     if freeze_on_yahoo_missing(response.status_code):
-        raise HeartHttpError(response.status_code, response.content, reason=f"yahoo chart missing {symbol}")
+        raise HeartHttpError(
+            response.status_code, response.content, reason=f"yahoo chart missing {symbol}"
+        )
     if response.status_code != 200:
         raise HeartHttpError(response.status_code, response.content, reason=f"yahoo chart {symbol}")
     return response.json()
@@ -221,7 +223,9 @@ def resolve_ohlcv_dir(explicit: Path | None = None) -> Path:
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch as-traded Yahoo daily bars into Heart OHLCV CSVs.")
+    parser = argparse.ArgumentParser(
+        description="Fetch as-traded Yahoo daily bars into Heart OHLCV CSVs."
+    )
     parser.add_argument(
         "--ohlcv-dir",
         type=Path,
@@ -234,8 +238,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=None,
         help="EventBook JSONL (default: data/heart/events.jsonl).",
     )
-    parser.add_argument("--from-events", action="store_true", help="Seed symbols from LULD events on disk.")
-    parser.add_argument("--symbol", action="append", default=[], help="Ticker to fetch (repeatable).")
+    parser.add_argument(
+        "--from-events", action="store_true", help="Seed symbols from LULD events on disk."
+    )
+    parser.add_argument(
+        "--symbol", action="append", default=[], help="Ticker to fetch (repeatable)."
+    )
     parser.add_argument(
         "--limit",
         type=int,

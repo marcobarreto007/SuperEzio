@@ -749,9 +749,7 @@ def _derive_missing_risk(item: dict[str, Any]) -> None:
             f"downside risk: revenue or margin disappointment if the catalyst "
             f"'{str(catalyst)[:50]}' fails to materialize"
         )
-        derived_invalidation = (
-            "thesis is invalidated if the catalyst event is cancelled or closes below prior day support"
-        )
+        derived_invalidation = "thesis is invalidated if the catalyst event is cancelled or closes below prior day support"
 
     item.setdefault("risk", derived_risk)
     item.setdefault("invalidation", derived_invalidation)

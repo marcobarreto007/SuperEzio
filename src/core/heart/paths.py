@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 ALLOWED_WINDOWS = frozenset({"same_session"})
-ALLOWED_AXES = frozenset(
-    {"abnormal_return", "gross_return", "lifetime_score", "surprise"}
-)
+ALLOWED_AXES = frozenset({"abnormal_return", "gross_return", "lifetime_score", "surprise"})
 ALLOWED_STATUS = frozenset({"kept", "killed", "refused_empty_store", "unweighted"})
 
 

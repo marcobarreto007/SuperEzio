@@ -164,7 +164,11 @@ def data_health_facts(scan: dict[str, Any] | None = None) -> tuple[str, ...]:
         if not price_used and not measured_price:
             measured_price = [p for p in price_configured if p in general_used]
         rejection_sum = scan.get("rejection_summary") or {} if isinstance(scan, dict) else {}
-        if not catalyst_used and not measured_catalyst and not rejection_sum.get("missing_catalyst"):
+        if (
+            not catalyst_used
+            and not measured_catalyst
+            and not rejection_sum.get("missing_catalyst")
+        ):
             measured_catalyst = [c for c in catalyst_configured if c in general_used]
 
         price_val = ",".join(sorted(measured_price)) or "none"

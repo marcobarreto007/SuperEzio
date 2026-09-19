@@ -12,11 +12,7 @@ _NASDAQ_HEADER = (
 
 def test_ftft_maps_q_to_xnas():
     text = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "heart"
-        / "spine"
-        / "nasdaqtraded_ftft.txt"
+        Path(__file__).resolve().parent / "fixtures" / "heart" / "spine" / "nasdaqtraded_ftft.txt"
     ).read_text(encoding="utf-8")
     rows = parse_nasdaqtraded_lines(text)
     assert len(rows) == 1
