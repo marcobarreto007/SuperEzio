@@ -805,6 +805,86 @@ body::after {
 .expert-card__badge--trinity { color: #d2a8ff; background: rgba(210, 168, 255, 0.12); }
 .expert-card__badge--guard { color: var(--text-secondary); background: rgba(139, 148, 158, 0.12); }
 .expert-card__badge--mangala { color: #ff9800; background: rgba(255, 152, 0, 0.15); }
+.expert-card__badge--health { color: #79c0ff; background: rgba(121, 192, 255, 0.10); }
+
+/* ── SYSTEM HEALTH CARD ──
+   The rail stretches to the panel's full height while the other five cards are
+   content-sized, so every spare pixel used to pool below the last one (measured
+   0% empty at 1366x768, 27% at 1080p, 49% at 1440p). This is the card that
+   absorbs it: four blocks of live data that read fine spread over the space.
+   `space-between` is what keeps them evenly placed instead of clustering at the
+   top of a tall empty box — growing a card whose content is short just moves
+   the void inside it, which is what got this wrong twice before.
+
+   `flex-shrink: 0` is load-bearing. With the default shrink the card was
+   squashed on short viewports and the payload was CLIPPED — measured 71px lost
+   at 1080p, 141px at 1440x900, 187px at 1366x768. The rail is `overflow-y:
+   auto`, so refusing to shrink makes it scroll instead, which shows the data. */
+#expert-card-health {
+  flex: 1 0 auto;
+}
+
+/* No card in the rail is allowed to shrink below its content; the rail scrolls
+   instead. With the default shrink, a seventh card pushed the others past the
+   rail's height on a 1366x768 screen and their bodies were squashed to nothing
+   — every expert card lost its text ("No active analysis" and friends), which
+   no amount of measuring the new card would have shown. The rail is
+   `overflow-y: auto`, so scrolling is free and losing the text is not. */
+.expert-panel__cards > .expert-card {
+  flex-shrink: 0;
+}
+
+#health-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sysh-block__title {
+  font: 700 9px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+}
+
+.sysh-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+  font: 600 10px var(--font-mono);
+}
+
+/* Both sides shrink and ellipsize. A nowrap label allowed to overflow its own
+   box paints over its neighbour — that is exactly what the status bar did in
+   this same file, below ~940px. */
+.sysh-row__label,
+.sysh-row__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sysh-row__label {
+  color: var(--text-secondary);
+  flex: 1 1 auto;
+}
+
+.sysh-row__value {
+  color: var(--text-primary);
+  flex: 0 1 auto;
+  text-align: right;
+}
+
+.sysh-row__value.is-ok { color: var(--green-buy); }
+.sysh-row__value.is-warn { color: var(--yellow-warn); }
+.sysh-row__value.is-error { color: var(--red-sell); }
 
 .expert-card__name {
   font: 600 10px var(--font-sans);

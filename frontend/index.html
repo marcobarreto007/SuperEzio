@@ -286,6 +286,20 @@
             <div class="trust-bar" id="mangala-trust-bar"><span></span></div>
           </div>
         </article>
+
+        <!-- System health card — renders /health/details (breakers, budget, providers, GPUs).
+             This is the card that absorbs the rail's leftover height; the others are
+             content-sized. See system-health.js. -->
+        <article class="expert-card" id="expert-card-health">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--health">SYS</span>
+            <span class="expert-card__name">Saúde do Sistema</span>
+            <span class="expert-card__verdict" id="health-verdict">--</span>
+          </div>
+          <div class="expert-card__bd" id="health-body">
+            <div class="empty-state">SEM DADO — aguardando /health/details.</div>
+          </div>
+        </article>
       </div>
 
       <!-- Deep Panel hidden data container (required by deep-panel.js) -->
@@ -485,6 +499,7 @@
   <script src="js/blame-panel.js"></script>
   <script src="js/bob-panel.js?v=ui-fix-20260823d"></script>
   <script src="js/status-bar.js?v=ui-fix-20260823d"></script>
+  <script src="js/system-health.js?v=ui-fix-20260919"></script>
   <script src="js/control-panel.js"></script>
   <script src="js/init.js?v=ui-fix-20260823d"></script>
 </body>

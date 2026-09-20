@@ -565,9 +565,22 @@
     html += '  <span class="mangala-capital-label" style="font-size:11px;color:var(--text-secondary,#888);">Patrimônio Atual</span>';
     html += '  <span class="mangala-capital-value mangala-current" style="font:800 13px var(--font-mono);color:#00e676;">' + esc(currentStr) + '</span>';
     html += '</div>';
+    /* total_profit was parsed and formatted into profitStr, then never used —
+       the card showed the balance but not the result that produced it. */
+    html += '<div class="mangala-capital-row" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">';
+    html += '  <span class="mangala-capital-label" style="font-size:11px;color:var(--text-secondary,#888);">Resultado</span>';
+    html += '  <span class="mangala-capital-value" style="font:700 12px var(--font-mono);color:' + (totalProfit >= 0 ? "#00e676" : "#ef5350") + ';">' + esc(profitStr) + '</span>';
+    html += '</div>';
+    /* risk_budget_cad arrived and was dropped while this row printed a literal
+       "$15 CAD" — asserting a number the backend never sent. The payload's own
+       value is long ("$10 a $15 CAD (1.0% - 1.5%)"), so it gets its own row
+       instead of the tight three-column strip below. */
+    html += '<div class="mangala-capital-row" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">';
+    html += '  <span class="mangala-capital-label" style="font-size:11px;color:var(--text-secondary,#888);">Risco máx/trade</span>';
+    html += '  <span class="mangala-capital-value" style="font:700 10px var(--font-mono);color:#00e5ff;text-align:right;">' + esc(riskBudget) + '</span>';
+    html += '</div>';
 
     html += '<div class="mangala-stats" style="display:flex;justify-content:space-between;gap:4px;margin:6px 0;padding:4px 6px;background:rgba(255,255,255,0.03);border-radius:4px;font:600 10px var(--font-mono);">';
-    html += '  <span class="mangala-stat" title="Risco máximo por trade">Risco: <strong style="color:#00e5ff;">$15 CAD</strong></span>';
     html += '  <span class="mangala-stat" title="Assimetria mínima de Retorno/Risco">R:R: <strong style="color:#00e5ff;">&ge; ' + esc(minRR) + '</strong></span>';
     html += '  <span class="mangala-stat" title="Meta-Labeling López de Prado">Meta-P: <strong style="color:#00e5ff;">&ge; ' + esc(String(metaThreshold)) + '</strong></span>';
     html += '</div>';
