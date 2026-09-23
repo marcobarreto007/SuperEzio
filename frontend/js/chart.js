@@ -275,6 +275,18 @@
           macdPane.className = 'chart-osc-pane chart-osc-pane--macd';
           macdPane.style.cssText = '';
         }
+        /* CSS owns pane size now. ResizeObserver watches #live-canvas, so a
+         * pane-only flex change does not fire it — re-fit LW to the capped box. */
+        requestAnimationFrame(function () {
+          if (resizeRO) {
+            var wrap = document.getElementById('live-canvas');
+            if (wrap) {
+              resizeRO.disconnect();
+              resizeRO.observe(wrap);
+            }
+          }
+          resize();
+        });
         return el;
       }
       /* Rebuild: clear and set up structure */
@@ -821,6 +833,22 @@
    * RESIZE OBSERVER
    * ────────────────────────────────────────────────────────────── */
 
+  function resize() {
+    var mainPane = document.getElementById('chart-main-pane');
+    var rsiPane  = document.getElementById('chart-rsi-pane');
+    var macdPane = document.getElementById('chart-macd-pane');
+
+    if (mainChart && mainPane) {
+      mainChart.applyOptions({ width: mainPane.clientWidth, height: mainPane.clientHeight });
+    }
+    if (rsiChart && rsiPane) {
+      rsiChart.applyOptions({ width: rsiPane.clientWidth, height: rsiPane.clientHeight });
+    }
+    if (macdChart && macdPane) {
+      macdChart.applyOptions({ width: macdPane.clientWidth, height: macdPane.clientHeight });
+    }
+  }
+
   function setupResize() {
     var wrap = document.getElementById('live-canvas');
     if (!wrap) return;
@@ -828,21 +856,7 @@
     if (resizeRO) resizeRO.disconnect();
 
     resizeRO = new ResizeObserver(function () {
-      requestAnimationFrame(function () {
-        var mainPane = document.getElementById('chart-main-pane');
-        var rsiPane  = document.getElementById('chart-rsi-pane');
-        var macdPane = document.getElementById('chart-macd-pane');
-
-        if (mainChart && mainPane) {
-          mainChart.applyOptions({ width: mainPane.clientWidth, height: mainPane.clientHeight });
-        }
-        if (rsiChart && rsiPane) {
-          rsiChart.applyOptions({ width: rsiPane.clientWidth, height: rsiPane.clientHeight });
-        }
-        if (macdChart && macdPane) {
-          macdChart.applyOptions({ width: macdPane.clientWidth, height: macdPane.clientHeight });
-        }
-      });
+      requestAnimationFrame(resize);
     });
 
     resizeRO.observe(wrap);
@@ -953,6 +967,7 @@
     bindCrosshair();
     bindTimeScaleSync();
     setupResize();
+    requestAnimationFrame(resize);
 
     isInitialized = true;
   }
@@ -1102,8 +1117,12 @@
   function manualResize() {
     if (resizeRO) {
       var wrap = document.getElementById('live-canvas');
-      if (wrap) resizeRO.observe(wrap);
+      if (wrap) {
+        resizeRO.disconnect();
+        resizeRO.observe(wrap);
+      }
     }
+    requestAnimationFrame(resize);
   }
 
   /* ──────────────────────────────────────────────────────────────

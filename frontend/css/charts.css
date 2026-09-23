@@ -527,20 +527,21 @@
 @media (max-width: 900px) {
   .app-main {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(520px, 64vh) minmax(460px, auto);
+    /* 520px/64vh mins fought the cockpit .chart-stage cap (~44vh). */
+    grid-template-rows: minmax(0, 44vh) minmax(0, auto);
     min-width: 0;
     overflow: auto;
   }
 
   .right-stack {
-    min-height: 520px;
+    min-height: 0;
     padding: 12px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
   .chart-workspace {
-    min-height: 460px;
+    min-height: 0;
   }
 
   .market-header {
@@ -564,7 +565,8 @@
   }
 
   .chart-stage {
-    min-height: 360px;
+    min-height: 0;
+    max-height: 44vh;
     padding: 10px 12px 12px;
   }
 
@@ -592,10 +594,8 @@
    specificity gap is why that block stops applying at 601px; keep the two in
    sync if either value moves. */
 @media (max-width: 600px) {
-  /* Keep the 900px row sizing (minmax(520px,64vh)) — shrinking row1 to
-     "auto" collapsed the chart-zone to 172px (R4 re-measure). The real
-     win is shrinking the oscillator panes so the price pane keeps the
-     space instead. */
+  /* 900px row is minmax(0, 44vh) so the stage cannot outgrow the cockpit
+     cap. Oscillator panes stay compact so the price pane keeps the space. */
   #chart-rsi-pane {
     flex-basis: 56px;
     min-height: 56px;

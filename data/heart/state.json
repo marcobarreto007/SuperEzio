@@ -1,19 +1,19 @@
 {
   "feeds": {
     "prnewswire": {
-      "etag": "W/\"8d48-65bc2bc99a860\"",
-      "last_modified": "Fri, 18 Sep 2026 14:30:06 GMT"
+      "etag": "W/\"a23b-65c0712758dce\"",
+      "last_modified": "Tue, 22 Sep 2026 00:01:44 GMT"
     },
     "cnw": {
-      "etag": "W/\"a8ff-65b717ccab716\"",
-      "last_modified": "Mon, 14 Sep 2026 13:34:03 GMT"
+      "etag": "W/\"b676-65bfe4daafff6\"",
+      "last_modified": "Mon, 21 Sep 2026 13:34:03 GMT"
     },
     "businesswire_ma": {
-      "etag": "cdfc2ec2bcb69fa22f7cb2eaa068b702",
-      "last_modified": "Fri, 18 Sep 2026 14:24:05 GMT"
+      "etag": "670961d5e2fc7052850f3d8abc00b4bf",
+      "last_modified": "Mon, 21 Sep 2026 23:57:07 GMT"
     },
     "globenewswire": {
-      "last_modified": "Fri, 18 Sep 2026 14:11:05 GMT"
+      "last_modified": "Mon, 21 Sep 2026 15:09:52 GMT"
     }
   },
   "fold_offsets": {
@@ -25,6 +25,20 @@
     "raw/2026/09/18/newsfile.jsonl": 1838586,
     "raw/2026/09/18/prnewswire.jsonl": 6365868,
     "raw/2026/09/18/businesswire_ma.jsonl": 234360,
-    "raw/2026/09/18/globenewswire.jsonl": 89858
+    "raw/2026/09/18/globenewswire.jsonl": 89858,
+    "raw/2026/09/19/businesswire_ma.jsonl": 168795,
+    "raw/2026/09/19/newsfile.jsonl": 215784,
+    "raw/2026/09/19/prnewswire.jsonl": 792010,
+    "raw/2026/09/20/businesswire_ma.jsonl": 389205,
+    "raw/2026/09/20/prnewswire.jsonl": 3302843,
+    "raw/2026/09/20/newsfile.jsonl": 690058,
+    "raw/2026/09/21/businesswire_ma.jsonl": 366885,
+    "raw/2026/09/21/prnewswire.jsonl": 13968288,
+    "raw/2026/09/21/newsfile.jsonl": 5021657,
+    "raw/2026/09/21/globenewswire.jsonl": 90992,
+    "raw/2026/09/21/cnw.jsonl": 47266,
+    "raw/2026/09/22/prnewswire.jsonl": 42092,
+    "raw/2026/09/22/businesswire_ma.jsonl": 1395,
+    "raw/2026/09/22/newsfile.jsonl": 35153
   }
 }

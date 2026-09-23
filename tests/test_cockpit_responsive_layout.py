@@ -78,6 +78,23 @@ def test_oscillator_panes_are_css_not_inline_locked():
     assert "flex:0 0 96px" not in CHART_JS
     assert ".chart-osc-pane" in COCKPIT_CSS
     assert "(max-height: 900px)" in COCKPIT_CSS
+    short = _media_block(COCKPIT_CSS, "(max-height: 900px)")
+    # Short viewports used to shrink RSI/MACD (52/56), which only grew candles.
+    assert "52px" not in short
+    assert "56px" not in short
+
+
+def test_chart_stage_is_capped_not_unbounded_1fr():
+    """Unbounded 1fr on the stage row let the candlestick eat ~73-77% of the viewport."""
+    zone = _first_rule(COCKPIT_CSS, ".chart-zone")
+    stage = _first_rule(COCKPIT_CSS, ".chart-stage")
+    rows = zone.split("grid-template-rows:", 1)[1].split(";", 1)[0]
+    assert "min(50vh" in zone
+    assert "min(50vh" in stage
+    assert "minmax(220px, min(50vh, 520px))" in rows
+    # Stage row is capped. 1fr may only appear on the orders/blotter row.
+    assert "minmax(0, 1fr)" not in rows
+    assert rows.strip().count("1fr") <= 1
 
 
 def test_paper_trade_is_reachable_from_both_cards():

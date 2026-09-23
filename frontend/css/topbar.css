@@ -1,8 +1,13 @@
+/* cockpit.css owns the trading topbar (loads after this sheet).
+   Keep padding/min-height at the 40px cockpit bar — do not reintroduce
+   10px 24px padding or a taller min-height that explodes the chrome. */
 .topbar {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 16px;
-  padding: 10px 24px;
+  padding: 0 12px;
+  min-height: 40px;
   border-bottom: 1px solid rgba(0, 229, 255, 0.12);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -273,11 +278,13 @@
 }
 
 @media (max-width: 860px) {
+  /* Mobile wrap stays; cockpit.css owns height. Vertical padding stays 0
+     so the first row does not exceed the 40px cockpit bar. */
   .topbar {
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 0 12px;
     height: auto;
     min-height: 40px;
   }

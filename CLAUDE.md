@@ -11,7 +11,7 @@ Corpo de investimento local da família Barreto. Paper. Marco executa o TD à m�
 
 ## O que é (runtime)
 
-Runtime local e camada operacional: chat Bob, dados de mercado, journal, Heart, com disco local (DISK ONLY). Inteligência de pesquisa via APIs em nuvem (DeepSeek). O grafo legado ainda corre; alvo: `docs/architecture/TARGET_ARCHITECTURE.md`.
+Runtime local e camada operacional: chat Bob, dados de mercado, journal, Heart, com persistência em disco local. Inteligência de pesquisa via APIs em nuvem (DeepSeek). O grafo legado ainda corre; alvo: `docs/architecture/TARGET_ARCHITECTURE.md`.
 
 ## Comandos
 - instalar: pip install -e ".[dev]"
@@ -25,7 +25,7 @@ Runtime local e camada operacional: chat Bob, dados de mercado, journal, Heart, 
 - modelos de IA: 100% em nuvem na API oficial https://api.deepseek.com, com separação por papel desde 12/09/2026 — quem decide (Bob/CEO e orquestrador) roda DeepSeek V4 Pro (deepseek-v4-pro); os papéis de apoio (experts, judge e auditor) seguem em DeepSeek V4 Flash (deepseek-v4-flash), como todos rodavam até 10/09; Z.ai GLM-5.3 vira caminho opcional, religável por env. Inteligência = pipeline
 - persistência: runtime/ (teses, reports, checkpoints) + data/ (logs) + .f51/ (estado operacional)
 - saída: frontend web (chat) + relatórios de tese + logs estruturados
-- fora do escopo deste repositório: GitHub (DISK ONLY), hospedagem de dados/bancos em nuvem, dinheiro real (corretora), MCPs não aprovados
+- fora do escopo deste repositório: hospedagem de dados/bancos em nuvem, dinheiro real (corretora), MCPs não aprovados. Fontes externas **liberadas** desde 14/09/2026 — a antiga política DISK ONLY foi revogada pela regra 1 deste arquivo.
 - arquitetura-alvo (autoridade do órgão, C1 pack + C2 snapshot + C3 bind; C4 SDCA observe; C5–C6 off): docs/architecture/TARGET_ARCHITECTURE.md
 
 ## Regras invioláveis

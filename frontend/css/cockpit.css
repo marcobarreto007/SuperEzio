@@ -481,7 +481,11 @@ body::after {
      non-shrinkable .market-header__prices pushed the column to ~464px and
      painted it under the header buttons at narrow widths. */
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Cap the stage row. An unbounded 1fr row plus #live-canvas height:100% plus
+     .chart-main-pane flex:1 ate ~73-77% of the viewport in candles. Leftover
+     height goes to the orders blotter, not more candles. */
+  grid-template-rows: auto minmax(220px, min(50vh, 520px)) minmax(96px, 1fr);
+  align-content: stretch;
   min-height: 0;
   background: var(--bg-primary);
   overflow: hidden;
@@ -609,6 +613,7 @@ body::after {
   min-width: 0;
   padding: 8px;
   background: var(--bg-primary);
+  max-height: min(50vh, 520px);
   /* charts.css keeps position:relative here, so the stage paints above the
      static .orders-mirror below it. On phones the stage row shrinks to a few
      dozen px while the canvas holds min-height:200px, and the chart used to
@@ -620,6 +625,7 @@ body::after {
   height: 100%;
   min-height: 200px;
   min-width: 0;
+  max-height: min(50vh, 520px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -663,7 +669,7 @@ body::after {
 .orders-mirror {
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
-  max-height: 140px;
+  max-height: min(24vh, 220px);
   overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -1958,16 +1964,21 @@ body.show-debug-cards .bob-runtime {
     display: none;
   }
 
+  .chart-zone {
+    grid-template-rows: auto minmax(200px, min(46vh, 400px)) minmax(96px, 1fr);
+  }
+
+  .chart-stage,
+  .chart-stage__canvas {
+    max-height: min(46vh, 400px);
+  }
+
   .chart-osc-pane--rsi {
-    flex-basis: 56px;
+    flex-basis: 72px;
   }
 
   .chart-osc-pane--macd {
-    flex-basis: 64px;
-  }
-
-  .orders-mirror {
-    max-height: 96px;
+    flex-basis: 80px;
   }
 
   #statusbar-genie,
@@ -1992,18 +2003,15 @@ body.show-debug-cards .bob-runtime {
 }
 
 @media (max-height: 900px) {
-  .chart-osc-pane--rsi {
-    flex-basis: 52px;
-    min-height: 48px;
+  /* Do not shrink RSI/MACD here: that only inflates the candle pane inside
+     the capped stage. Keep the desktop 72/80 bases; phone still hides MACD. */
+  .chart-zone {
+    grid-template-rows: auto minmax(200px, min(46vh, 400px)) minmax(96px, 1fr);
   }
 
-  .chart-osc-pane--macd {
-    flex-basis: 56px;
-    min-height: 48px;
-  }
-
-  .orders-mirror {
-    max-height: 88px;
+  .chart-stage,
+  .chart-stage__canvas {
+    max-height: min(46vh, 400px);
   }
 }
 

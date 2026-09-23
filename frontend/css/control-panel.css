@@ -35,18 +35,25 @@
   overflow: hidden;
 }
 
-/* Collapsed: sit in the status bar so the chip does not cover orders. */
+/* Collapsed: sit in the status bar so the chip does not cover the chart. */
 .control-panel:has(.cp-body[hidden]) {
   left: 0;
   bottom: 0;
   width: max-content;
   max-width: min(360px, calc(100vw - 48px));
   height: 31px;
+  max-height: 31px;
+  overflow: hidden;
   border-radius: 0;
   border: none;
   border-right: 1px solid var(--line-light, rgba(255, 255, 255, 0.12));
   box-shadow: none;
   z-index: 102;
+}
+
+/* Open: dock above the 31px status bar, never under it. */
+.control-panel:has(.cp-body:not([hidden])) {
+  bottom: 31px;
 }
 
 .control-panel:has(.cp-body[hidden]) .cp-hd {
@@ -65,6 +72,7 @@
     left: 0;
     bottom: 0;
     height: 31px;
+    max-height: 31px;
     max-width: var(--cp-chip, 250px);
   }
 
@@ -73,7 +81,7 @@
     right: 8px;
     width: auto;
     bottom: 31px;
-    max-height: 60vh;
+    max-height: 50vh;
   }
 }
 
@@ -429,7 +437,7 @@
     left: 8px;
     right: 8px;
     width: auto;
-    bottom: 56px;
+    bottom: 31px;
   }
   .cp-body {
     max-height: 44vh;
