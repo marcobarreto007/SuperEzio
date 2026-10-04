@@ -894,7 +894,23 @@ async def _auto_full_analysis(
                 {**working_state, "expert_results": expert_results}
             )
             _merge_node_update(working_state, output, collect_res)
-            _merge_node_update(working_state, output, {"expert_committee_status": "OK"})
+            successful_roles = {
+                str(result.get("role"))
+                for result in expert_results
+                if result.get("ok") is True
+            }
+            structured = collect_res.get("expert_structured")
+            if isinstance(structured, dict):
+                successful_roles &= {str(role).split("#", 1)[0] for role in structured}
+            success_count = len(successful_roles.intersection(roles))
+            committee_status = (
+                "OK" if success_count == len(roles)
+                else "FAILED" if success_count == 0
+                else "PARTIAL"
+            )
+            _merge_node_update(
+                working_state, output, {"expert_committee_status": committee_status}
+            )
         # Nó de pipeline arbitrário (comitê de experts) — catch amplo
         # deliberado: falha vira resumo de erro, o pipeline segue — mas o
         # colapso do comitê fica rotulado em vez de invisível.

@@ -203,6 +203,32 @@ async def test_expert_committee_collapse_labels_failed(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_expert_committee_all_provider_failures_are_not_ok(monkeypatch):
+    def failed(state):
+        return {"expert_results": [{"role": state["role"], "ok": False, "error": "provider_down"}]}
+
+    result, _ = await _run_market_stack(
+        monkeypatch, expert_behavior=failed, arbitration="0"
+    )
+
+    assert result["expert_committee_status"] == "FAILED"
+
+
+@pytest.mark.asyncio
+async def test_expert_committee_one_provider_failure_is_partial(monkeypatch):
+    def one_failed(state):
+        if state["role"] == "social_forensics":
+            return {"expert_results": [{"role": state["role"], "ok": False, "error": "timeout"}]}
+        return _ok_expert(state)
+
+    result, _ = await _run_market_stack(
+        monkeypatch, expert_behavior=one_failed, arbitration="0"
+    )
+
+    assert result["expert_committee_status"] == "PARTIAL"
+
+
+@pytest.mark.asyncio
 async def test_disabled_arbitration_labels_not_run_and_never_calls_auditor(monkeypatch):
     called: list[str] = []
 
