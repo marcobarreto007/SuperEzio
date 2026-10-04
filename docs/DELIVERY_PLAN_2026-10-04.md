@@ -9,7 +9,7 @@ Estado medido em 4 de outubro de 2026. O produto é um cockpit local de pesquisa
 | Classificar `GET /api/heart/status` na bridge | Feito | `tests/test_control_endpoints.py` passa; rota declarada em `bridge/events.toml` |
 | Rever a lista oficial TD de 108 ETFs | Feito em 04-10; validade 7 dias | Comparação exata de símbolo e mercado com a tabela da TD; `tests/test_td_direct_ticket.py` passa |
 | Recalcular o universo efetivo com preços novos | Feito em 04-10; validade 7 dias | `scripts/verify_effective_universe.py` passa e `tests/test_effective_universe.py` passa; os 17 avisos de séries defasadas permanecem visíveis |
-| Correr a suíte completa após as mudanças | Em verificação | Resultado completo com `--maxfail=0`, distinguindo falha, skip e teste dependente de serviço externo |
+| Correr a suíte completa após as mudanças | Feito em 04-10 | `3.150 passed, 10 skipped, 1 deselected, 0 failed`; `pytest tests -q --maxfail=0` em 10m18s |
 
 Os dois manifestos expiram independentemente. Não alterar só `verified_at` ou `generated_at` para obter verde: comparar primeiro a lista oficial e reconstruir o universo com preços novos. Confirmar sempre comissão e elegibilidade no preview do TD antes de uma ordem manual.
 
@@ -17,7 +17,7 @@ Os dois manifestos expiram independentemente. Não alterar só `verified_at` ou 
 
 | Trabalho | Estado | Prova para fechar |
 | --- | --- | --- |
-| Desligar acesso anónimo na configuração local | Feito nesta máquina; `.env.local` é ignorado pelo Git | `SUPEREZIO_OPEN_ACCESS=0`, segredo JWT forte e login autenticado num arranque controlado |
+| Desligar acesso anónimo na configuração local | Configuração feita nesta máquina; arranque autenticado pendente; `.env.local` é ignorado pelo Git | `SUPEREZIO_OPEN_ACCESS=0`, segredo JWT forte; confirmar 401 anónimo e login válido num arranque controlado |
 | Manter freeze real e paper opt-in | Sem alteração deliberada | Leitura do gate em runtime; nenhuma ordem transmitida durante a verificação |
 | Revogar credenciais historicamente expostas | Pendente de prova dos provedores | Recibo ou estado de revogação de DeepSeek, TwelveData, Alpha Vantage e NewsAPI; substituir chaves locais sem as escrever em tickets ou commits |
 | Conferir o acesso ao serviço | Pendente | Bind apenas em loopback, anónimo recebe 401 nas rotas protegidas, login válido funciona |
@@ -29,7 +29,7 @@ Tratar cada ponto como mudança pequena com teste de falha e caminho de rollback
 1. O F51 exige claims e ground truth independentes, mas o fluxo normal não os produz. Definir a proveniência dos dois antes de tentar permitir `passed=True`. Nunca aliviar o gate apenas para conseguir uma ordem.
 2. O SDCA/C4 está em *observe*: um BLOCK ou erro não pára a resposta. Testar casos reais e falsos positivos antes de promover C4 a gate ativo.
 3. O Guardrail Hub corre antes do texto final; verificações de saída ficam sem texto. Ligar uma revisão após a resposta e testar que bloqueio/erro não desaparece em silêncio.
-4. `expert_committee_status="OK"` é escrito mesmo que todos os especialistas falhem. Fazer o estado refletir resultados válidos e mostrar cobertura parcial.
+4. **Feito em 04-10:** `expert_committee_status` distingue `OK`, `PARTIAL` e `FAILED` segundo os resultados válidos; os 14 testes focados passaram. Confirmar o estado em sessão real no cockpit.
 5. Reavaliar o modelo neural com dados atuais. O código admite `ready` sob qualificação; a auditoria não provou uma previsão qualificada recente nem desempenho preditivo.
 
 ## 4. Demonstração e comunicação
