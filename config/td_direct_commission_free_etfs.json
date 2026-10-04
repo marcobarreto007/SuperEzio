@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_at": "2026-09-19T00:00:00Z",
+  "verified_at": "2026-10-04T19:53:35Z",
   "source_url": "https://www.td.com/ca/en/investing/direct-investing/commission-free-etfs",
   "product": "TD Direct Investing Canada",
   "conditions": [
@@ -9,7 +9,7 @@
     "Strategy orders that include a listed ETF may still be charged a commission.",
     "Eligibility and fees must be confirmed in the TD order preview before manual transmit.",
     "US list re-verified 2026-08-25 from td.com commission-free ETF page.",
-    "Full 108-symbol list re-verified 2026-09-19 against source_url; set and order unchanged from the 2026-09-10 snapshot."
+    "Full 108-symbol CAN/US list re-verified 2026-10-04 against the TD source table; all symbols and markets matched the local manifest. Confirm eligibility and fees in the TD order preview."
   ],
   "symbols": {
     "CAN": [
