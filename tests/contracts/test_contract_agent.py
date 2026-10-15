@@ -145,7 +145,8 @@ def test_build_agent_prompt_ticker_analysis():
         "f51_verdict": {"confidence": 0.965, "passed": True},
     }
     prompt = build_agent_prompt(state)
-    assert "Bob's read" in prompt
+    assert "VOZ:" in prompt
+    assert "opiniao" in prompt
     assert "AAPL" in prompt
     assert "answer in the user's language" in prompt
     assert "direct trade order" in prompt

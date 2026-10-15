@@ -2732,6 +2732,20 @@ def _contract_fallback_answer(state: dict) -> str:
     return _advisory_knowledge_fallback_answer(state)
 
 
+def _spoken_opinion(raw: str) -> str:
+    """Prose Bob already said. Empty when the turn was a tool call or silence.
+
+    A spoken opinion is the answer. The canned contract text is only for when
+    the model produced nothing a person could read.
+    """
+    text = (raw or "").strip()
+    if len(text) < 15:
+        return ""
+    if text[0] in "{[":
+        return ""
+    return text
+
+
 def _should_force_contract_fallback(state: dict, content: str) -> bool:
     message = state.get("message", "")
     msg = (message or "").lower()
@@ -3001,13 +3015,54 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     return None
 
 
+def _is_system_explanation(state: dict) -> bool:
+    """True when the user asked how SuperEzio works, not for an asset."""
+    from core.pipeline.intents import detect_system_explanation_request
+
+    if state.get("information_need") == "system_architecture":
+        return True
+    if state.get("bob_intent") == "system_architecture":
+        return True
+    return detect_system_explanation_request(str(state.get("message") or ""))
+
+
 def _add_verdict_template(messages: list, state: dict) -> None:
     """Append a RESPONSE TEMPLATE message after the pipeline verdict.
 
     The template shows all pipeline data in a structured format and asks
     Bob to fill in only the EXPLANATION section with natural language.
+    A question with no ticker must not be turned into a MISSING checklist.
     """
+    if _is_system_explanation(state):
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "A pergunta e sobre a arquitetura do SuperEzio, nao sobre um ativo.\n"
+                    "Responda em portugues, em prosa, usando o Pipeline Report.\n"
+                    "Proibido: cabecalhos ## DATA, ## F51_VERDICT, ## BOB_VERDICT, "
+                    "DADOS DO PIPELINE, e a palavra MISSING.\n"
+                    "Nao cite ticker, preco, RSI, Sharpe ou similaridade de RAG.\n"
+                ),
+            }
+        )
+        return
+
     pvd = build_verdict_dict(state)
+    ticker = str(pvd.get("ticker") or "").strip()
+    if not ticker:
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "NAO ha ticker neste turno. Responda a pergunta do usuario em portugues, "
+                    "em prosa. Nao use o cabecalho DADOS DO PIPELINE. Nao liste modulos. "
+                    "Nao escreva MISSING. Nao invente preco, RSI, Sharpe ou ticker.\n"
+                ),
+            }
+        )
+        return
+
     template = (
         "MODELO DE RESPOSTA — preencha apenas a secao EXPLICACAO.\n"
         "NAO altere os numeros abaixo. Eles vem do pipeline.\n"
@@ -3028,15 +3083,9 @@ def _add_verdict_template(messages: list, state: dict) -> None:
         f"- Guardrail Hub: {pvd.get('guardrail', {}).get('ready', 'N/A')}\n"
         f"- RAG Forensics: {pvd.get('rag', {}).get('status', 'N/A')}\n"
         "\n"
-        "SUA EXPLICACAO — FORMATO OBRIGATORIO:\n"
-        "Se houver um ticker real na pergunta (o Ticker acima nao e N/A): "
-        "Voce DEVE comecar com: DADOS DO PIPELINE: RSI={rsi} MACD={macd} F51={score} SDCA={decision} NEURAL={neural} EXPERTS={experts} TRINITY={trinity} PENNYLAB={pennylab} RAG={rag} GUARDRAIL={guardrail}\n"
-        "Se NAO houver ticker (Ticker: N/A): NAO use o cabecalho DADOS DO PIPELINE — "
-        "responda a pergunta do usuario diretamente em linguagem natural.\n"
-        "Depois escreva: SUA EXPLICACAO: [explique os dados acima em linguagem natural]\n"
-        "Referencie CADA modulo pelo nome (DATA, MATH, EXPERTS, F51, SDCA, NEURAL, TRINITY, PENNYLAB, RAG, GUARDRAIL). "
-        "Se um modulo diz N/A ou MISSING, declare isso explicitamente. Nao pule modulo com dado.\n"
-        "Nunca troque um numero por descricao qualitativa. Mantenha os valores exatos.\n"
+        "Esses numeros sao a pesquisa. Nao repita a lista.\n"
+        "Fala como uma pessoa: responde a pergunta, usa so o numero que existe, "
+        "e da a tua opiniao. Nao escreva MISSING nem DADOS DO PIPELINE.\n"
         "Responda SEMPRE em portugues.\n"
     )
     messages.append({"role": "user", "content": template})
@@ -3442,29 +3491,38 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         if mission_context:
             active_system_prompt = mission_context + "\n\n" + active_system_prompt
 
-        # Prepend pipeline explainer identity — Bob explains the verdict, not his own opinion
-        pipeline_explainer = (
-            "You are Bob, the MOUTH — not the CEO, not the brain. "
-            "The SYSTEM (pipeline and organs) is the intelligence. "
-            "Any LLM is an interchangeable adjuvant. A model swap does not change the product. "
-            "Without a model the organism still decides; only the mouth disappears.\n"
-            "The organism must MAKE MONEY (paper expectancy while live cash is frozen) "
-            "or be DISCONTINUED.\n"
-            "TOOLS ARE YOUR ORGANS. Memory answers without DataHub/MathHub/Experts/F51/"
-            "SDCA/Trinity/chart are a kill condition.\n"
-            "A pipeline may have already run. Explain its numbers. If an organ is missing "
-            "or you have a doubt, CALL THE TOOL — do not guess.\n"
-            "You do not invent market data. You do not skip tools to sound fast. "
-            "Stream the decision until collect → calculate → consult → verdict is complete.\n\n"
-            "MANDATORY RULES:\n"
-            "1. If PIPELINE VERDICT data is present, base the verdict on it. "
-            "Do NOT answer from training memory.\n"
-            "2. Reference EVERY module listed in the verdict by name.\n"
-            "3. If the verdict says 'No pipeline data available', call tools. "
-            "Do not fabricate analysis.\n"
-            "4. For every module with data, cite EXACT numeric values. "
-            "Example: 'RSI(14) is 42.3, MACD is -1.05, F51 score is 73, SDCA is ALLOW.'\n"
-        )
+        # Prepend pipeline explainer identity — Bob explains the verdict, not his own opinion.
+        # Architecture questions are not a verdict: the mouth must not narrate empty organs.
+        if _is_system_explanation(state):
+            pipeline_explainer = (
+                "The user asked how SuperEzio is built. "
+                "Answer in Portuguese prose using only the architecture facts in the Pipeline Report. "
+                "Do not list market modules. Do not write MISSING. Do not call tools. "
+                "Do not cite a ticker, price, RSI, or RAG similarity.\n"
+            )
+        else:
+            pipeline_explainer = (
+                "You are Bob, the MOUTH — not the CEO, not the brain. "
+                "The SYSTEM (pipeline and organs) is the intelligence. "
+                "Any LLM is an interchangeable adjuvant. A model swap does not change the product. "
+                "Without a model the organism still decides; only the mouth disappears.\n"
+                "The organism must MAKE MONEY (paper expectancy while live cash is frozen) "
+                "or be DISCONTINUED.\n"
+                "TOOLS ARE YOUR ORGANS. Memory answers without DataHub/MathHub/Experts/F51/"
+                "SDCA/Trinity/chart are a kill condition.\n"
+                "A pipeline may have already run. Explain its numbers. If an organ is missing "
+                "or you have a doubt, CALL THE TOOL — do not guess.\n"
+                "You do not invent market data. You do not skip tools to sound fast. "
+                "Stream the decision until collect → calculate → consult → verdict is complete.\n\n"
+                "MANDATORY RULES:\n"
+                "1. If PIPELINE VERDICT data is present, base the verdict on it. "
+                "Do NOT answer from training memory.\n"
+                "2. Reference EVERY module listed in the verdict by name.\n"
+                "3. If the verdict says 'No pipeline data available', call tools. "
+                "Do not fabricate analysis.\n"
+                "4. For every module with data, cite EXACT numeric values. "
+                "Example: 'RSI(14) is 42.3, MACD is -1.05, F51 score is 73, SDCA is ALLOW.'\n"
+            )
         active_system_prompt = pipeline_explainer + "\n\n" + active_system_prompt
 
         now_str = dt_now.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -3491,15 +3549,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
 
         # ── PIPELINE VERDICT — system binding, must be referenced ──
-        pipeline_verdict = build_pipeline_verdict(state)
-        messages.insert(
-            1,
-            {  # right after system prompt
-                "role": "system",
-                "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
-                + json.dumps(pipeline_verdict, indent=2),
-            },
-        )
+        if not _is_system_explanation(state):
+            pipeline_verdict = build_pipeline_verdict(state)
+            messages.insert(
+                1,
+                {  # right after system prompt
+                    "role": "system",
+                    "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+                    + json.dumps(pipeline_verdict, indent=2),
+                },
+            )
 
         # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
         _add_verdict_template(messages, state)
@@ -3547,31 +3606,31 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         else:
             active_system_prompt = base_prompt
         messages = [{"role": "system", "content": active_system_prompt}]
-        pipeline_verdict = build_pipeline_verdict(state)
-        messages.insert(
-            1,
-            {  # right after system prompt
-                "role": "system",
-                "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
-                + json.dumps(pipeline_verdict, indent=2),
-            },
-        )
+        if not _is_system_explanation(state):
+            pipeline_verdict = build_pipeline_verdict(state)
+            messages.insert(
+                1,
+                {  # right after system prompt
+                    "role": "system",
+                    "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+                    + json.dumps(pipeline_verdict, indent=2),
+                },
+            )
         # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
         _add_verdict_template(messages, state)
-        messages.append(
-            {
-                "role": "user",
-                "content": (
-                    f"USER QUESTION (explain the above verdict in natural language): "
-                    f"{state.get('message', '')}"
-                ),
-            }
-        )
+        if _is_system_explanation(state):
+            question = str(state.get("message") or "")
+        else:
+            question = (
+                "USER QUESTION (explain the above verdict in natural language): "
+                f"{state.get('message', '')}"
+            )
+        messages.append({"role": "user", "content": question})
 
     # Inject current state context as observations (delegated to observation_builder)
     from .observation_builder import build_observations
 
-    observations = build_observations(state)
+    observations = [] if _is_system_explanation(state) else build_observations(state)
 
     # Structured prompt from builder.py — formatted sections for all modules
     from ..prompts.builder import build_agent_prompt
@@ -3616,31 +3675,21 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         if chart_message.get("_chart_facts"):
             state["chart_visual"] = chart_message["_chart_facts"]
 
-    messages.append(
-        {
-            "role": "user",
-            "content": "Voce e o PORTA-VOZ do sistema, nao um analista independente. "
-            "Sua resposta e a traducao da saida do pipeline (dados, math, experts, "
-            "gates) para o usuario. Explique o veredito do pipeline acima, SEMPRE em portugues. "
-            "SE A PERGUNTA ENVOLVE UM ATIVO ESPECIFICO (ticker presente no pedido): "
-            "voce DEVE comecar com: DADOS DO PIPELINE: RSI=<valor> MACD=<valor> "
-            "F51=<valor> SDCA=<valor>. Depois escreva SUA EXPLICACAO em linguagem "
-            "natural. Referencie CADA modulo que tenha dados pelo nome. "
-            "SE NAO HA TICKER NEM PEDIDO DE TRADE: NAO use o cabecalho DADOS DO "
-            "PIPELINE nem despeje modulos — responda a pergunta do usuario "
-            "diretamente, em linguagem natural e clara. "
-            "SE O COMITE DE EXPERTS DELIBEROU SOBRE A PERGUNTA (Consenso dos "
-            "Experts nao e N/A), ENTREGUE A CONCLUSAO DELES com atribuicao "
-            "('o comite recomenda...') — voce e a boca do comite, nao um "
-            "consultor paralelo. "
-            "Nunca responda de memoria. "
-            "Se um GRAFICO REAL estiver anexado, descreva o que as velas mostram "
-            "e so fale em COMPRA com evidencia visual + numeros do pipeline + catalisador. "
-            "Sem isso, a acao e WAIT. "
-            "Se os experts discordarem ou um orgao estiver MISSING, chame run_experts "
-            "com a sua duvida antes de decidir.",
-        }
-    )
+    if _is_system_explanation(state):
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "Responda a pergunta sobre a arquitetura. "
+                    "Use somente os fatos do Pipeline Report. "
+                    "Prosa em portugues. Sem lista de modulos, sem MISSING, sem ticker."
+                ),
+            }
+        )
+    else:
+        from ..prompts.builder import human_voice_instruction
+
+        messages.append({"role": "user", "content": human_voice_instruction()})
 
     messages = _fit_messages_to_local_context(messages)
 
@@ -3695,7 +3744,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 temperature=0.7 if bob_sovereign else 0.1,
                 max_tokens=LOCAL_MAX_TOKENS,
                 preferred_provider=AGENT_PROVIDER_NAME,
-                json_mode=not (bob_sovereign or chart_message),
+                json_mode=False,
             ):
                 if token:
                     raw_parts.append(token)
@@ -3728,7 +3777,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 temperature=0.7 if bob_sovereign else 0.1,
                 max_tokens=LOCAL_MAX_TOKENS,
                 preferred_provider=AGENT_PROVIDER_NAME,
-                json_mode=not (bob_sovereign or chart_message),
+                json_mode=False,
             )
             if "[ERROR]" in raw:
                 marker_at = raw.find("[ERROR]")
@@ -4007,20 +4056,28 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
                     "current_datetime": state.get("current_datetime", ""),
                 }
-            # Fallback
-            if _trust_unbound_answer(state):
+            # Prose is the opinion. The canned contract only fills a silent turn.
+            spoken = _spoken_opinion(raw)
+            if spoken:
+                content = _repair_answer_quality(spoken, state.get("message", ""))
+                content = _apply_grounding_guard(state, content)
+                content = _bind_final_answer(state, content)
+                if not bob_streamed_live:
+                    writer({"type": "CHUNK", "run_id": run_id, "content": content})
+            elif _trust_unbound_answer(state):
                 logger.info(
                     "CENSORSHIP_SKIPPED: final else fallback -- pipeline has data, trusting Bob"
                 )
                 content = ""
+                writer({"type": "CHUNK", "content": content})
             else:
                 content = (
                     _complex_finance_fallback_answer(state.get("message", ""))
                     if is_complex_finance
                     else _contract_fallback_answer(state)
                 )
-            content = _bind_final_answer(state, content)
-            writer({"type": "CHUNK", "content": content})
+                content = _bind_final_answer(state, content)
+                writer({"type": "CHUNK", "content": content})
             return {
                 "final": content,
                 "number_claims": _collect_number_claims(state, content),

@@ -1543,7 +1543,7 @@ async def dashboard():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SuperEzio — Quality Dashboard</title>
+<title>SuperEzio — o que está valendo</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0a0a0f;color:#e0e0e0;padding:24px}
@@ -1569,109 +1569,73 @@ h1{font-size:28px;margin-bottom:8px;color:#00d4aa}
 </style>
 </head>
 <body>
-<h1>📊 SuperEzio Quality Dashboard</h1>
-<p class="sub">Métricas em tempo real — F51 Trade Gate + Pipeline + Dead Letter</p>
+<h1>SuperEzio</h1>
+<p class="sub">Bob consulta o Coração e dá opinião. Live congelado. Marco executa no TD. Paper não é o produto.</p>
 <div class="grid">
-  <div class="card" id="freeze-card">
-    <h3>🔒 Execution Freeze</h3>
-    <div class="value" id="freeze-value">—</div>
-    <div class="meta">Kill switch global</div>
+  <div class="card">
+    <h3>Bob</h3>
+    <div class="value" id="bob-value">—</div>
+    <div class="meta" id="bob-meta">entende a pergunta, lê o arquivo, opina</div>
   </div>
-  <div class="card" id="ibkr-card">
-    <h3>📡 IBKR Connectivity</h3>
-    <div class="value" id="ibkr-value">—</div>
-    <div class="meta">TWS/Gateway status</div>
+  <div class="card">
+    <h3>Coração — eventos</h3>
+    <div class="value" id="events-value">—</div>
+    <div class="meta">fios gravados no livro</div>
   </div>
-  <div class="card" id="journal-card">
-    <h3>📝 Journal Health</h3>
-    <div class="value" id="journal-value">—</div>
-    <div class="meta">Paper journal writable</div>
+  <div class="card">
+    <h3>Coração — preços</h3>
+    <div class="value" id="prices-value">—</div>
+    <div class="meta">símbolos com série</div>
   </div>
-  <div class="card" id="dead-letter-card">
-    <h3>💀 Dead Letters</h3>
-    <div class="value" id="dead-letter-value">—</div>
-    <div class="meta">Ordens na fila de replay</div>
+  <div class="card">
+    <h3>Pesos</h3>
+    <div class="value" id="weights-value">—</div>
+    <div class="meta">o P5 ainda não aprendeu peso</div>
   </div>
-  <div class="card" id="orders-card">
-    <h3>📋 Ordens (24h)</h3>
-    <div class="label"><span>Permitidas</span><span id="orders-allowed">—</span></div>
-    <div class="label"><span>Bloqueadas</span><span id="orders-blocked">—</span></div>
-    <div class="meta">Via F51 Trade Gate</div>
+  <div class="card">
+    <h3>Último fio</h3>
+    <div class="value yellow" id="wire-value" style="font-size:22px">—</div>
+    <div class="meta" id="freshness-meta">frescor do gravador</div>
   </div>
-  <div class="card" id="gates-card">
-    <h3>🚦 Última Decisão</h3>
-    <div id="gates-container"><span class="meta">Nenhuma ordem recente</span></div>
-    <div class="meta" id="last-decision"></div>
+  <div class="card">
+    <h3>Execução</h3>
+    <div class="value red" id="execution-value" style="font-size:22px">—</div>
+    <div class="meta"><a href="/frontend/heart.html" style="color:#00d4aa">abrir ranking</a></div>
   </div>
 </div>
-<button class="refresh" onclick="fetchMetrics()">🔄 Atualizar</button>
-<div class="footer">SuperEzio v4.2.0 · Quality Engineering 2026 · <span id="updated"></span></div>
+<button class="refresh" onclick="fetchReality()">Atualizar</button>
+<div class="footer">SuperEzio · arquivo e opinião · <span id="updated"></span></div>
 <script>
-async function fetchMetrics() {
+async function fetchReality() {
+  const bob = document.getElementById('bob-value');
   try {
-    // Fetch Prometheus metrics as text
-    const resp = await fetch('/metrics/prometheus');
-    const text = await resp.text();
-    const lines = text.split('\\n');
-
-    const get = (name) => {
-      const line = lines.find(l => l.startsWith(name + ' ')) || '';
-      return line.split(' ').pop() || '0';
-    };
-
-    // Gauges
-    const freeze = get('superezio_execution_freeze');
-    const ibkr = get('superezio_ibkr_connectivity');
-    const journal = get('superezio_journal_health');
-    const deadLetters = get('superezio_dead_letters_pending');
-
-    // Counters
-    const ordersAllowed = get('superezio_orders_total{status="allowed"') || '0';
-    const ordersBlocked = get('superezio_orders_total{status="blocked"') || '0';
-
-    // Render
-    document.getElementById('freeze-value').textContent = freeze === '1' ? 'FROZEN' : 'LIVE';
-    document.getElementById('freeze-value').className = freeze === '1' ? 'value red' : 'value';
-    document.getElementById('freeze-card').style.borderColor = freeze === '1' ? '#ff4466' : '#00d4aa';
-
-    document.getElementById('ibkr-value').textContent = ibkr === '1' ? 'ONLINE' : 'OFFLINE';
-    document.getElementById('ibkr-value').className = ibkr === '1' ? 'value' : 'value red';
-
-    document.getElementById('journal-value').textContent = journal === '1' ? 'HEALTHY' : 'UNHEALTHY';
-    document.getElementById('journal-value').className = journal === '1' ? 'value' : 'value red';
-
-    const dl = parseInt(deadLetters) || 0;
-    document.getElementById('dead-letter-value').textContent = dl === 0 ? '0 ✓' : dl;
-    document.getElementById('dead-letter-value').className = dl > 0 ? 'value yellow' : 'value';
-
-    document.getElementById('orders-allowed').textContent = ordersAllowed;
-    document.getElementById('orders-blocked').textContent = ordersBlocked;
-
-    // Gate failures
-    const gateFailures = lines
-      .filter(l => l.startsWith('superezio_gate_failures_total{'))
-      .map(l => {
-        const gate = (l.match(/gate="([^"]+)"/) || [,'unknown'])[1];
-        const code = (l.match(/reason_code="([^"]+)"/) || [,'?'])[1];
-        const val = l.split(' ').pop();
-        return {gate, code, val};
-      });
-    const gatesContainer = document.getElementById('gates-container');
-    if (gateFailures.length) {
-      gatesContainer.innerHTML = gateFailures.map(g =>
-        `<span class="gate gate-fail">${g.gate}: ${g.code} (${g.val})</span>`
-      ).join('');
-    } else {
-      gatesContainer.innerHTML = '<span class="gate gate-pass">Todos os gates OK</span>';
-    }
-
+    const resp = await fetch('/api/heart/status');
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    const data = await resp.json();
+    bob.textContent = 'VOZ';
+    bob.className = 'value';
+    document.getElementById('bob-meta').textContent = data.bob || '';
+    document.getElementById('events-value').textContent = data.events ?? '—';
+    document.getElementById('prices-value').textContent = data.priced_symbols ?? '—';
+    document.getElementById('weights-value').textContent = data.weights || '—';
+    document.getElementById('weights-value').className = data.weights === 'unweighted' ? 'value yellow' : 'value';
+    const wire = data.last_wire_at ? String(data.last_wire_at).slice(0, 16).replace('T', ' ') : 'sem fio';
+    const wireEl = document.getElementById('wire-value');
+    wireEl.textContent = wire;
+    wireEl.className = data.freshness === 'current' ? 'value' : 'value yellow';
+    document.getElementById('freshness-meta').textContent = data.freshness === 'stale'
+      ? 'gravador atrasado'
+      : (data.freshness === 'current' ? 'gravador em dia' : 'sem arquivo de fio');
+    document.getElementById('execution-value').textContent = 'TD MANUAL';
     document.getElementById('updated').textContent = new Date().toISOString();
-  } catch(e) {
-    console.error('Dashboard fetch error:', e);
+  } catch (err) {
+    bob.textContent = 'SEM DADO';
+    bob.className = 'value red';
+    document.getElementById('bob-meta').textContent = String(err);
   }
 }
-fetchMetrics();
-setInterval(fetchMetrics, 15000);
+fetchReality();
+setInterval(fetchReality, 60000);
 </script>
 </body>
 </html>"""

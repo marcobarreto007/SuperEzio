@@ -171,7 +171,8 @@ def test_build_agent_prompt_ticker():
         "time_horizon": "14 days",
     }
     prompt = build_agent_prompt(state)
-    assert "Bob's read" in prompt
+    assert "VOZ:" in prompt
+    assert "opiniao" in prompt
     assert "AAPL" in prompt
 
 

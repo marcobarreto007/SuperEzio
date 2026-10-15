@@ -641,6 +641,38 @@ async def _auto_full_analysis(
             working_state.pop(key, None)
         logger.debug("[auto_full_analysis] Cleaned ticker-specific state for route=general")
 
+    from core.pipeline.intents import detect_system_explanation_request
+
+    _system_explanation = (
+        detect_system_explanation_request(str(working_state.get("message") or ""))
+        or working_state.get("information_need") == "system_architecture"
+    )
+    # Architecture questions are not an asset turn. A chart ticker or a stale
+    # forensic hit must not be narrated as evidence.
+    if _system_explanation:
+        stale_clear: dict[str, Any] = {
+            "ticker": "",
+            "data": {},
+            "data_context": "",
+            "expert_results": [],
+            "expert_summary": "",
+            "expert_verdicts": {},
+            "f51_verdict": {},
+            "neural_decision": {},
+            "rag_context": "",
+            "pennylab": {},
+            "pennylab_result": {},
+            "math_report": {},
+            "math_prompt": "",
+            "trinity_report": "",
+            "skip_trinity": True,
+            "trinity_structured": {"skipped": True, "reason": "system_explanation"},
+            "trinity_blocked": False,
+        }
+        working_state.update(stale_clear)
+        _merge_node_update(working_state, output, stale_clear)
+        logger.debug("[auto_full_analysis] Cleared market evidence for system explanation")
+
     writer(
         {
             "type": "PIPELINE_STEP",
@@ -657,8 +689,10 @@ async def _auto_full_analysis(
 
     _is_casual = _is_casual_message(_msg) or working_state.get("cognitive_mode") == "CASUAL"
     _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
+    if _system_explanation:
+        _has_ticker = False
     _needs_scan = any(re.search(rf"\b{re.escape(w)}", _msg) for w in _SCAN_NEED_KEYWORDS)
-    if _is_casual:
+    if _is_casual or _system_explanation:
         should_collect_market = False
     else:
         should_collect_market = bool(
@@ -724,7 +758,7 @@ async def _auto_full_analysis(
     # answer carries one, even without collected data — allocation/framework
     # answers compute portfolio math from the message, not OHLCV. Only pure
     # casual greetings skip it (fast path).
-    if not _is_casual:
+    if not _is_casual and not _system_explanation:
         logger.info(
             "MATHHUB_INPUT has_data=%s ohlcv_count=%s ticker=%s",
             "data" in working_state,
@@ -1205,7 +1239,7 @@ async def _auto_full_analysis(
                 _merge_node_update(working_state, output, result)
                 if label == "f51":
                     _refresh_math_f51_unified(working_state, output)
-    else:
+    elif not _system_explanation:
         try:
             result = await node_sdca_firewall(working_state)
             _merge_node_update(working_state, output, result)

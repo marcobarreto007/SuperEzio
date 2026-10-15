@@ -423,6 +423,7 @@ def build_observations(state: dict) -> list[str]:
 
     # ── RAG semantic search ──
     _inject_rag_knowledge(state, observations)
+    _inject_heart_reference(state, observations)
 
     # ── Evidence sections (ticker, data, math, experts, guardrails) ──
     _inject_evidence(state, observations)
@@ -503,6 +504,24 @@ def _inject_feedback_loop(state: dict, observations: list[str]):
     # (módulo ausente, banco fora do ar) não pode derrubar a construção das observações.
     except Exception:
         logger.debug("Feedback loop indisponível; seguindo sem feedback", exc_info=True)
+
+
+def _inject_heart_reference(state: dict, observations: list[str]) -> None:
+    """Cite Heart archive rows. Skip system-explanation turns."""
+    try:
+        from core.heart.reference_rag import heart_reference
+        from core.pipeline.intents import detect_system_explanation_request
+
+        message = str(state.get("message") or "")
+        if detect_system_explanation_request(message):
+            return
+        ticker = str(state.get("ticker") or "").strip()
+        query = " ".join(part for part in (ticker, message) if part)
+        block = heart_reference.format_for_query(query)
+        if block:
+            observations.append(block)
+    except Exception:
+        logger.debug("Heart reference indisponivel; seguindo sem o arquivo", exc_info=True)
 
 
 def _inject_rag_knowledge(state: dict, observations: list[str]):

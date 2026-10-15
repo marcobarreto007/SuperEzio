@@ -10,6 +10,7 @@ FunÃ§Ãµes pÃºblicas exportadas:
   - detect_another_trade_recommendation_intent(message) -> bool
   - detect_pennylab_intent(message) -> bool
   - detect_complex_finance_intent(message) -> bool
+  - detect_system_explanation_request(message) -> bool
   - infer_scan_filters(message) -> dict
   - should_block_vague_financial_prompt(message, ticker, rigor) -> bool
   - normalize_message(text) -> str
@@ -204,6 +205,26 @@ def detect_operational_status_request(message: str) -> bool:
     if any(re.search(pattern, normalized) for pattern in OPERATIONAL_STATUS_PATTERNS):
         return True
     return detect_broker_status_intent(message)
+
+
+def detect_system_explanation_request(message: str) -> bool:
+    """Pergunta sobre o proprio sistema, nao sobre um ativo.
+
+    "me explica sua arquitetura" nao tem ticker. O relatorio de evidencia
+    (## DATA, MISSING, SDCA, RAG) nao responde isso.
+    """
+    if not message or not message.strip():
+        return False
+    normalized = normalize_message(message)
+    patterns = (
+        r"\bsua\s+arquitetura\b",
+        r"\byour\s+architecture\b",
+        r"\barquitetura\s+(?:do|da|de)\s+(?:bob|sistema|superezio|pipeline|ezio|coracao)\b",
+        r"\bcomo\s+(?:voce|vc|tu|bob|o\s+bob|o\s+sistema|o\s+superezio|o\s+pipeline)\s+funciona\b",
+        r"\bhow\s+(?:do\s+you|does\s+bob|does\s+the\s+system)\s+work\b",
+        r"\b(?:quem|o\s+que)\s+(?:e|eh)\s+(?:voce|vc|o\s+bob|bob|o\s+superezio|o\s+sistema)\b",
+    )
+    return any(re.search(pattern, normalized) for pattern in patterns)
 
 
 def detect_negative_trade_instruction(message: str) -> bool:
@@ -494,6 +515,22 @@ def infer_cognitive_contract(
             "answer_contract": (
                 "Responda com 1-3 linhas. Confirme que esta online. "
                 "Nao chame market_scan, collect_data ou submit_paper_order."
+            ),
+        }
+
+    if detect_system_explanation_request(raw):
+        return {
+            "cognitive_mode": "ANSWER_ONLY",
+            "information_need": "system_architecture",
+            "allowed_tools": ["final_answer"],
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": (
+                "Explique a arquitetura real do SuperEzio em portugues. "
+                "Nao liste modulos de mercado nem escreva MISSING. "
+                "Nao invente preco, ticker ou estatistica."
             ),
         }
 

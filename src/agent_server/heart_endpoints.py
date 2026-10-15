@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -106,3 +107,61 @@ def get_heart_ranking() -> dict[str, Any]:
             row["path_status"] = path_status
             row["path_id"] = path_id
     return {"rows": rows, "path_id": path_id, "path_status": path_status}
+
+
+_LINE_CACHE: dict[str, tuple[int, int, int]] = {}
+_STALE_AFTER_SECONDS = 48 * 3600
+
+
+def _count_nonempty_lines(path: Path) -> int:
+    if not path.is_file():
+        return 0
+    stat = path.stat()
+    cached = _LINE_CACHE.get(str(path))
+    if cached and cached[0] == stat.st_mtime_ns and cached[1] == stat.st_size:
+        return cached[2]
+    count = 0
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if line.strip():
+                count += 1
+    _LINE_CACHE[str(path)] = (stat.st_mtime_ns, stat.st_size, count)
+    return count
+
+
+def build_heart_status(
+    heart_root: Path,
+    ohlcv_dir: Path,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Facts the dashboard may show. Does not rank and does not invent weights."""
+    root = Path(heart_root)
+    prices = Path(ohlcv_dir)
+    moment = now or datetime.now(UTC)
+    csvs = sorted(prices.glob("*.csv")) if prices.is_dir() else []
+    raw_dir = root / "raw"
+    raw_files = sorted(raw_dir.rglob("*.jsonl")) if raw_dir.is_dir() else []
+    newest = max(raw_files, key=lambda item: item.stat().st_mtime) if raw_files else None
+    last_wire_at = None
+    freshness = "missing"
+    if newest is not None:
+        last_wire_at = datetime.fromtimestamp(newest.stat().st_mtime, UTC).isoformat()
+        age = moment.timestamp() - newest.stat().st_mtime
+        freshness = "stale" if age > _STALE_AFTER_SECONDS else "current"
+    return {
+        "bob": "consulta o arquivo e da opiniao",
+        "execution": "live congelado — Marco digita no TD",
+        "paper_is_product": False,
+        "events": _count_nonempty_lines(root / "events.jsonl"),
+        "priced_symbols": len(csvs),
+        "weights": "unweighted" if csvs else "empty",
+        "last_wire_at": last_wire_at,
+        "freshness": freshness,
+        "ranking_url": "/api/heart/ranking",
+    }
+
+
+@router.get("/api/heart/status")
+def get_heart_status() -> dict[str, Any]:
+    return build_heart_status(DEFAULT_HEART_ROOT, resolve_ohlcv_dir())

@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..contracts import PipelineState
 
-from ..intents import detect_complex_finance_intent
+from ..intents import (
+    detect_complex_finance_intent,
+    detect_decisive_trade_intent,
+    detect_market_scan_intent,
+    detect_system_explanation_request,
+)
 from ._prompts import MODEL_PROMPTS
 
 # ---------------------------------------------------------------------------
@@ -32,7 +37,9 @@ def _agent_assistant_prefix(state: PipelineState) -> str:
     route = state.get("route", "general")
     intent = state.get("intent", "general_question")
 
-    if intent == "explain_capabilities":
+    if intent == "explain_capabilities" or detect_system_explanation_request(
+        str(state.get("message") or "")
+    ):
         return ""
     if route == "market_scan":
         return (
@@ -436,6 +443,76 @@ def _build_complex_finance_prompt(raw_message: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Architecture / direct answer (no market evidence template)
+# ---------------------------------------------------------------------------
+
+_ARCHITECTURE_FACTS = """\
+FATOS (use estes; nao invente pecas, portas ou modulos fora da lista):
+- SuperEzio na porta :8002 e o cockpit de paper: chat, evidencia, gates e journal. Bob e a boca. Quem narra e o DeepSeek na nuvem. Bob nao e assistente da casa e nao manda ordem live.
+- O turno de chat passa por um grafo legado: orchestrator (passthrough, sem classificar a frase) -> auto_full_analysis (coleta, MathHub, experts, F51, neural, SDCA, RAG, guardrails) -> trinity -> agente. Sem ticker, esses orgaos de mercado nao tem o que medir. Listar MISSING nao e uma explicacao.
+- Coracao e arquivo evento x preco, sem LLM. P0 grava o wire cru. P1 guarda o universo TD e o OHLCV as-traded. P2 e o livro de eventos. P3 junta movimento e evento. P4 mostra o ranking no painel. P5 escolhe caminho e peso. O painel mostra; quem aprende o peso e o P5.
+- MIKE e o sistema irmao (familia, memoria, Gmail). Ve e comanda o Ezio pelo bridge :8009. Nao rankeia ativo e nao e corretora.
+- Live congelado por padrao. Marco executa no TD a mao. Protocolo: banca 1000 CAD, so ETF sem comissao ou cota free, risco 1% a 1.5% por trade, alvo no minimo 2.5:1 contra o stop, probabilidade calibrada abaixo de 0.55 vira ABSTAIN, so ordem limite.
+- Arquitetura-alvo: C1 (evidence pack) e C2 (snapshot) em sombra, C3 (bind dos numeros) ligado, C4 (SDCA como aresta) em observe. O grafo que corre hoje ainda e o legado.
+"""
+
+
+def _build_architecture_prompt(raw_message: str) -> str:
+    """Direct architecture answer. No ## DATA / MISSING contract."""
+    return "\n\n".join(
+        [
+            MODEL_PROMPTS["local"]["persona"],
+            (
+                "O usuario pediu a arquitetura do sistema, nao uma analise de ativo. "
+                "Responda em portugues, em prosa, com as pecas reais abaixo. "
+                "Proibido: cabecalhos ## DATA, ## F51_VERDICT, ## EXPERTS, ## NEURAL_DECISION, "
+                "## SDCA_FIREWALL, ## RAG_FORENSICS, ## PENNYLAB, ## MATH_REPORT, "
+                "## GUARDRAIL_HUB, ## DECISION_TRACE, ## TRINITY, ## BOB_VERDICT. "
+                "Proibido escrever MISSING. Proibido citar preco, RSI, Sharpe, ticker ou similaridade de busca."
+            ),
+            _ARCHITECTURE_FACTS,
+            f"USER: {raw_message}",
+        ]
+    )
+
+
+def human_voice_instruction() -> str:
+    """Last instruction Bob sees. Prose opinion grounded in the system, not a checklist."""
+    return (
+        "VOZ:\n"
+        "Fala como uma pessoa, em portugues, em prosa. "
+        "Se alguma instrucao anterior pediu cabecalho ##, DADOS DO PIPELINE ou a palavra MISSING, ignore.\n"
+        "1. Entende a pergunta e responde ela primeiro, como um analista na mesa.\n"
+        "2. Consulta o que o sistema ja pesquisou nos blocos acima: preco, matematica, experts, "
+        "HEART_REFERENCE, firewall. So usa o que esta escrito. Nao inventa preco, noticia, RSI ou ticker.\n"
+        "3. Da a tua opiniao: o que essa evidencia te leva a pensar, o que te incomoda, "
+        "e o que ainda falta para ter certeza.\n"
+        "4. Bloco vazio nao se menciona.\n"
+        "5. Nao mandes ordem de compra ou venda. Se o assunto for execucao, uma linha: "
+        "live congelado, o Marco digita no TD.\n"
+        "6. Se HEART_REFERENCE trouxer o simbolo, cita sessao e evento. "
+        "Se nao trouxer, diz que o arquivo nao tem esse nome."
+    )
+
+
+def _build_direct_answer_prompt(raw_message: str) -> str:
+    """Natural-language answer when this turn has no market subject."""
+    return "\n\n".join(
+        [
+            MODEL_PROMPTS["local"]["persona"],
+            (
+                "Responda a pergunta do usuario em portugues, em prosa. "
+                "Nao ha analise de ativo neste turno. "
+                "Nao use cabecalhos ## DATA nem escreva MISSING. "
+                "Nao invente preco, RSI, Sharpe ou ticker."
+            ),
+            f"USER: {raw_message}",
+            human_voice_instruction(),
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main prompt builder
 # ---------------------------------------------------------------------------
 
@@ -480,6 +557,9 @@ def build_agent_prompt(
         return _build_complex_finance_prompt(raw_message)
 
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
+    if detect_system_explanation_request(raw_message):
+        return _build_architecture_prompt(raw_message)
+
     if intent == "general_question" and not has_financial and not msg_has_ticker:
         return "\n\n".join(
             [
@@ -492,6 +572,18 @@ def build_agent_prompt(
                 f"USER: {raw_message}",
             ]
         )
+
+    # bob_decides sem ativo ainda caia no contrato ## DATA / MISSING. Isso
+    # transformava pergunta sem ticker num relatorio de orgaos vazios.
+    if (
+        not ticker
+        and not msg_has_ticker
+        and route not in {"market_scan", "ticker_analysis"}
+        and not has_financial
+        and not detect_market_scan_intent(raw_message)
+        and not detect_decisive_trade_intent(raw_message)
+    ):
+        return _build_direct_answer_prompt(raw_message)
 
     # â"€â"€ Structured analysis â"€â"€
     # Extract time horizon from the user message
@@ -532,27 +624,8 @@ def build_agent_prompt(
             "You are Bob, SuperEzio's autonomous financial agent. You provide financial decision support "
             "in natural language. You are NOT a broker execution engine and you must not "
             "turn the answer into a direct trade order.\n\n"
-            "MANDATORY FORMAT:\n"
-            "```\n"
-            "Bob's read: plain-language answer\n"
-            "Confidence: 0-100%, with uncertainty\n"
-            "Evidence: what the modules say\n"
-            "Risks to check before acting: concrete checklist\n"
-            "Practical next step: study, wait, review, watchlist, avoid, or small-position planning\n"
-            "```\n\n"
-            "Entao explique o PORQUE em portugues. Cite TODO modulo disponivel abaixo pelo nome:\n"
-            "- DATA: o que o DataCollector mostra\n"
-            "- PENNYLAB: o que os especialistas forenses detectaram\n"
-            "- EXPERTS: o que o comite de especialistas concluiu\n"
-            "- NEURAL_DECISION: probabilidade direcional, sinal de retorno esperado, regime, risco de drawdown\n"
-            "- SDCA_FIREWALL: portao defensivo ALLOW, BLOCK ou REVIEW antes de qualquer acao final\n"
-            "- RAG_FORENSICS: quais padroes historicos casam\n"
-            "- F51_VERDICT: o que o scoring unificado diz\n"
-            "- MATH_REPORT: relatorio numerico consolidado (risco, Sharpe, VaR, Kelly, crise)\n"
-            "- GUARDRAIL_HUB: status da auditoria de 30 camadas e bloqueios\n"
-            "- DECISION_TRACE: relatorio de responsabilidade e origem de latencia/skip/erro\n\n"
-            "Se um modulo nao tiver dados, escreva '[MODULO] MISSING - confidence reduced'.\n"
-            "Se um modulo tiver dados, interprete em risco e evidencia, nao em instrucao de corretagem.\n\n"
+            "Os blocos abaixo sao a pesquisa que o sistema ja fez. Leia os que tem dado. "
+            "Ignore bloco vazio. Nao transforme ausencia em secao.\n\n"
             "RULES:\n"
             "- Responda primeiro a pergunta real do usuario.\n"
             "- Nunca emita diretiva nua como 'VERDICT: ... -> SHORT'.\n"
@@ -585,6 +658,16 @@ def build_agent_prompt(
     elif route in ("ticker_analysis", "market_scan"):
         parts.append("DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals.")
 
+    if not detect_system_explanation_request(raw_message):
+        from core.heart.reference_rag import heart_reference
+
+        heart_query = " ".join(
+            part for part in (str(ticker or "").strip(), str(raw_message or "").strip()) if part
+        )
+        heart_block = heart_reference.format_for_query(heart_query)
+        if heart_block:
+            parts.append(heart_block[:2000])
+
     rag_ctx = state.get("rag_context", "")
     if rag_ctx:
         parts.append(f"RAG_FORENSICS:\n{rag_ctx[:1200]}")
@@ -597,14 +680,10 @@ def build_agent_prompt(
     pennylab_block = _format_pennylab(pennylab_raw)
     if pennylab_block:
         parts.append(f"PENNYLAB:\n{pennylab_block[:1200]}")
-    else:
-        parts.append("PENNYLAB:\nNo PennyLab evidence.")
 
     expert_summary = state.get("expert_summary", "")
     if expert_summary:
         parts.append(f"EXPERTS:\n{expert_summary[:3000]}")
-    else:
-        parts.append("EXPERTS:\nNo expert committee output.")
 
     trinity_report = state.get("trinity_report", "")
     if trinity_report:
@@ -615,8 +694,6 @@ def build_agent_prompt(
         neural_block = _format_neural_decision(neural)
         if neural_block:
             parts.append(f"NEURAL_DECISION:\n{neural_block[:1200]}")
-    else:
-        parts.append("NEURAL_DECISION:\nNeuralDecisionExpert not available for this ticker.")
 
     _sdca_raw = state.get("sdca_firewall")
     sdca = _sdca_raw if isinstance(_sdca_raw, dict) else {}
@@ -656,29 +733,8 @@ def build_agent_prompt(
     if contract:
         parts.append(contract)
 
-    # ── Output enforcement for quantized models ──
-    # Q4_K_M models tend to truncate. This block is placed LAST so it's
-    # fresh in the model's attention window.
-    parts.append(
-        "CRITICAL_OUTPUT_REQUIREMENT:\n"
-        "Sua resposta DEVE conter exatamente estes cabecalhos de secao, um por linha, "
-        "mesmo se a secao estiver MISSING:\n"
-        "## DATA\n"
-        "## F51_VERDICT\n"
-        "## EXPERTS\n"
-        "## NEURAL_DECISION\n"
-        "## SDCA_FIREWALL\n"
-        "## RAG_FORENSICS\n"
-        "## PENNYLAB\n"
-        "## MATH_REPORT\n"
-        "## GUARDRAIL_HUB\n"
-        "## DECISION_TRACE\n"
-        "## TRINITY\n\n"
-        "Para cada secao escreva 1-3 frases em portugues, linguagem simples. "
-        "Se um modulo nao tiver dados, escreva 'MISSING -- confidence reduced'.\n"
-        "Depois escreva '## BOB_VERDICT' com seu veredito final em portugues.\n"
-        "Nao pule nenhum cabecalho de secao. Obrigatorio."
-    )
+    # Last block. The model follows this over any earlier checklist.
+    parts.append(human_voice_instruction())
 
     return "\n\n".join(parts)
 

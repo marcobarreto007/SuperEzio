@@ -94,6 +94,21 @@ body::after {
   overflow-wrap: anywhere;
 }
 
+.reality-bar {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #d5e6d8;
+  background: #101910;
+  border-bottom: 1px solid #1e3a24;
+}
+
+.reality-bar a {
+  color: #7dcea0;
+  margin-left: 8px;
+}
+
 /* ── TOP BAR ── */
 .topbar {
   display: flex;

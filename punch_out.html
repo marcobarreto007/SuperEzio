@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Punch-Out!! 1987 Arcade Retro</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: #0a0a14;
+      color: #fff;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      background: #000;
+      border: 4px solid #444;
+      box-shadow: 0 0 30px rgba(0, 255, 150, 0.2), inset 0 0 100px rgba(0, 0, 0, 0.8);
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+    .crt-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+    }
+    .instructions {
+      margin-top: 14px;
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #88cc88;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .badge {
+      background: #1e293b;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="gameCanvas" width="320" height="240"></canvas>
+    <div class="crt-overlay"></div>
+  </div>
+
+  <div class="instructions">
+    <div class="badge"><b>[A] / [&larr;]</b> Esquiva Esq.</div>
+    <div class="badge"><b>[D] / [&rarr;]</b> Esquiva Dir.</div>
+    <div class="badge"><b>[S] / [&darr;]</b> Abaixar</div>
+    <div class="badge"><b>[J] / [Z]</b> Jab Esq.</div>
+    <div class="badge"><b>[K] / [X]</b> Cruzado Dir.</div>
+    <div class="badge"><b>[ESPAÇO]</b> Super Uppercut</div>
+  </div>
+
+  <script>
+    // Audio Synthesizer (Web Audio API nativo)
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playHit() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      },
+      playDodge() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      },
+      playBell() {
+        if (!this.ctx) return;
+        [850, 1700, 2550].forEach(f => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 1.2);
+        });
+      },
+      playKnockdown() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(55, this.ctx.currentTime + 0.6);
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.6);
+      },
+      playStar() {
+        if (!this.ctx) return;
+        [523, 659, 783, 1046].forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(f, this.ctx.currentTime + idx * 0.08);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.08);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + (idx + 1) * 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.08);
+          osc.stop(this.ctx.currentTime + (idx + 1) * 0.08);
+        });
+      }
+    };
+
+    // Canvas Setup
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Game States
+    let gameState = 'START'; // START, FIGHT, COUNTDOWN, GAMEOVER
+    let roundTime = 180;
+    let stars = 1;
+    let refereeCount = 0;
+    let refereeTimer = 0;
+    let messageText = "PRESSIONE ESPAÇO OU CLIQUE PARA LUTAR";
+
+    // Little Mac (Jogador)
+    const player = {
+      x: 160,
+      y: 195,
+      hp: 100,
+      maxHp: 100,
+      hearts: 20,
+      state: 'IDLE', // IDLE, DODGE_L, DODGE_R, DUCK, PUNCH_L, PUNCH_R, UPPERCUT, HIT, DOWN
+      timer: 0,
+      dodgeDuration: 14,
+      punchDuration: 10,
+      hitStun: 18
+    };
+
+    // Iron Mike (Oponente)
+    const boss = {
+      name: "IRON MIKE",
+      x: 160,
+      y: 125,
+      hp: 120,
+      maxHp: 120,
+      state: 'IDLE', // IDLE, TELEGRAPH_L, TELEGRAPH_R, HOOK_L, HOOK_R, UPPER, HIT, BLOCK, DOWN
+      timer: 0,
+      nextActionTimer: 50,
+      flashColor: null,
+      telegraphDuration: 24,
+      staggerHits: 0,
+      isVulnerable: false
+    };
+
+    // Inputs
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      AudioEngine.init();
+      keys[e.code] = true;
+      if (gameState === 'START' || gameState === 'GAMEOVER') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          startGame();
+        }
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    document.getElementById('game-container').addEventListener('click', () => {
+      AudioEngine.init();
+      if (gameState === 'START' || gameState === 'GAMEOVER') {
+        startGame();
+      }
+    });
+
+    function startGame() {
+      gameState = 'FIGHT';
+      player.hp = 100;
+      player.hearts = 20;
+      player.state = 'IDLE';
+      boss.hp = 120;
+      boss.state = 'IDLE';
+      boss.nextActionTimer = 40;
+      stars = 1;
+      roundTime = 180;
+      AudioEngine.playBell();
+    }
+
+    // Loop de Atualização
+    function update() {
+      if (gameState === 'FIGHT') {
+        updatePlayer();
+        updateBoss();
+      } else if (gameState === 'COUNTDOWN') {
+        updateReferee();
+      }
+    }
+
+    function updatePlayer() {
+      if (player.state === 'IDLE') {
+        if (keys['KeyA'] || keys['ArrowLeft']) {
+          player.state = 'DODGE_L';
+          player.timer = player.dodgeDuration;
+          AudioEngine.playDodge();
+        } else if (keys['KeyD'] || keys['ArrowRight']) {
+          player.state = 'DODGE_R';
+          player.timer = player.dodgeDuration;
+          AudioEngine.playDodge();
+        } else if (keys['KeyS'] || keys['ArrowDown']) {
+          player.state = 'DUCK';
+          player.timer = 12;
+          AudioEngine.playDodge();
+        } else if ((keys['KeyJ'] || keys['KeyZ']) && player.hearts > 0) {
+          player.state = 'PUNCH_L';
+          player.timer = player.punchDuration;
+          checkPlayerHit('LEFT');
+        } else if ((keys['KeyK'] || keys['KeyX']) && player.hearts > 0) {
+          player.state = 'PUNCH_R';
+          player.timer = player.punchDuration;
+          checkPlayerHit('RIGHT');
+        } else if (keys['Space'] && stars > 0) {
+          player.state = 'UPPERCUT';
+          player.timer = 20;
+          stars--;
+          checkSuperUppercut();
+        }
+      } else {
+        player.timer--;
+        if (player.timer <= 0) {
+          player.state = 'IDLE';
+        }
+      }
+    }
+
+    function checkPlayerHit(side) {
+      if (boss.state === 'DOWN') return;
+
+      if (boss.isVulnerable) {
+        boss.state = 'HIT';
+        boss.timer = 15;
+        boss.hp -= 10;
+        AudioEngine.playHit();
+        boss.staggerHits++;
+        if (boss.staggerHits >= 3 && stars < 3) {
+          stars++;
+          AudioEngine.playStar();
+        }
+        if (boss.hp <= 0) {
+          bossKnockdown();
+        }
+      } else {
+        boss.state = 'BLOCK';
+        boss.timer = 8;
+        player.hearts = Math.max(0, player.hearts - 1);
+        AudioEngine.playHit();
+      }
+    }
+
+    function checkSuperUppercut() {
+      AudioEngine.playHit();
+      if (boss.isVulnerable || boss.state === 'IDLE') {
+        boss.state = 'HIT';
+        boss.timer = 30;
+        boss.hp -= 35;
+        if (boss.hp <= 0) {
+          bossKnockdown();
+        }
+      }
+    }
+
+    function updateBoss() {
+      if (boss.state === 'IDLE') {
+        boss.isVulnerable = false;
+        boss.flashColor = null;
+        boss.nextActionTimer--;
+
+        if (boss.nextActionTimer <= 0) {
+          const rand = Math.random();
+          if (rand < 0.45) {
+            boss.state = 'TELEGRAPH_L';
+            boss.timer = boss.telegraphDuration;
+          } else if (rand < 0.85) {
+            boss.state = 'TELEGRAPH_R';
+            boss.timer = boss.telegraphDuration;
+          } else {
+            boss.state = 'TELEGRAPH_UPPER';
+            boss.timer = 28;
+          }
+        }
+      } else if (boss.state === 'TELEGRAPH_L' || boss.state === 'TELEGRAPH_R' || boss.state === 'TELEGRAPH_UPPER') {
+        boss.timer--;
+        boss.flashColor = (Math.floor(boss.timer / 4) % 2 === 0) ? '#ffcc00' : '#ff2222';
+        boss.isVulnerable = true;
+
+        if (boss.timer <= 0) {
+          if (boss.state === 'TELEGRAPH_L') {
+            boss.state = 'HOOK_L';
+            boss.timer = 12;
+            bossAttackHit('HOOK_L');
+          } else if (boss.state === 'TELEGRAPH_R') {
+            boss.state = 'HOOK_R';
+            boss.timer = 12;
+            bossAttackHit('HOOK_R');
+          } else {
+            boss.state = 'HOOK_UPPER';
+            boss.timer = 16;
+            bossAttackHit('UPPER');
+          }
+          boss.isVulnerable = false;
+          boss.flashColor = null;
+        }
+      } else if (boss.state === 'HOOK_L' || boss.state === 'HOOK_R' || boss.state === 'HOOK_UPPER' || boss.state === 'BLOCK') {
+        boss.timer--;
+        if (boss.timer <= 0) {
+          boss.state = 'IDLE';
+          boss.nextActionTimer = 25 + Math.floor(Math.random() * 35);
+        }
+      } else if (boss.state === 'HIT') {
+        boss.timer--;
+        if (boss.timer <= 0) {
+          boss.state = 'IDLE';
+          boss.isVulnerable = false;
+          boss.nextActionTimer = 20;
+          boss.staggerHits = 0;
+        }
+      }
+    }
+
+    function bossAttackHit(type) {
+      let dodged = false;
+      if (type === 'HOOK_L' && player.state === 'DODGE_R') dodged = true;
+      if (type === 'HOOK_R' && player.state === 'DODGE_L') dodged = true;
+      if (player.state === 'DUCK') dodged = true;
+
+      if (dodged) {
+        AudioEngine.playDodge();
+        boss.isVulnerable = true;
+      } else {
+        AudioEngine.playHit();
+        player.state = 'HIT';
+        player.timer = player.hitStun;
+        const dmg = (type === 'UPPER') ? 35 : 20;
+        player.hp -= dmg;
+        player.hearts = Math.max(0, player.hearts - 3);
+
+        if (player.hp <= 0) {
+          playerKnockdown();
+        }
+      }
+    }
+
+    function bossKnockdown() {
+      boss.state = 'DOWN';
+      gameState = 'COUNTDOWN';
+      refereeCount = 0;
+      refereeTimer = 60;
+      AudioEngine.playKnockdown();
+      messageText = "KNOCK DOWN!!";
+    }
+
+    function playerKnockdown() {
+      player.state = 'DOWN';
+      gameState = 'COUNTDOWN';
+      refereeCount = 0;
+      refereeTimer = 60;
+      AudioEngine.playKnockdown();
+      messageText = "MAC ESTÁ NA LONA!!";
+    }
+
+    function updateReferee() {
+      refereeTimer--;
+      if (refereeTimer <= 0) {
+        refereeCount++;
+        refereeTimer = 45;
+        AudioEngine.playHit();
+
+        if (refereeCount >= 10) {
+          gameState = 'GAMEOVER';
+          AudioEngine.playBell();
+          messageText = (player.state === 'DOWN') ? "T.K.O.! VOCÊ PERDEU!" : "K.O.! CAMPEÃO MUNDIAL!!";
+        }
+      }
+    }
+
+    // Renderização
+    function draw() {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawCrowd();
+      drawRing();
+      drawBoss();
+      drawPlayer();
+      drawHUD();
+      drawOverlays();
+    }
+
+    function drawCrowd() {
+      const time = Math.floor(Date.now() / 250);
+      for (let y = 10; y < 65; y += 10) {
+        for (let x = 10; x < 310; x += 12) {
+          const color = ((x + y + time) % 3 === 0) ? '#334155' : '#1e293b';
+          ctx.fillStyle = color;
+          ctx.fillRect(x, y, 8, 7);
+        }
+      }
+    }
+
+    function drawRing() {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.beginPath();
+      ctx.moveTo(30, 80);
+      ctx.lineTo(290, 80);
+      ctx.lineTo(320, 240);
+      ctx.lineTo(0, 240);
+      ctx.fill();
+
+      const ropes = [
+        { y: 72, color: '#ef4444' },
+        { y: 80, color: '#f8fafc' },
+        { y: 88, color: '#3b82f6' }
+      ];
+      ropes.forEach(r => {
+        ctx.strokeStyle = r.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, r.y + 4);
+        ctx.lineTo(320, r.y + 4);
+        ctx.stroke();
+      });
+    }
+
+    function drawBoss() {
+      ctx.save();
+      const bx = boss.x;
+      let by = boss.y;
+
+      if (boss.state === 'DOWN') {
+        by += 40;
+        ctx.fillStyle = '#854d0e';
+        ctx.fillRect(bx - 35, by, 70, 20);
+        ctx.restore();
+        return;
+      }
+
+      if (boss.state === 'HIT') {
+        bx += (Math.random() - 0.5) * 8;
+        by += 4;
+      }
+
+      let skinColor = boss.flashColor || '#a16207';
+      let trunksColor = '#000000';
+      let glovesColor = '#b91c1c';
+
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(bx - 26, by - 30, 52, 45);
+
+      ctx.fillStyle = trunksColor;
+      ctx.fillRect(bx - 22, by + 15, 44, 25);
+
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(bx - 16, by - 55, 32, 28);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(bx - 18, by - 58, 36, 10);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(bx - 10, by - 44, 6, 4);
+      ctx.fillRect(bx + 4, by - 44, 6, 4);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(bx - 8, by - 44, 3, 4);
+      ctx.fillRect(bx + 6, by - 44, 3, 4);
+
+      if (boss.state === 'TELEGRAPH_L') {
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 38, by - 35, 20, 20);
+        ctx.fillRect(bx + 18, by - 15, 18, 18);
+      } else if (boss.state === 'TELEGRAPH_R') {
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 36, by - 15, 18, 18);
+        ctx.fillRect(bx + 18, by - 35, 20, 20);
+      } else if (boss.state === 'HOOK_L') {
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 12, by - 5, 30, 30);
+      } else if (boss.state === 'HOOK_R') {
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 18, by - 5, 30, 30);
+      } else if (boss.state === 'BLOCK') {
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 16, by - 45, 15, 22);
+        ctx.fillRect(bx + 1, by - 45, 15, 22);
+      } else {
+        const idleBob = Math.sin(Date.now() / 150) * 3;
+        ctx.fillStyle = glovesColor;
+        ctx.fillRect(bx - 34, by - 25 + idleBob, 18, 20);
+        ctx.fillRect(bx + 16, by - 25 - idleBob, 18, 20);
+      }
+
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      ctx.save();
+      let px = player.x;
+      let py = player.y;
+
+      if (player.state === 'DODGE_L') px -= 35;
+      if (player.state === 'DODGE_R') px += 35;
+      if (player.state === 'DUCK') py += 25;
+      if (player.state === 'HIT') px += (Math.random() - 0.5) * 6;
+
+      if (player.state === 'DOWN') {
+        ctx.fillStyle = '#15803d';
+        ctx.fillRect(px - 25, py + 15, 50, 15);
+        ctx.restore();
+        return;
+      }
+
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(px - 10, py - 40, 20, 16);
+
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(px - 14, py - 24, 28, 22);
+
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(px - 12, py - 2, 24, 18);
+
+      ctx.fillStyle = '#22c55e';
+      if (player.state === 'PUNCH_L') {
+        ctx.fillRect(px - 16, py - 36, 12, 16);
+        ctx.fillRect(px + 8, py - 18, 12, 12);
+      } else if (player.state === 'PUNCH_R') {
+        ctx.fillRect(px - 18, py - 18, 12, 12);
+        ctx.fillRect(px + 4, py - 36, 12, 16);
+      } else if (player.state === 'UPPERCUT') {
+        ctx.fillRect(px - 6, py - 52, 14, 24);
+      } else {
+        ctx.fillRect(px - 18, py - 20, 10, 12);
+        ctx.fillRect(px + 8, py - 20, 10, 12);
+      }
+
+      ctx.restore();
+    }
+
+    function drawHUD() {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, 24);
+
+      // HP do Oponente
+      ctx.fillStyle = '#fff';
+      ctx.font = '8px "Courier New", monospace';
+      ctx.fillText(boss.name, 12, 9);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(12, 12, 90, 8);
+      ctx.fillStyle = '#ef4444';
+      const bossBarWidth = Math.max(0, (boss.hp / boss.maxHp) * 90);
+      ctx.fillRect(12, 12, bossBarWidth, 8);
+
+      // HP de Little Mac
+      ctx.fillStyle = '#fff';
+      ctx.fillText("MAC", 220, 9);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(220, 12, 90, 8);
+      ctx.fillStyle = '#22c55e';
+      const playerBarWidth = Math.max(0, (player.hp / player.maxHp) * 90);
+      ctx.fillRect(220, 12, playerBarWidth, 8);
+
+      // Estrelas e Corações
+      ctx.fillStyle = '#f59e0b';
+      let starStr = '★'.repeat(stars);
+      ctx.fillText(`STAR: ${starStr || '0'}`, 140, 9);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillText(`♥ ${player.hearts}`, 148, 20);
+    }
+
+    function drawOverlays() {
+      if (gameState === 'START') {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#facc15';
+        ctx.font = '16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText("SUPER PUNCH-OUT!!", 160, 95);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '9px monospace';
+        ctx.fillText("VS IRON MIKE", 160, 118);
+
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText("CLIQUE OU ESPAÇO PARA LUTAR", 160, 155);
+        ctx.textAlign = 'left';
+      } else if (gameState === 'COUNTDOWN') {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 80, canvas.width, 70);
+
+        ctx.fillStyle = '#facc15';
+        ctx.font = '22px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${refereeCount}`, 160, 125);
+        ctx.textAlign = 'left';
+      } else if (gameState === 'GAMEOVER') {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(messageText, 160, 110);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px monospace';
+        ctx.fillText("CLIQUE OU ESPAÇO PARA REVANCHE", 160, 140);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

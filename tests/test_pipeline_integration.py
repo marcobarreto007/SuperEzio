@@ -554,10 +554,12 @@ class TestBuildAgentPrompt:
         assert "EXPERTS" in prompt
 
     def test_build_agent_prompt_contains_critical_output_requirement(self):
-        """The prompt must include CRITICAL_OUTPUT_REQUIREMENT."""
+        """The last instruction is a human opinion, not a MISSING checklist."""
         state = _mock_pipeline_state()
         prompt = build_agent_prompt(state)
-        assert "CRITICAL_OUTPUT_REQUIREMENT" in prompt
+        assert "VOZ:" in prompt
+        assert "opiniao" in prompt
+        assert "MISSING -- confidence reduced" not in prompt
 
     def test_build_agent_prompt_includes_task_and_intent(self):
         """The prompt must include the user's original task and intent."""
@@ -607,10 +609,10 @@ class TestBuildAgentPrompt:
         assert "LANGUAGE" in prompt
 
     def test_build_agent_prompt_contains_mandatory_format(self):
-        """The prompt must include the MANDATORY FORMAT block."""
+        """The prompt must end in a human voice, not a section template."""
         state = _mock_pipeline_state()
         prompt = build_agent_prompt(state)
-        assert "MANDATORY FORMAT" in prompt or "MANDATORY_OUTPUT" in prompt
+        assert "VOZ:" in prompt
 
     def test_build_agent_prompt_includes_horizon(self):
         """The prompt must include a timeframe/horizon constraint."""
@@ -643,13 +645,13 @@ class TestBuildAgentPrompt:
         assert "NEURAL_DECISION" in prompt
 
     def test_build_agent_prompt_output_section_headers(self):
-        """The prompt's CRITICAL_OUTPUT_REQUIREMENT must list expected headers."""
+        """Research notes stay in the prompt. The answer must not be a section checklist."""
         state = _mock_pipeline_state()
         prompt = build_agent_prompt(state)
-        assert "## DATA" in prompt
-        assert "## F51_VERDICT" in prompt
-        assert "## EXPERTS" in prompt
-        assert "## MATH_REPORT" in prompt
+        assert "F51_VERDICT" in prompt
+        assert "EXPERTS" in prompt
+        assert "MATH_REPORT" in prompt
+        assert "## DATA" not in prompt
 
 
 # ===========================================================================
